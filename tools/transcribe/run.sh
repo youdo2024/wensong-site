@@ -10,6 +10,9 @@ cd "$SCRIPT_DIR"
 
 mkdir -p audio out
 FAILED_LOG="out/failed.txt"
+# 每次執行開頭清空：寫入一律用 >>（追加），重跑整批時舊的失敗紀錄如果留著
+# 會跟本次新失敗混在一起，收尾「有沒有失敗」的判斷會被上一輪的舊紀錄污染。
+> "$FAILED_LOG"
 
 WHISPERX_BIN="${WHISPERX_BIN:-$HOME/.local/pipx/venvs/whisperx/bin/whisperx}"
 MODEL="${WHISPER_MODEL:-medium}"          # 8GB RAM 建議 small 或 medium

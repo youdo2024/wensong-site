@@ -1774,6 +1774,39 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
+/* ── tools/transcribe/run.sh：FAILED_LOG 從不清空，重跑會混進上一輪的舊紀錄 ──
+   FAILED_LOG="out/failed.txt" 只是宣告變數，寫入一律用 >>（追加），從不
+   在開頭清空；重跑整批時舊的失敗紀錄會跟本次新失敗混在一起，收尾「有沒有
+   失敗」的判斷會被上一輪的舊紀錄污染。
+   驗證方式：先塞一筆「上一輪」的假失敗紀錄，故意把 WHISPERX_BIN 指到不存在
+   的路徑讓腳本在最前面就因為找不到執行檔而提早結束（不用真的跑 whisperx、
+   不用網路、不動 SQLite），確認 failed.txt 在那之前已經被清空。 */
+{
+  const { execFileSync } = await import("node:child_process");
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+
+  const failedLog = path.join(process.cwd(), "tools/transcribe/out/failed.txt");
+  const hadBefore = fs.existsSync(failedLog);
+  const before = hadBefore ? fs.readFileSync(failedLog, "utf8") : null;
+  fs.writeFileSync(failedLog, "上一輪留下的假失敗紀錄，這次不該還在\n");
+  try {
+    try {
+      execFileSync("bash", [path.join(process.cwd(), "tools/transcribe/run.sh")], {
+        env: { ...process.env, WHISPERX_BIN: "/does/not/exist/whisperx" },
+        stdio: "pipe",
+      });
+    } catch {
+      /* 預期會非零退出（找不到 whisperx），這裡只在意 failed.txt 有沒有被清空 */
+    }
+    const after = fs.existsSync(failedLog) ? fs.readFileSync(failedLog, "utf8") : "";
+    ok("開跑就清空 FAILED_LOG，不會混進上一輪的舊紀錄", !after.includes("上一輪留下的假失敗紀錄"));
+  } finally {
+    if (hadBefore) fs.writeFileSync(failedLog, before as string);
+    else fs.rmSync(failedLog, { force: true });
+  }
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 
 /* ── episodeSlugConflict：saveEpisode 的撞號檢查只顧「新 key」，沒顧「新 alias」──
