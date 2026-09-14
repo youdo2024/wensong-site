@@ -87,7 +87,7 @@ export default async function SupportPlan() {
               {nb("四種支持金額，對應的內容", 8)}
             </h1>
             <p style={{ color: "var(--grey)", fontSize: 15, lineHeight: 2, margin: 0, maxWidth: "60ch" }}>
-              {nb("問爽的沒有廣告主，也沒有業配。支持讓文章、繪本與手繪圖能繼續產出。以下是每個階段提供的內容。", 15)}
+              {nb("問爽的沒有廣告主。支持讓節目、節目筆記與逐字稿能繼續產出。以下是每個級距提供的內容。", 15)}
             </p>
 
             {/* 手機一次看不完四欄，明講可以左右滑，否則使用者會以為只有 888 一種 */}

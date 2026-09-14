@@ -82,7 +82,6 @@ export default function AboutPage() {
                 <small>{h.title}</small>
                 <b>{h.name}</b>
                 <p>{h.intro}</p>
-                {h.link && <a href={h.link} target="_blank" rel="noopener">追蹤 {h.name} →</a>}
               </div>
             </div>
           ))}
