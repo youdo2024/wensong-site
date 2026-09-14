@@ -1952,6 +1952,9 @@ export async function saveOrderShipList(formData: FormData) {
       shipMethod: r.shipMethod, address: r.address, storeName: r.storeName, storeNo: r.storeNo,
       /* 郵遞區號手動值要跟著留下來，這個 base 少列一個欄位就是靜默弄丟一個欄位 */
       ...(r.zip ? { zip: r.zip } : {}),
+      /* note 原本沒有列在這裡：上面 list.push 有存，但存回資料庫的是這個 base，
+         少列這一行等於每次重存名單都把備註靜靜清空（既有 bug，順手修） */
+      ...(r.note ? { note: r.note } : {}),
     };
     const keep = Boolean(r.shipped) && wasShipped.has(keyOf(r));
     return keep ? { ...base, shipped: 1 } : base;
