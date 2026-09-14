@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { createSponsorship } from "@/app/support/actions";
 import { dollar } from "@/lib/format";
 import { fbTrack } from "@/components/MetaPixel";
@@ -7,6 +8,7 @@ import { inAppBrowser } from "@/lib/webview";
 import InAppWarn from "./InAppWarn";
 import EmailField from "./EmailField";
 import InvoicePicker from "./InvoicePicker";
+import ApplePayButton from "./ApplePayButton";
 
 const DEFAULT_PAYS = ["信用卡", "LINE Pay", "Apple Pay", "銀行轉帳"];
 /* 多元支付（TWQR）可用的錢包，顯示在按鈕下方 */
@@ -24,6 +26,7 @@ export default function SupportForm({
   monthlyExternal = "",
   modeTabs = false,
   bare = false,
+  applePayOnsite = false,
 }: {
   tiers: number[];
   initAmount: number;
@@ -37,10 +40,19 @@ export default function SupportForm({
   modeTabs?: boolean;
   /* 已經放在別的信封框裡：不再自帶外框與上下色帶 */
   bare?: boolean;
+  /*
+   * 後台「Apple Pay 幕後」開關（provider=newebpay 時才有意義）。開了之後，單筆
+   * ＋選 Apple Pay 時送出鈕換成 Apple Pay 按鈕，按鈕長在本頁不跳轉藍新頁。
+   * 藍新目前沒有公開這條 API 的技術文件（見 lib/newebpay-applepay.ts），按下去
+   * 目前一定會顯示「Apple Pay 尚未開放」，這是刻意的，不是漏洞。
+   */
+  applePayOnsite?: boolean;
 }) {
   const portaly = provider === "portaly";
   const ecpay = provider === "ecpay";
   const newebpay = provider === "newebpay";
+  const [applePaySponsor, setApplePaySponsor] = useState<{ id: number; payToken: string } | null>(null);
+  const [applePayErr, setApplePayErr] = useState("");
   const creditOn = portaly || pays.includes("信用卡");
   /* 定額走外部頁時不需要站內信用卡也能選定額；藍新現在也有定期定額委託
      （lib/newebpay-period.ts，問爽的第 3 段接上），所以不再特別排除 newebpay */
@@ -169,8 +181,14 @@ export default function SupportForm({
     <form
       ref={formRef}
       className={bare ? undefined : "box"}
-      action={createSponsorship}
-      onSubmit={(e) => {
+      /*
+       * <form action> 的型別要求 void｜Promise<void>；createSponsorship 在 Apple Pay
+       * 幕後那個分支會回傳 {ok,id,payToken}（給下面 onSubmit 直接呼叫時讀），
+       * 這裡包一層丟棄回傳值只是為了型別，原生表單送出（沒有被 onSubmit 攔截時）
+       * 呼叫到的還是同一支函式、同一套驗證邏輯，行為不變。
+       */
+      action={async (fd) => { await createSponsorship(fd); }}
+      onSubmit={async (e) => {
         /*
          * 送出前在前端先擋。
          *
@@ -191,6 +209,34 @@ export default function SupportForm({
         setSubmitting(true);
         /* Meta 轉換漏斗的中繼點：按下送出＝開始結帳（金額當下已確定） */
         fbTrack("InitiateCheckout", finalAmount);
+
+        /*
+         * 藍新 Apple Pay 幕後：不能用原生表單送出（會被 redirect 導離頁面，
+         * 拿不到 id／pay_token 發起 ApplePaySession），改成直接呼叫同一支 server
+         * action、多帶一個 json=1 標記，讀回傳值。見 app/support/actions.ts 那段的
+         * 註解。其餘任何情況（沒開這顆開關、沒選 Apple Pay、長期支持）完全不受影響，
+         * 走原本的原生表單送出。
+         */
+        if (newebpay && !monthly && pay === "Apple Pay" && applePayOnsite) {
+          e.preventDefault();
+          setApplePayErr("");
+          const fd = new FormData(e.currentTarget);
+          fd.set("json", "1");
+          try {
+            const result = (await createSponsorship(fd)) as { ok?: boolean; id?: number; payToken?: string } | undefined;
+            if (result?.ok && result.id && result.payToken) {
+              setApplePaySponsor({ id: result.id, payToken: result.payToken });
+            } else {
+              setSubmitting(false);
+            }
+          } catch (err) {
+            /* redirect() 是靠拋一個特殊例外實作的（驗證失敗導回 /support?error=…），
+               這裡要讓它繼續往上拋給 Next.js 處理導頁，不能被這個 catch 吃掉 */
+            unstable_rethrow(err);
+            setSubmitting(false);
+            setApplePayErr("建立贊助失敗，請稍後再試");
+          }
+        }
       }}
     >
       {!bare && <div className="band" />}
@@ -445,22 +491,49 @@ export default function SupportForm({
         </div>
 
         <div className="submit-row">
-          {/* 「下一步」比「前往付款」更貼近實情：按下去是跳到金流頁，還沒付完。
-              底下那行提醒，是為了讓人有心理準備，減少跳轉後就放棄的情況 */}
-          {/* inline-flex 才吃得到 submit-row 的 text-align:center（flex 會變滿版置左） */}
-          <button
-            className="btn fill"
-            type="submit"
-            disabled={submitting || finalAmount < 100}
-            style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 6, lineHeight: 1.4 }}
-          >
-            <span>{submitting ? "處理中…" : "下一步"}</span>
-            {!submitting && (
-              <span style={{ fontSize: 11.5, letterSpacing: ".06em", fontWeight: 400, border: "1px solid currentColor", padding: "2px 8px", opacity: 0.85 }}>
-                請特別留意後續流程
-              </span>
-            )}
-          </button>
+          {applePaySponsor ? (
+            <>
+              {/* 建單已完成（拿到 id／pay_token），這裡直接發起 ApplePaySession；
+                  藍新沒有公開這條 API 的技術文件，按下去目前一定會失敗並顯示訊息
+                  （見 lib/newebpay-applepay.ts），不會假裝扣款成功 */}
+              <ApplePayButton
+                kind="sponsor"
+                id={String(applePaySponsor.id)}
+                token={applePaySponsor.payToken}
+                amount={finalAmount}
+                label="贊助 問爽的"
+                onFail={(msg) => setApplePayErr(msg)}
+              />
+              <p className="fine center" style={{ marginTop: 10 }}>
+                <a
+                  onClick={() => { setApplePaySponsor(null); setApplePayErr(""); setSubmitting(false); }}
+                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                >
+                  改用其他付款方式
+                </a>
+              </p>
+            </>
+          ) : (
+            <>
+              {/* 「下一步」比「前往付款」更貼近實情：按下去是跳到金流頁，還沒付完。
+                  底下那行提醒，是為了讓人有心理準備，減少跳轉後就放棄的情況 */}
+              {/* inline-flex 才吃得到 submit-row 的 text-align:center（flex 會變滿版置左） */}
+              <button
+                className="btn fill"
+                type="submit"
+                disabled={submitting || finalAmount < 100}
+                style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 6, lineHeight: 1.4 }}
+              >
+                <span>{submitting ? "處理中…" : "下一步"}</span>
+                {!submitting && (
+                  <span style={{ fontSize: 11.5, letterSpacing: ".06em", fontWeight: 400, border: "1px solid currentColor", padding: "2px 8px", opacity: 0.85 }}>
+                    請特別留意後續流程
+                  </span>
+                )}
+              </button>
+            </>
+          )}
+          {applePayErr && <p className="msg-err" style={{ marginTop: 10 }}>{applePayErr}</p>}
         </div>
         {/* 法律聲明減到最少：只有「不適用七日猶豫期」依消保法 19 條需要事先明示同意，
             必須在按鈕附近看得到，所以留這一行小字；其餘說明收進可展開的摺疊，

@@ -1284,6 +1284,7 @@ export async function saveSettings(formData: FormData) {
     const v = String(formData.get("newebpay_atm_bank") || "");
     setSetting("newebpay_atm_bank", NEWEBPAY_ATM_BANKS.some((b) => b.key === v) ? v : "");
   }
+  setCheckbox(formData, "applepay_onsite");
   setCheckbox(formData, "notify_pause");
   setCheckbox(formData, "notify_dry_run");
   /* 信件副本：信箱一格＋四個種類開關（lib/mail-log.ts copyPlan 讀） */

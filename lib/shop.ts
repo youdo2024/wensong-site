@@ -2,7 +2,7 @@ import db, { getSetting, json } from "./db";
 import { normalizeBrand, type CvsBrand } from "./cvs";
 import { linepayEnabled } from "./linepay";
 import { taipeiDateExpired } from "./month";
-import { NEWEBPAY_ATM_BANKS } from "./newebpay";
+import { NEWEBPAY_ATM_BANKS, newebpayEnabled } from "./newebpay";
 
 export function shopEnabled(): boolean {
   return getSetting("shop_enabled", "1") === "1";
@@ -139,6 +139,20 @@ export function shopGateway(): ShopGateway {
 export function newebpayAtmBank(): string {
   const v = getSetting("newebpay_atm_bank", "BOT");
   return NEWEBPAY_ATM_BANKS.some((b) => b.key === v) ? v : "";
+}
+
+/*
+ * Apple Pay 幕後支付（按鈕直接長在本站的支持頁與結帳頁，不跳轉藍新頁）。
+ * 預設關閉。開了也不代表真的能扣款：藍新沒有公開這條 API 的技術文件（網址、欄位、
+ * 簽章方式），查證細節見 lib/newebpay-applepay.ts 開頭的長註解與
+ * docs/newebpay-spec.md「Apple Pay 幕後」。lib/newebpay-applepay.ts 的
+ * chargeApplePay() 目前一律回「未取得技術文件」，所以這顆開關打開後，Apple Pay
+ * 按鈕會出現、能發起 Apple Pay 授權流程，但最後一步一定會顯示「Apple Pay 尚未開放」
+ * 並提示客人改選其他付款方式，不會真的扣到款——這是刻意的，不是漏洞。
+ * 站長跟藍新業務拿到串接文件、把上面兩支函式換成真正的實作之後，這顆開關才會真的動作。
+ */
+export function applePayOnsiteEnabled(): boolean {
+  return getSetting("applepay_onsite", "0") === "1" && newebpayEnabled();
 }
 
 /* 付款方式開關：後台可暫停個別方式（例如 LINE Pay 尚未開通）

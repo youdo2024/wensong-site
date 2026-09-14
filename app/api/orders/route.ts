@@ -5,7 +5,7 @@ import { PAYUNI, buildUppFields, payMethodParams, payuniEnabled, siteUrl } from 
 import { sendOrderCreatedMail, sendOrderPaidMail } from "@/lib/mail";
 import { notifyChoiceFull, notifyProductPurchases } from "@/lib/notify";
 import { parseChoiceStocks } from "@/lib/choice-stock";
-import { addonEnabled, addonTiers, applyDiscount, coldEnabled, findDiscount, freightRates, isPayMethodOff, newebpayAtmBank, shopGateway } from "@/lib/shop";
+import { addonEnabled, addonTiers, applyDiscount, coldEnabled, findDiscount, freightRates, isPayMethodOff, newebpayAtmBank, shopGateway, applePayOnsiteEnabled } from "@/lib/shop";
 import { tappayEnabled } from "@/lib/tappay";
 import { buildCheckoutFields, ecpayEnabled, type EcpayMethod } from "@/lib/ecpay";
 import { ecpayBackstageAtmOn, takeAtmNumberForOrder } from "@/lib/ecpay-genpay";
@@ -464,6 +464,16 @@ export async function POST(req: NextRequest) {
     if (result.useNewebpay) {
       /* 藍新只接信用卡、ATM、Apple Pay，其餘方式在建單那段已經擋下 */
       const method: NewebpayMethod = payMethod === "ATM 轉帳" ? "atm" : payMethod === "Apple Pay" ? "applepay" : "credit";
+      /*
+       * Apple Pay 幕後（後台開關，見 lib/newebpay-applepay.ts）：不建藍新 MPG 表單、
+       * 不跳轉藍新頁，前端改成直接發起 ApplePaySession（components/ApplePayButton.tsx），
+       * 拿這裡回傳的 orderNo／token 打 /api/newebpay/applepay/pay 扣款。
+       * 藍新沒有公開這條 API 的技術文件，扣款那一步目前一定會回「尚未開放」，
+       * 這裡只負責告訴前端「這筆訂單已經成立，改用 Apple Pay 幕後的路走」。
+       */
+      if (method === "applepay" && applePayOnsiteEnabled()) {
+        return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, applepayOnsite: true });
+      }
       const nb = buildMpgForm({
         orderNo: result.orderNo,
         amount: result.total,

@@ -35,6 +35,7 @@ import { money, dollar } from "@/lib/format";
 import Highlight from "./Highlight";
 import TapPayCard, { type TapPayCardHandle } from "./TapPayCard";
 import { TW_ZIP, TW_COUNTIES } from "@/lib/tw-zip";
+import ApplePayButton from "./ApplePayButton";
 
 /* 順序照站長指定：LINE Pay 排第一（實測成功率最高），信用卡放最後（成功率最低）。
    Samsung Pay 已停用，不列在這裡。 */
@@ -63,6 +64,7 @@ export default function CheckoutForm({
   freightMode = "flat",
   rates,
   coldOn = false,
+  applePayOnsite = false,
 }: {
   freeShip: number;
   shipFee: number;
@@ -77,6 +79,13 @@ export default function CheckoutForm({
   /* 四格費率（溫層×取貨方式）。沒給時用預設值，行為等同今天 */
   rates?: RateTable;
   coldOn?: boolean;
+  /*
+   * 後台「Apple Pay 幕後」開關（gateway=newebpay 時才有意義）。開了之後，選 Apple Pay
+   * 時送出鈕換成 Apple Pay 按鈕，按鈕長在本頁不跳轉藍新頁。藍新目前沒有公開這條 API
+   * 的技術文件（見 lib/newebpay-applepay.ts），按下去目前一定會顯示「Apple Pay 尚未
+   * 開放」，這是刻意的，不是漏洞。
+   */
+  applePayOnsite?: boolean;
   /* LINE Messaging API 有設定時才顯示「用 LINE 收通知」那一格 */
   lineNotify?: boolean;
   presets?: { name: string; phone: string; email: string; address: string };
@@ -231,6 +240,8 @@ export default function CheckoutForm({
   const [codeErr, setCodeErr] = useState("");
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [applePayOrder, setApplePayOrder] = useState<{ orderNo: string; token: string } | null>(null);
+  const [applePayErr, setApplePayErr] = useState("");
 
   const subtotal = lines.reduce((s, i) => s + i.price * i.qty, 0);
   const discountAmt = !discount
@@ -634,6 +645,13 @@ export default function CheckoutForm({
       f.submit();
       return;
     }
+    if (data.applepayOnsite && applePayOnsite) {
+      /* 訂單已成立（pending），不跳轉藍新頁，改在本頁發起 ApplePaySession。
+         藍新沒有公開這條 API 的技術文件，扣款那一步目前一定會失敗並顯示訊息
+         （見 lib/newebpay-applepay.ts），不會假裝扣款成功 */
+      setApplePayOrder({ orderNo: data.orderNo, token: data.token || "" });
+      return;
+    }
     if (data.newebpay) {
       /* 跳轉藍新付款頁：跟綠界／PayUni 同一招（自動 POST 隱藏表單） */
       const f = document.createElement("form");
@@ -1022,9 +1040,34 @@ export default function CheckoutForm({
 
           {err && <p className="msg-err" style={{ marginTop: 18 }}>{err}</p>}
           <div className="center" style={{ marginTop: 26 }}>
-            <button id="checkout-submit" className="btn fill" type="submit" disabled={submitting || (tappayCard && !cardReady)}>
-              {submitting ? "處理中…" : isTappay ? "確認" : "前往結帳"}
-            </button>
+            {applePayOrder ? (
+              <>
+                {/* 訂單已成立（pending），這裡直接發起 ApplePaySession；藍新沒有公開這條
+                    API 的技術文件，按下去目前一定會失敗並顯示訊息（見
+                    lib/newebpay-applepay.ts），不會假裝扣款成功 */}
+                <ApplePayButton
+                  kind="order"
+                  id={applePayOrder.orderNo}
+                  token={applePayOrder.token}
+                  amount={total}
+                  label="問爽的商店"
+                  onFail={(msg) => setApplePayErr(msg)}
+                />
+                <p className="fine center" style={{ marginTop: 10 }}>
+                  <a
+                    onClick={() => { setApplePayOrder(null); setApplePayErr(""); setSubmitting(false); }}
+                    style={{ cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    改用其他付款方式
+                  </a>
+                </p>
+                {applePayErr && <p className="msg-err" style={{ marginTop: 10 }}>{applePayErr}</p>}
+              </>
+            ) : (
+              <button id="checkout-submit" className="btn fill" type="submit" disabled={submitting || (tappayCard && !cardReady)}>
+                {submitting ? "處理中…" : isTappay ? "確認" : "前往結帳"}
+              </button>
+            )}
           </div>
           {isTappay ? (
             <p className="fine center" style={{ marginTop: 16 }}>

@@ -9,7 +9,7 @@ import { portalyEnabled, ensureOncePlan, ensureMonthlyPlan, createCheckoutSessio
 import { ecpayEnabled } from "@/lib/ecpay";
 import { newebpayEnabled } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
-import { isPayMethodOff, supportMode, monthlyGateway, payMethodsOff } from "@/lib/shop";
+import { isPayMethodOff, supportMode, monthlyGateway, payMethodsOff, applePayOnsiteEnabled } from "@/lib/shop";
 import { sendSponsorThanksMail } from "@/lib/mail";
 import { isAdmin } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -181,6 +181,27 @@ export async function createSponsorship(formData: FormData) {
       httpOnly: true, sameSite: "lax", path: "/", maxAge: 7200, secure: process.env.NODE_ENV === "production",
     });
   } catch (e) { console.error("[support] sponsor cookie", e); }
+
+  /*
+   * ── 藍新 Apple Pay 幕後：按鈕直接長在 SupportForm，不跳轉付款頁 ──
+   *
+   * SupportForm 是原生表單（action={createSponsorship}），一般情況下這支函式一路跑到
+   * redirect() 結束、瀏覽器直接被導去下一頁。但 Apple Pay 幕後要先在頁面上拿到這筆
+   * 贊助的 id 與 pay_token 才能發起 ApplePaySession，不能被 redirect() 導離頁面。
+   *
+   * 最小改動的接法：SupportForm 偵測到「藍新＋單筆＋選了 Apple Pay＋後台開了
+   * applepay_onsite」時，不用原生表單送出，改成直接呼叫這支 server action（同一支
+   * 函式，不是另外複製一份驗證邏輯）並帶一個 json=1 標記；這裡看到標記就回傳一般物件
+   * 而不是 redirect，呼叫端才讀得到回傳值。其餘所有情況（沒有這個標記、或標記為真但
+   * 條件不成立）完全不受影響，一路照舊 redirect。
+   *
+   * 是否真的能扣到款：藍新沒有公開 Apple Pay 幕後支付 API 的技術文件，
+   * 見 lib/newebpay-applepay.ts 開頭的查證說明；這裡只負責把 id／pay_token 交出去，
+   * 實際扣款與失敗處理都在 /api/newebpay/applepay/pay。
+   */
+  if (useNewebpay && mode === "once" && payMethod === "Apple Pay" && applePayOnsiteEnabled() && formData.get("json") === "1") {
+    return { ok: true as const, id, payToken };
+  }
 
   /* ── 綠界／LINE Pay 站內收款 ── */
   if (useEcpay) {

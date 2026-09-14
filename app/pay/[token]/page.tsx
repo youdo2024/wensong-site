@@ -4,7 +4,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import CheckoutForm from "@/components/CheckoutForm";
 import { getSetting } from "@/lib/db";
-import { addonEnabled, addonTiers, coldEnabled, enabledPays, freightMode, freightRates, publicFreightRates, navSupportShop, productOrigins, shopGateway } from "@/lib/shop";
+import { addonEnabled, addonTiers, coldEnabled, enabledPays, freightMode, freightRates, publicFreightRates, navSupportShop, productOrigins, shopGateway, applePayOnsiteEnabled } from "@/lib/shop";
 import { linepayEnabled } from "@/lib/linepay";
 import { money } from "@/lib/format";
 import { t } from "@/lib/copy";
@@ -138,6 +138,7 @@ export default async function PayLinkPage({ params }: { params: Promise<{ token:
             presets={{ name: link.preset_name, phone: link.preset_phone, email: link.preset_email, address: "" }}
             gateway={gateway}
             tappay={null}
+            applePayOnsite={applePayOnsiteEnabled()}
             payLink={{
               token: link.token,
               items,

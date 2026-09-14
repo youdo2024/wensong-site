@@ -146,3 +146,7 @@
 .site-footer .platforms{justify-content:flex-start;margin:0 0 6px;}
 .site-footer .platforms .pf{box-shadow:none;}
 .site-footer .cols{align-items:center;}
+
+/* ── Apple Pay 幕後支付按鈕（components/ApplePayButton.tsx）：Apple 規定的官方外觀，
+   只能用 -webkit-appearance 這條路做，不能用一般 CSS 疊圖模擬 ── */
+.apple-pay-button{-webkit-appearance:-apple-pay-button;appearance:-apple-pay-button;-apple-pay-button-type:plain;-apple-pay-button-style:black;width:100%;height:48px;border:none;border-radius:8px;cursor:pointer;}

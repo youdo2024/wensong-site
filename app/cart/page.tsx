@@ -8,7 +8,7 @@ import CheckoutForm from "@/components/CheckoutForm";
 import TapPayBadge from "@/components/TapPayBadge";
 import db, { getSetting } from "@/lib/db";
 import { getMember } from "@/lib/member";
-import { addonEnabled, addonTiers, coldEnabled, enabledPays, freightMode, freightRates, publicFreightRates, navSupportShop, productOrigins, shopGateway } from "@/lib/shop";
+import { addonEnabled, addonTiers, coldEnabled, enabledPays, freightMode, freightRates, publicFreightRates, navSupportShop, productOrigins, shopGateway, applePayOnsiteEnabled } from "@/lib/shop";
 import { linepayEnabled } from "@/lib/linepay";
 import { t } from "@/lib/copy";
 import { shopViewable } from "@/lib/shop-preview";
@@ -92,6 +92,7 @@ export default async function CartPage() {
             presets={presets}
             gateway={gateway}
             tappay={tpReady ? { appId: Number(tp.appId), appKey: tp.appKey, sandbox: tp.sandbox } : null}
+            applePayOnsite={applePayOnsiteEnabled()}
           />
         </div>
         {/* 金流說明區：信任小字＋（TapPay 模式）官方 logo 與安全性文字（審核要求） */}

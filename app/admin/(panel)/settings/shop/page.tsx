@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSetting } from "@/lib/db";
 import { saveSettings } from "@/app/admin/actions";
 import { PAY_METHOD_KEYS, freightMode, payMethodsOff } from "@/lib/shop";
+import { newebpayEnabled } from "@/lib/newebpay";
 import { ECPAY_ATM_BANKS } from "@/lib/ecpay";
 import { NEWEBPAY_ATM_BANKS } from "@/lib/newebpay";
 import MultiInput from "@/components/MultiInput";
@@ -237,6 +238,27 @@ export default async function SettingsShop({
               藍新目前 BankType 只支援台灣銀行、華南銀行、凱基銀行三家（第一銀行藍新已於 2023 年從這個參數移除）。
               客人還是會短暫看到藍新的付款頁（取號那一步），藍新沒有提供不經過頁面直接取號的做法，見上面幕後取號的說明。
             </p>
+          </div>
+          <div className="sw-list">
+            <Switch
+              name="applepay_onsite"
+              label="Apple Pay 幕後（按鈕長在本站，不跳轉藍新頁）"
+              hint={<>
+                只在商店金流選「藍新」時生效。開了之後，支持頁與結帳頁選 Apple Pay 時會直接顯示
+                Apple Pay 按鈕，不會跳轉到藍新的付款頁。
+                <br />
+                <b>先講清楚：這顆開關目前打開也還不能真的收到錢。</b>
+                查過藍新官網公開的兩份 Apple Pay 幕後支付操作手冊（開發者帳號驗證、商店網域驗證），
+                內容都只是「怎麼在會員專區點按鈕完成驗證」，完全沒有 API 技術文件；兩份手冊最後一步
+                原文都寫「驗證成功後，請聯絡藍新夥伴或是客服進行後續相關 IP 設定，並取得串接文件」。
+                也就是說扣款用的真正 API（網址、欄位、簽章方式）不是公開文件，要驗證通過後打電話
+                （02-2786-3655）或寄信（cs@newebpay.com）跟藍新業務／客服要，順便請他們把伺服器 IP
+                加進白名單。拿到文件前，程式會老實顯示「Apple Pay 尚未開放」讓客人改選其他付款方式，
+                不會假裝扣款成功。詳見 docs/newebpay-spec.md「Apple Pay 幕後」。
+              </>}
+              defaultChecked={getSetting("applepay_onsite", "0") === "1"}
+              disabled={!newebpayEnabled()}
+            />
           </div>
         </div>
 

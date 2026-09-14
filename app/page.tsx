@@ -18,7 +18,7 @@ import { buildMetadata } from "@/lib/seo";
 import { BRAND } from "@/lib/brand";
 import { displayTitle, epLabel, fmtDuration, type EpisodeRow } from "@/lib/episodes";
 import { hosts, newsletterBlock, platformLinks } from "@/lib/site-config";
-import { enabledPays, homeSupportSection, navSupportHome, shopEnabled, supportHref, supportMode, supportUrl, monthlyExternalUrl } from "@/lib/shop";
+import { enabledPays, homeSupportSection, navSupportHome, shopEnabled, supportHref, supportMode, supportUrl, monthlyExternalUrl, applePayOnsiteEnabled } from "@/lib/shop";
 import { ecpayEnabled } from "@/lib/ecpay";
 import { newebpayEnabled } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
@@ -243,6 +243,7 @@ export default function Home() {
                     monthlyExternal={monthlyExternalUrl()}
                     pays={enabledPays(["信用卡", "ATM 轉帳", "Apple Pay"], "support")}
                     provider="newebpay"
+                    applePayOnsite={applePayOnsiteEnabled()}
                   />
                 ) : supportMode() === "hybrid" && supportUrl() ? (
                   <SupportForm

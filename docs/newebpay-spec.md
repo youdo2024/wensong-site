@@ -242,6 +242,177 @@ Samsung Pay、國民旅遊卡、銀聯、AE）」是同一組。也就是說 App
 式收款前照上面「上線前要用測試金鑰驗的清單」的模式，額外用 Safari／iPhone 走一次 Apple Pay
 結帳，確認 MPG 頁面真的跳出 Apple Pay 按鈕、款項確實入帳。
 
+## Apple Pay 幕後（2026-09-14 第二輪：按鈕長在本站，不跳轉藍新頁）
+
+上面「Apple Pay」一節做的是**幕前**：客人在我方頁面選 Apple Pay 之後跳轉到藍新 MPG
+頁面完成付款（`APPLEPAY=1`）。這一節是站長要求的**幕後**：Apple Pay 按鈕直接長在
+`/support`、`/cart`、`/pay/[token]` 這幾頁，客人不會看到藍新的任何畫面，付款 token
+由本站後端直接送藍新扣款。這是完全不同的兩支 API，幕前那份文件裡的 `APPLEPAY=1`
+參數對幕後這條路完全沒有幫助。
+
+### 查證方式與來源
+
+跟「ATM 指定銀行與幕後取號」一節一樣，直接下載藍新官網「Apple Pay」頁
+（`https://www.newebpay.com/website/Page/content/apple_pay`）底部「操作說明手冊下載」
+公開的原始 PDF 讀原文，不是憑印象或第三方部落格／SDK。這頁公開三份文件：
+
+1. `Apple_Pay_Foreground_Transaction_manual.pdf`（幕前，2024.8.26 版，上面「Apple Pay」
+   一節用的就是這份）
+2. `Apple_Pay_Background_Transaction_develper_verification_manual.pdf`
+   （幕後：Apple 開發者帳號驗證，2023.8.26 版）
+3. `Apple_Pay_Background_Transaction_domain_verification_manual.pdf`
+   （幕後：商店網域驗證，2024.8.26 版——問爽的走這一條，`public/.well-known/
+   apple-developer-merchantid-domain-association` 就是照這份手冊放的驗證檔）
+
+### 核心查證結論：技術文件本身不公開
+
+第 2、3 份手冊的內容**全部只是「怎麼在藍新會員專區點按鈕、上傳憑證、完成驗證」的
+操作截圖說明**，完全沒有任何 API 技術規格：沒有網址、沒有欄位表、沒有加密方式、沒有
+回傳格式。兩份手冊最後一步（「驗證列表」那一頁）原文一字不差：
+
+> 驗證成功後，請聯絡藍新夥伴或是客服進行後續相關 IP 設定，並取得串接文件
+
+也就是說：Apple Pay 幕後支付真正的技術文件（下面四個問題要問的東西）根本**不是公開
+文件**，是網域驗證通過之後，由藍新業務／客服「另外核發」，而且要先讓藍新把商店伺服器
+的來源 IP 加進白名單。站長雖然已經在藍新後台完成「開通 Apple Pay 幕後支付」與商店網域
+驗證，但還沒有打電話（02-2786-3655）或寄信（cs@newebpay.com）跟藍新要這份文件，也還沒
+做 IP 白名單設定。
+
+依照「查不到的部分不要猜」的原則，本次施工**沒有**猜測或照抄同一個藍新帳號其他 API
+家族的命名慣例（例如定期定額用的 `MerchantID_`／`PostData_`，見 `lib/newebpay-period.ts`）
+去組一個看起來很像的請求——賭錯的後果可能是藍新回一個看不懂的錯誤，更糟的是格式剛好被
+接受但欄位語意不對，安靜地扣錯金額或扣了款但本站不知道，那比「老實說功能還沒好」危險
+得多。
+
+### 任務交辦的四個問題，逐一回答
+
+1. **`onvalidatemerchant` 要打藍新哪一支 API 取得 merchant session？**
+   **未查證。** 兩份幕後手冊都沒有這支 API 的網址與參數，只講「驗證通過後找客服要
+   串接文件」。合理推測（非查證結論）：既然商店網域驗證法不需要商店自己申請 Apple
+   開發者帳號、不需要自己保管 Merchant Identity Certificate，那麼 `onvalidatemerchant`
+   應該是打**藍新自己的一支代理 API**（本站把 Apple 給的 `validationURL` 轉交給藍新，
+   藍新用他們自己持有的憑證去跟 Apple 換 session，再把結果轉交回本站），而不是本站
+   直接跟 Apple Server-to-Server 打交道——但這只是根據「商店網域驗證不需要憑證」這個
+   已知事實做的推論，藍新的文件沒有明講，實際 API 契約仍待取得串接文件才能確認。
+
+2. **扣款 API：網址、Version、`PostData_` 內容、回傳格式與簽章驗法？**
+   **未查證。** 完全沒有公開文件。特別是 Apple Pay 的 `paymentData`（`event.payment.token`
+   內的加密付款資料）該放在扣款請求的哪個欄位、要不要先 base64、藍新那邊怎麼解密驗證，
+   一概沒有線索。
+
+3. **是否需要 3D 驗證或額外參數；退款 API 名稱？**
+   **未查證。** 幕前那份手冊有提到 Apple Pay 走的是信用卡清算軌道（見上面「回傳的
+   PaymentType 是 CREDIT，不是另一個值」段落），依此推論幕後應該也是同一條信用卡清算
+   軌道，3D 驗證的角色可能被 Apple Pay 的裝置端生物辨識（Face ID／Touch ID）取代，但
+   這純粹是推論，不是藍新文件寫的。退款 API 名稱同樣沒有查到——這個專案目前也還沒有
+   任何藍新退款功能的實作可以參考比對。
+
+4. **Apple Pay JS 的 `supportedNetworks`、`merchantCapabilities`、`countryCode`、
+   `currencyCode`？**
+   **這部分可查證，因為它是 Apple 官方公開規格，不是藍新的秘密。**
+   `countryCode="TW"`、`currencyCode="TWD"` 是問爽的自己的商業事實，沒有疑慮。
+   `merchantCapabilities=["supports3DS"]`：Apple 文件列出的選項只有
+   `supports3DS`／`supportsCredit`／`supportsDebit`／`supportsEMV`，`supports3DS`
+   是業界最基本必要值。`supportedNetworks=["visa","masterCard","amex","jcb"]`：這組
+   是**台灣信用卡收單業界慣例參考**，不是藍新幕後 API 文件明載的清單（那份清單目前查
+   不到）。拿到藍新真正的串接文件後應該對照一次，確認有沒有卡別對不上。
+
+### 已實作（查證清楚、可以放心做的部分）
+
+- 設定鍵 `applepay_onsite`（預設 `0`）：`lib/shop.ts` 的 `applePayOnsiteEnabled()`
+  （同時要求 `newebpayEnabled()`）。後台「設定・商店」付款方式那區新增開關「Apple Pay
+  幕後（按鈕長在本站，不跳轉藍新頁）」，`components/admin/settings-fields.ts` 與
+  `app/admin/actions.ts` 的 `saveSettings` 都加了這個鍵。
+- `lib/newebpay-applepay.ts`：純函式（跟 `lib/newebpay.ts` 一樣不 import db）。
+  `applePayPaymentRequestBase()` 是上面第 4 點查證通過的 Apple Pay JS 基本欄位；
+  `buildMerchantSessionRequest()`、`chargeApplePay()`、`parseChargeResult()` 是上面
+  第 1～3 點未查證的部分，**故意不接真正的網路請求，一律回傳「未取得技術文件」**
+  （`NEWEBPAY_APPLEPAY_SESSION_API_UNDOCUMENTED` / `NEWEBPAY_APPLEPAY_CHARGE_API_UNDOCUMENTED`）。
+- `app/api/newebpay/applepay/session/route.ts`（POST）：前端 `onvalidatemerchant` 打
+  這支，轉呼叫 `buildMerchantSessionRequest()`，目前一律回 501。
+- `app/api/newebpay/applepay/pay/route.ts`（POST）：body `{kind, id, token, paymentToken}`。
+  先用 `safeEqual()` 驗 `orders.token` 或 `sponsorships.pay_token`（跟
+  `app/api/orders/pay/route.ts`、`app/support/pay/[id]/page.tsx` 同一套定時比較），
+  查無或權杖不符回 404；已經不是 `pending` 狀態直接回對應結果（冪等，不會重複扣款）；
+  呼叫 `chargeApplePay()`，目前一律回 501。若未來真的打通會呼叫既有的
+  `applyNewebpayOrderResult()` / `applyNewebpaySponsorResult()`（跟 NotifyURL 那條路
+  共用同一套狀態機、發票、通知，不另外寫一套）。兩支路由都掛 `lib/ratelimit.ts` 的
+  `rateLimit()`。
+- `components/ApplePayButton.tsx`：只在 `window.ApplePaySession && canMakePayments()`
+  為真時渲染；`new ApplePaySession(3, request)`，`onvalidatemerchant` → `/session`，
+  `onpaymentauthorized` → `/pay`，成功 `completePayment(STATUS_SUCCESS)` 並導向
+  `redirect`，失敗 `completePayment(STATUS_FAILURE)` 並把訊息往上丟給呼叫端顯示。
+  按鈕樣式（`-webkit-appearance:-apple-pay-button` 等 Apple 規定的官方外觀）寫在
+  `app/podcast.css` 的 `.apple-pay-button`（React 的 inline style 物件無法可靠傳遞
+  這種瀏覽器專屬自訂外觀屬性，走 CSS class 比較穩）。
+- `components/SupportForm.tsx`：新增 `applePayOnsite` prop。單筆＋選 Apple Pay＋開關
+  開啟時，`onSubmit` 改成直接呼叫 `createSponsorship(formData 帶 json=1)`（同一支
+  server action、同一套驗證邏輯，不是另外複製一份），讀回傳的 `{id, payToken}` 後渲染
+  `ApplePayButton`；其餘情況完全不受影響，照舊走原生 `<form action>` 送出並 `redirect()`。
+  `app/support/actions.ts` 的 `createSponsorship()` 在這個分支回傳一般物件而不是
+  `redirect()`，用 `unstable_rethrow()`（`next/navigation`，Next 16 提供，見
+  `node_modules/next/dist/client/components/navigation.d.ts`）確保驗證失敗的
+  `redirect()` 例外還是會正常往上拋給 Next.js 處理導頁，不會被直接呼叫端的
+  `try/catch` 吃掉。
+- `components/CheckoutForm.tsx`：新增 `applePayOnsite` prop。`app/api/orders/route.ts`
+  在 `useNewebpay && method==="applepay" && applePayOnsiteEnabled()` 時不建 MPG 表單，
+  改回傳 `{orderNo, token, applepayOnsite:true}`；`CheckoutForm` 收到後渲染
+  `ApplePayButton`，其餘 gateway／付款方式完全不受影響。
+- `applePayOnsite` 這顆布林從 `lib/shop.ts` 一路傳到四個渲染點：
+  `app/page.tsx`（首頁贊助區塊）、`app/support/page.tsx`、`app/cart/page.tsx`、
+  `app/pay/[token]/page.tsx`。
+- `next.config.ts` 的 CSP Report-Only：`connect-src` 加了 `core.newebpay.com`／
+  `ccore.newebpay.com`（目前實際上 `ApplePayButton` 只 fetch 本站自己的
+  `/api/newebpay/applepay/*`，`'self'` 就夠，這裡先加是任務交辦的要求，也是預留給未來
+  萬一改成瀏覽器直接打藍新網域時不用再回頭補）。
+- `tests/smoke.ts`：測 `applePayPaymentRequestBase()` 的欄位值（已查證的部分），以及
+  `buildMerchantSessionRequest()`／`chargeApplePay()`／`parseChargeResult()` 三支
+  一律誠實回報「未取得技術文件」（沒有也不可能測試對藍新的真實網路請求，因為根本沒有
+  發出過）。
+
+### 目前的實際行為（誠實但功能未完成）
+
+這顆開關**打開也還不能真的收到 Apple Pay 的錢**。流程會正常跑到「Apple Pay 授權面板
+跳出來、Face ID／Touch ID 都會出現」，但 `onvalidatemerchant` 打 `/session` 會收到 501
+「Apple Pay 尚未開放（尚未取得藍新技術文件）」，畫面上會顯示這則訊息並提示客人改選其他
+付款方式，`session.abort()` 會被呼叫，Apple Pay 面板會自己關掉——不會卡住、不會假裝
+成功、不會扣錯款。這是刻意設計的行為，不是漏洞或半成品忘記接。
+
+### 站長要打開這條路該做什麼
+
+1. 確認藍新後台「Apple Pay 幕後支付」的驗證狀態是「已驗證」（商店網域驗證，
+   `public/.well-known/apple-developer-merchantid-domain-association` 已經放好）。
+2. 打電話（02-2786-3655）或寄信（cs@newebpay.com）跟藍新業務／客服說：「已完成 Apple
+   Pay 幕後支付商店網域驗證（商店代號查會員專區），要索取串接文件並設定伺服器 IP
+   白名單」。記得問清楚上面第 3 點的退款 API 名稱、有沒有額外的簽名或憑證要求。
+3. 把 Zeabur 部署的對外 IP（或站長指定的固定 IP）給藍新做白名單設定。
+4. 拿到文件後，只需要改 `lib/newebpay-applepay.ts` 的
+   `buildMerchantSessionRequest()`／`chargeApplePay()`／`parseChargeResult()` 三支，
+   把裡面的網路請求換成真正的實作；設定開關、路由骨架、前端按鈕、限流、冪等、CSP、
+   四個頁面的接線都已經做好，不用重寫。
+5. 換上真正的實作後，**在真機 Safari（iPhone／Mac）走一輪測試**，清單如下（沒有藍新
+   測試金鑰前無法先跑，跟其餘藍新串接一樣要等金鑰／文件到手才能實測）：
+   - [ ] 單筆贊助成功：`/support` 選 Apple Pay，Face ID／Touch ID 授權後確認
+         `sponsorships` 狀態變 `paid`／`active`（依 mode）、`settleSponsorOncePaid`
+         有跑（發票、感謝信、站長通知、GA）
+   - [ ] 商店結帳成功：`/cart` 或 `/pay/[token]` 選 Apple Pay，確認訂單狀態變 `paid`、
+         發票開立、確認信寄出
+   - [ ] 付款失敗（例如授權途中取消）：確認 `session.oncancel` 或
+         `completePayment(STATUS_FAILURE)` 有正確顯示訊息，訂單／贊助維持
+         `pending`（不能被誤標成 `paid`），客人可以改選其他付款方式重試
+   - [ ] 重複送出：同一筆訂單／贊助對 `/api/newebpay/applepay/pay` 送兩次（例如網路
+         斷線重試），確認不會扣兩次款、不會開兩張發票（冪等靠現有的條件式 UPDATE，
+         跟 NotifyURL 那條路共用同一套）
+   - [ ] 退款：找到第 3 點問到的退款 API 名稱，實際跑一筆退款，確認金額與狀態正確
+         反映到後台
+
+### 另外查到但可信度較低、不當作查證結論的線索
+
+搜尋引擎摘要顯示藍新的「信用卡幕後授權」（背景交易）可能要求特約商店每年提供 PCI DSS
+認證合規聲明文件；如果 Apple Pay 幕後走的是同一條審核／合規路線，這對只是想收 Apple
+Pay 的小站可能是不小的合規負擔。**這條線索沒有直接讀到藍新官方原文確認**，只是搜尋結果
+摘要，這裡列出來純粹是提醒站長跟業務聯絡時應該一併問清楚，不是查證結論。
+
 ## 定期定額（信用卡每月扣款，Version 1.5）
 
 站長已在藍新開通「信用卡定期定額」，讓贊助的「長期支持」也能走站內藍新，不必再全部導去
@@ -362,5 +533,15 @@ Portaly。後台「設定・贊助」新增 `monthly_gateway`（`portaly` 外連
 - `app/admin/(panel)/settings/shop/page.tsx`：ATM 指定銀行（綠界／藍新）與幕後取號開關
   （這兩顆設定實際上放在「設定・商店」頁，不是「設定・金流」頁，命名容易誤會，這裡點名一下）
 - `app/admin/(panel)/settings/sponsor/page.tsx`、`app/admin/actions.ts`：後台贊助設定與存檔
+- `lib/newebpay-applepay.ts`：Apple Pay 幕後（見上面「Apple Pay 幕後」一節）。
+  `applePayPaymentRequestBase()` 已查證；`buildMerchantSessionRequest()`／
+  `chargeApplePay()`／`parseChargeResult()` 未查證，一律回「未取得技術文件」
+- `app/api/newebpay/applepay/{session,pay}/route.ts`：Apple Pay 幕後的前端進入點
+- `components/ApplePayButton.tsx`：Apple Pay 幕後的按鈕元件（`app/podcast.css`
+  的 `.apple-pay-button` 是它的樣式）
+- `lib/shop.ts`：`applePayOnsiteEnabled()`（設定鍵 `applepay_onsite`）
+- `app/admin/(panel)/settings/shop/page.tsx`：「Apple Pay 幕後」開關（跟上面
+  ATM 指定銀行同一區「付款方式」）
 - `tests/smoke.ts`：加解密來回、TradeSha、MerchantOrderNo／MerOrderNo 產生與還原、
-  `parseNotify`／`parsePeriodNotify` 驗簽（或解密）測試、PeriodPoint 收斂規則
+  `parseNotify`／`parsePeriodNotify` 驗簽（或解密）測試、PeriodPoint 收斂規則、
+  Apple Pay 幕後的 JS 基本欄位與「未取得技術文件」的誠實回報

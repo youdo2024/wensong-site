@@ -76,6 +76,7 @@ export const SETTING_SOURCES: Record<string, string[]> = {
   ecpay_atm_bank: ["ecpay_atm_bank"],
   ecpay_atm_backstage: ["ecpay_atm_backstage"],
   newebpay_atm_bank: ["newebpay_atm_bank"],
+  applepay_onsite: ["applepay_onsite"],
 
   /* ── 金流頁 ── */
   shop_gateway: ["shop_gateway"],

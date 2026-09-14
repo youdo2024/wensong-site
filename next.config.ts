@@ -32,6 +32,10 @@ const nextConfig: NextConfig = {
            *   script     GA(gtag)；'unsafe-inline' 是 Next 的行內啟動碼與 JSON-LD
            *   connect    GA 收數據
            *   form       綠界／統一金流／LINE Pay 的跳轉付款頁（第 3 段接藍新時要補 core.newebpay.com 與 ccore.newebpay.com）
+           *   connect    加了 core／ccore.newebpay.com：Apple Pay 幕後（components/ApplePayButton.tsx）
+           *              目前實際上只 fetch 本站自己的 /api/newebpay/applepay/*（'self' 就夠），
+           *              這裡先加是為了 lib/newebpay-applepay.ts 真的接上藍新技術文件之後，
+           *              萬一改成瀏覽器直接打藍新網域也不用再回頭補這條 CSP
            */
           {
             key: "Content-Security-Policy-Report-Only",
@@ -42,7 +46,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https://*.soundon.fm https://i.ytimg.com",
               "media-src 'self' https://*.soundon.fm",
               "font-src 'self' data:",
-              "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com",
+              "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://core.newebpay.com https://ccore.newebpay.com",
               "frame-src https://www.youtube-nocookie.com",
               "object-src 'none'",
               "base-uri 'self'",

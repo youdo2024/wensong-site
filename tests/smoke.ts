@@ -1496,5 +1496,34 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
   }
 }
 
+/* ── 藍新 Apple Pay 幕後（問爽的）：
+   藍新沒有公開這條 API 的技術文件（見 lib/newebpay-applepay.ts 開頭的查證說明），
+   所以這裡只測「刻意回報未取得技術文件」這個誠實的行為，以及 Apple Pay JS 那半邊
+   （countryCode／currencyCode／supportedNetworks／merchantCapabilities）符合 Apple
+   官方公開規格，不測任何藍新端的網路請求（根本沒有發出過）。 ── */
+{
+  const { applePayPaymentRequestBase, buildMerchantSessionRequest, chargeApplePay, parseChargeResult } = await import(
+    "@/lib/newebpay-applepay"
+  );
+
+  const base = applePayPaymentRequestBase();
+  eq("countryCode 是 TW", base.countryCode, "TW");
+  eq("currencyCode 是 TWD", base.currencyCode, "TWD");
+  ok("merchantCapabilities 至少有 supports3DS", base.merchantCapabilities.includes("supports3DS"));
+  ok("supportedNetworks 非空且不重複", base.supportedNetworks.length > 0 && new Set(base.supportedNetworks).size === base.supportedNetworks.length);
+
+  /* 未查證的兩支：藍新沒有公開技術文件，一律老實回「未取得技術文件」，不會假裝成功 */
+  const session = await buildMerchantSessionRequest({ validationURL: "https://apple-pay-gateway.apple.com/paymentservices/startSession", domainName: "www.wensong.tw", displayName: "問爽的 WenSong" });
+  eq("merchant session 未查證，一律回 ok:false", session.ok, false);
+  ok("回傳的原因是「未取得技術文件」", !session.ok && session.reason === "NEWEBPAY_APPLEPAY_SESSION_API_UNDOCUMENTED");
+
+  const charge = await chargeApplePay({ kind: "order", id: "YD2609140099", amount: 500, email: "a@b.c", itemDesc: "測試商品", paymentToken: { fake: true } });
+  eq("扣款未查證，一律回 ok:false", charge.ok, false);
+  ok("回傳的原因是「未取得技術文件」", !charge.ok && charge.reason === "NEWEBPAY_APPLEPAY_CHARGE_API_UNDOCUMENTED");
+
+  const parsed = parseChargeResult({ anything: 1 });
+  eq("parseChargeResult 同樣未查證，一律回 ok:false", parsed.ok, false);
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);
