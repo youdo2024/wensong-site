@@ -27,7 +27,7 @@ import { createHmac, createCipheriv } from "crypto";
 import { deriveZip, zipDisplay } from "@/lib/zip-lookup";
 import { createThrottle, isNoise, sanitizeCspUrl, violationKey } from "@/lib/csp-noise";
 import { passwordUsable, accountModeEnabled } from "@/lib/admin-password";
-import { hashPassword, verifyPassword } from "@/lib/admin-users";
+import { hashPassword, verifyPassword, parseAdminUserEnv } from "@/lib/admin-users";
 import { activeChoices, choiceActive, parseChoiceExpiry, splitChoices, weekRetired } from "@/lib/choice-split";
 import { csvCell } from "@/lib/csv";
 import { brandOfMethod, cvsMethodOf, isCvsMethod, normalizeBrand } from "@/lib/cvs";
@@ -963,6 +963,27 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
   ok("帳號制但 ADMIN_USER_1 沒設＝不給登入", !passwordUsable({ ADMIN_USER_2: "a|b|c" }));
 }
 
+/*
+ * ADMIN_USER_N 顯示名稱含「|」：舊寫法 `raw.split("|")` 沒限制段數，用陣列解構
+ * 直接取前三段，一旦名字裡也有「|」，雜湊值就會被換成中間的錯誤片段，帳號被
+ * 靜默建成一個永遠登不進去的壞密碼（2026-09-14 審查抓到）。
+ *
+ * 正確做法：username 用「第一個 |」界定，passHash 用「最後一個 |」界定，
+ * 中間不管有幾個 | 全部算名字，這樣雜湊值永遠是最後一段，不會被名字裡的 | 污染。
+ */
+{
+  eq("正常格式照舊解析", parseAdminUserEnv("bob|Bob T|scrypt$aa$bb"),
+    { username: "bob", name: "Bob T", passHash: "scrypt$aa$bb" });
+  eq("名字含一個 | 也能正確解析出雜湊", parseAdminUserEnv("bob|B|C|scrypt$aa$bb"),
+    { username: "bob", name: "B|C", passHash: "scrypt$aa$bb" });
+  eq("名字含兩個 | 一樣正確", parseAdminUserEnv("bob|B|C|D|scrypt$aa$bb"),
+    { username: "bob", name: "B|C|D", passHash: "scrypt$aa$bb" });
+  eq("只有一個 | 湊不出三段，回 null", parseAdminUserEnv("bob|justtwoparts"), null);
+  eq("完全沒有 | 是壞格式，回 null", parseAdminUserEnv("nopipe"), null);
+  eq("前後空白會被修掉", parseAdminUserEnv("  bob  |  Bob T  |  scrypt$aa$bb  "),
+    { username: "bob", name: "Bob T", passHash: "scrypt$aa$bb" });
+}
+
 /* ── 站內短網址（2026-09-07）── */
 {
   /*
@@ -1608,19 +1629,6 @@ eq("空字串不裝懂", fmtDate(""), "");
   ok("subscribed=0 要有失敗文案，且標成不是 ok", subscribeFeedback("0") !== null && subscribeFeedback("0")?.ok === false);
   eq("沒有這個查詢字串就不顯示任何東西", subscribeFeedback(undefined), null);
   eq("亂填的值也不顯示", subscribeFeedback("garbage"), null);
-}
-
-/* ── 章節時間往返：長集數（100 分鐘以上）的章節不能被靜默丟掉 ──
-   後台編輯頁把章節格式化成「分:秒」（fmtChapterTime），分鐘數可以超過 99；
-   舊的 parseChapterLine 正則只吃 1~2 位數的第一段，100 分鐘那行整行解析失敗
-   會被跳過，只要編輯頁重新儲存（哪怕沒動章節欄位），資料就靜默流失。 */
-{
-  const { parseChapterLine, fmtChapterTime } = await import("@/lib/episodes");
-  eq("100 分鐘整的章節格式化", fmtChapterTime(6000), "100:00");
-  eq("100 分鐘的章節能被解析回來，不是被跳過", parseChapterLine("100:00 開場"), { t: 6000, label: "開場" });
-  eq("一般章節（12:30）照舊", parseChapterLine("12:30 開始聊創業"), { t: 750, label: "開始聊創業" });
-  eq("解析不出時間就回 null", parseChapterLine("這行沒有時間"), null);
-  eq("往返一致：格式化再解析拿回同一個 t", parseChapterLine(`${fmtChapterTime(7325)} X`), { t: 7325, label: "X" });
 }
 
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);

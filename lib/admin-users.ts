@@ -57,6 +57,30 @@ export function touchLogin(id: number): void {
 }
 
 /*
+ * 拆解 `username|顯示名|scrypt$salt$hash` 這個格式。
+ *
+ * 舊寫法 `raw.split("|")` 沒限制段數，直接用陣列解構取前三段：一旦顯示名稱本身
+ * 含「|」，第三段就會變成名字裡多出來的片段，雜湊值被換成一個不完整、驗證一定
+ * 失敗的字串，帳號被靜默建成永遠登不進去的壞密碼，站長完全看不出來哪裡錯。
+ *
+ * 修法：username 用「第一個 |」界定，passHash 用「最後一個 |」界定，
+ * 中間不管出現幾個 | 全部算顯示名稱本身。密碼雜湊的格式固定是
+ * `scrypt$<十六進位鹽>$<十六進位雜湊>`，本來就不可能含「|」，
+ * 所以「最後一個 |」永遠是名字與雜湊的正確分界，不受名字內容影響。
+ */
+export function parseAdminUserEnv(raw: string): { username: string; name: string; passHash: string } | null {
+  const s = (raw || "").trim();
+  const first = s.indexOf("|");
+  const last = s.lastIndexOf("|");
+  if (first === -1 || last === -1 || first === last) return null; // 湊不出「三段」，格式本身就不對
+  const username = s.slice(0, first).trim();
+  const name = s.slice(first + 1, last).trim();
+  const passHash = s.slice(last + 1).trim();
+  if (!username || !name || !passHash) return null;
+  return { username, name, passHash };
+}
+
+/*
  * 從環境變數種子灌帳號，格式 `username|顯示名|scrypt$salt$hash`（ADMIN_USER_1..3）。
  * 在 login 時呼叫一次即可，不放進 lib/db.ts：那支只管 schema 與內容種子，
  * 讀環境變數這件事應該跟著登入流程走，不該混進資料庫初始化。
@@ -74,8 +98,8 @@ export function seedAdminUsersFromEnv(env: NodeJS.ProcessEnv = process.env): voi
   for (const key of ["ADMIN_USER_1", "ADMIN_USER_2", "ADMIN_USER_3"] as const) {
     const raw = env[key];
     if (!raw) continue;
-    const [username, name, passHash] = raw.split("|").map((s) => (s || "").trim());
-    if (!username || !name || !passHash) continue;
-    upsert.run({ username, name, pass_hash: passHash, created_at: new Date().toISOString() });
+    const parsed = parseAdminUserEnv(raw);
+    if (!parsed) continue;
+    upsert.run({ username: parsed.username, name: parsed.name, pass_hash: parsed.passHash, created_at: new Date().toISOString() });
   }
 }
