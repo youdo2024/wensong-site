@@ -1820,5 +1820,33 @@ eq("空字串不裝懂", fmtDate(""), "");
   eq("沒超過上限就整段照登（去語法後）", transcriptExcerpt(short, 5000), short);
 }
 
+/* ── upsertGuestImport：來賓匯入要用 slug 當比對鍵，不是 name ──
+   guests.slug 在 schema 是 UNIQUE NOT NULL，是這張表真正的身分欄；
+   舊寫法用 name 精確字串比對決定「更新既有這位」或「新增一位」，本機
+   若恰好有兩位同名不同人的來賓，推送時後面那位會直接覆蓋前面那位的
+   slug／簡介／照片，兩人資料被靜默合併。改用 slug 比對就不會撞。 */
+{
+  const { upsertGuestImport } = await import("@/lib/episodes");
+  const now = new Date().toISOString();
+  const slugA = "smk-guest-a", slugB = "smk-guest-b";
+  const cleanup = () => db.prepare("DELETE FROM guests WHERE slug IN (?,?)").run(slugA, slugB);
+  cleanup();
+  try {
+    const r1 = upsertGuestImport({ slug: slugA, name: "陳小美", title: "老闆", intro: "", photo: "", links: "[]", published: 1, featured: 0, sort: 0 }, now);
+    ok("第一次是新增", r1.action === "insert");
+    const r2 = upsertGuestImport({ slug: slugB, name: "陳小美", title: "另一位陳小美", intro: "", photo: "", links: "[]", published: 1, featured: 0, sort: 0 }, now);
+    ok("同名但 slug 不同，是新增，不是覆蓋前一位", r2.action === "insert" && r2.id !== r1.id);
+    const rowA = db.prepare("SELECT title FROM guests WHERE id=?").get(r1.id) as { title: string };
+    eq("前一位的資料沒有被同名的後一位覆蓋", rowA.title, "老闆");
+    const r3 = upsertGuestImport({ slug: slugA, name: "陳小美", title: "老闆娘", intro: "", photo: "", links: "[]", published: 1, featured: 0, sort: 0 }, now);
+    ok("同 slug 是更新，不是新增", r3.action === "update" && r3.id === r1.id);
+    const rowA2 = db.prepare("SELECT title, COUNT(*) OVER () AS n FROM guests WHERE slug=?").get(slugA) as { title: string; n: number };
+    eq("更新後 title 換成新值", rowA2.title, "老闆娘");
+    eq("同 slug 不會產生第二筆", rowA2.n, 1);
+  } finally {
+    cleanup();
+  }
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);

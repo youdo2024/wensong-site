@@ -405,6 +405,34 @@ export function transcriptExcerpt(md: string, max = 5000): string {
   return (boundary > max * 0.5 ? cut.slice(0, boundary + 1) : cut).trim();
 }
 
+export type GuestImportInput = {
+  slug: string; name: string; title: string; intro: string; photo: string; links: string;
+  published: number; featured: number; sort: number;
+};
+
+/*
+ * 來賓匯入（tools/guests/push-guests.mjs → app/api/admin/import-guest 用）。
+ *
+ * 用 slug 當比對鍵，不是 name：guests.slug 在 schema 是 UNIQUE NOT NULL，
+ * 是這張表真正的身分欄。舊寫法用 name 精確字串比對決定「更新既有這位」或
+ * 「新增一位」，本機恰好有兩位同名不同人的來賓時，後推的那位會直接覆蓋
+ * 前面那位的 slug／簡介／照片，兩人資料被靜默合併。
+ */
+export function upsertGuestImport(g: GuestImportInput, now: string): { action: "insert" | "update"; id: number } {
+  const existing = db.prepare("SELECT id FROM guests WHERE slug=?").get(g.slug) as { id: number } | undefined;
+  if (existing) {
+    db.prepare(
+      `UPDATE guests SET name=@name,title=@title,intro=@intro,photo=@photo,links=@links,published=@published,featured=@featured,sort=@sort,updated_at=@now WHERE id=@id`
+    ).run({ ...g, now, id: existing.id });
+    return { action: "update", id: existing.id };
+  }
+  const r = db.prepare(
+    `INSERT INTO guests (slug,name,title,intro,photo,links,published,featured,sort,created_at,updated_at)
+     VALUES (@slug,@name,@title,@intro,@photo,@links,@published,@featured,@sort,@now,@now)`
+  ).run({ ...g, now });
+  return { action: "insert", id: Number(r.lastInsertRowid) };
+}
+
 export function episodesOfGuest(guestId: number): EpisodeRow[] {
   return db
     .prepare("SELECT e.* FROM episodes e JOIN episode_guests eg ON eg.episode_id=e.id WHERE eg.guest_id=? AND e.published=1 ORDER BY e.pub_date DESC")

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import db, { setSetting } from "@/lib/db";
+import { setSetting } from "@/lib/db";
 import { safeEqual } from "@/lib/safe-equal";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { upsertGuestImport } from "@/lib/episodes";
 
 /*
  * 本機補完 16 位來賓與主持人資料之後，用這支把 guests 與 settings（host_ 開頭）
@@ -47,7 +48,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, settings: updated });
   }
 
-  /* 來賓：用 name 當比對 key */
+  /* 來賓：用 slug 當比對 key（見 lib/episodes.ts 的 upsertGuestImport 說明，
+     slug 才是 guests 表真正的身分欄，用 name 比對本機同名不同人會互相覆蓋） */
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const slug = typeof body.slug === "string" ? body.slug.trim() : "";
   if (!name || !slug) return NextResponse.json({ error: "缺少 name 或 slug" }, { status: 400 });
@@ -64,22 +66,6 @@ export async function POST(req: NextRequest) {
   const sort = typeof body.sort === "number" && Number.isFinite(body.sort) ? body.sort : 0;
   const now = new Date().toISOString();
 
-  const existing = db.prepare("SELECT id FROM guests WHERE name = ?").get(name) as { id: number } | undefined;
-
-  if (existing) {
-    db.prepare(
-      `UPDATE guests SET slug=?, title=?, intro=?, photo=?, links=?, published=?, featured=?, sort=?, updated_at=?
-       WHERE id=?`
-    ).run(slug, title, intro, photo, links, published, featured, sort, now, existing.id);
-    return NextResponse.json({ ok: true, action: "update", id: existing.id, slug });
-  }
-
-  const info = db
-    .prepare(
-      `INSERT INTO guests (slug, name, title, intro, photo, links, published, featured, sort, created_at, updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`
-    )
-    .run(slug, name, title, intro, photo, links, published, featured, sort, now, now);
-
-  return NextResponse.json({ ok: true, action: "insert", id: info.lastInsertRowid, slug });
+  const result = upsertGuestImport({ slug, name, title, intro, photo, links, published, featured, sort }, now);
+  return NextResponse.json({ ok: true, action: result.action, id: result.id, slug });
 }
