@@ -140,3 +140,10 @@
 .nl-sec{padding:64px 0;border-top:2px solid var(--ink);background:var(--paper-lt);}
 .nl-form{display:flex;gap:10px;max-width:480px;margin:0 auto;}
 .nl-form input{flex:1;border:2px solid var(--ink);background:var(--paper);padding:12px 14px;font-size:16px;min-width:0;}
+
+/* ── 選稿列（THEME_PICKER=1 才出現） ── */
+.theme-picker{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9000;display:flex;gap:6px;align-items:center;background:#111;color:#fff;padding:8px 10px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:13px;max-width:calc(100vw - 20px);overflow-x:auto;white-space:nowrap;}
+.theme-picker .tp-l{opacity:.6;padding:0 6px;letter-spacing:.2em;font-size:11px;}
+.theme-picker a{color:#fff;text-decoration:none;padding:6px 12px;border-radius:999px;font-weight:700;}
+.theme-picker a:hover{background:rgba(255,255,255,.15);}
+.theme-picker a.on{background:#EA962E;color:#111;}

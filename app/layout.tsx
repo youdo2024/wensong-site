@@ -2,6 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Serif_TC, Noto_Sans_TC } from "next/font/google";
 import "./globals.css";
 import "./podcast.css";
+import "./themes/bubble.css";
+import "./themes/night.css";
+import "./themes/editorial.css";
+import "./themes/pop.css";
+import "./themes/minimal.css";
+import { cookies } from "next/headers";
+import ThemePicker from "@/components/ThemePicker";
+import { isTheme } from "@/lib/themes";
 import { CartProvider } from "@/components/CartProvider";
 import { SiteConfigProvider } from "@/components/SiteConfig";
 import SocialFloat from "@/components/SocialFloat";
@@ -83,10 +91,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     platforms: platformLinks(),
   };
   const hostList = hosts();
+  /* 選稿用：cookie 決定 data-theme（/theme/<key> 種），沒有就是原稿 */
+  const themeCookie = (await cookies()).get("ws_theme")?.value;
+  const theme = isTheme(themeCookie) ? (themeCookie as string) : "base";
+  const picker = process.env.THEME_PICKER === "1";
   const sameAs = [config.social.ig, config.social.fb, config.social.yt, ...config.platforms.map((p) => p.url)].filter(Boolean);
 
   return (
-    <html lang="zh-Hant-TW" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="zh-Hant-TW" data-scroll-behavior="smooth" data-theme={theme} suppressHydrationWarning>
       <body className={`${serif.variable} ${sans.variable}`}>
         {/* 全站結構化資料：Organization／WebSite／PodcastSeries／主持人 Person */}
         <JsonLd
@@ -144,6 +156,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* 審核站不送 GA。Meta Pixel 第 1 版不裝（決策定案 Q36） */}
         {!isReviewSite() && <GoogleAnalytics />}
         <SponsorClickTracker />
+        {picker && <ThemePicker current={theme} />}
       </body>
     </html>
   );

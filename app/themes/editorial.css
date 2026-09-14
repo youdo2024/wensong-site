@@ -1,0 +1,82 @@
+/* ═══ 風格 C：雜誌編輯（editorial）═══
+   純白底、襯線大標、細髮線分隔、橘色只當一根細線。像一本談話節目的季刊，安靜、有份量。 */
+html[data-theme="editorial"]{
+  --paper:#FFFFFF;--paper-lt:#FFFFFF;--sand:#E8E2D9;--orange:#E8871E;--orange-dk:#C46E0F;--teal:#1F1B17;--ink:#1F1B17;--grey:#8A837B;
+  --hair:1px solid #DDD6CC;
+}
+html[data-theme="editorial"] body{background:#fff;font-family:var(--font-sans),"Noto Sans TC",sans-serif;font-weight:400;}
+html[data-theme="editorial"] h1,html[data-theme="editorial"] h2,html[data-theme="editorial"] h3,html[data-theme="editorial"] .ep-card h3,html[data-theme="editorial"] .latest-ep .head b,html[data-theme="editorial"] .host-card b,html[data-theme="editorial"] .guest-card b{font-family:var(--font-serif),"Noto Serif TC",serif;font-weight:700;letter-spacing:.02em;}
+html[data-theme="editorial"] .btn{border:1px solid var(--ink);background:#fff;border-radius:0;letter-spacing:.2em;font-weight:500;font-size:13.5px;padding:13px 26px;}
+html[data-theme="editorial"] .btn:hover:not(:disabled){transform:none;box-shadow:none;background:var(--ink);color:#fff;}
+html[data-theme="editorial"] .btn.fill{background:var(--ink);border-color:var(--ink);color:#fff;}
+html[data-theme="editorial"] .btn.fill:hover{background:var(--orange);border-color:var(--orange);}
+html[data-theme="editorial"] .site-nav{background:#fff;border-bottom:var(--hair);}
+html[data-theme="editorial"] .site-nav .inner{height:76px;}
+html[data-theme="editorial"] .brand-logo{border:none;height:34px;width:34px;}
+html[data-theme="editorial"] .brand-word{font-family:var(--font-serif),serif;font-size:24px;letter-spacing:.06em;}
+html[data-theme="editorial"] .site-nav ul a:not(.cta){border:none;background:transparent;padding:6px 2px;margin:0 10px;font-weight:500;letter-spacing:.18em;border-bottom:1px solid transparent;}
+html[data-theme="editorial"] .site-nav ul a:not(.cta):hover{transform:none;box-shadow:none;text-shadow:none;border-bottom-color:var(--ink);}
+html[data-theme="editorial"] .site-nav ul a.cta{border:1px solid var(--ink);background:transparent;color:var(--ink);padding:7px 18px;font-weight:500;}
+html[data-theme="editorial"] .m-menu{border-top:var(--hair);}
+html[data-theme="editorial"] .m-menu a{border:var(--hair);background:#fff;font-weight:500;}
+html[data-theme="editorial"] .origin,html[data-theme="editorial"] .sec-head .tag,html[data-theme="editorial"] .page-head .tag,html[data-theme="editorial"] .latest-ep .lab{border:none;padding:0;color:var(--orange);font-size:11px;letter-spacing:.42em;font-weight:700;}
+html[data-theme="editorial"] .sec-head{text-align:left;border-top:2px solid var(--ink);padding-top:16px;}
+html[data-theme="editorial"] .sec-head h2{font-size:clamp(28px,4vw,40px);letter-spacing:.02em;}
+html[data-theme="editorial"] .home-hero{border-bottom:var(--hair);background:#fff;}
+html[data-theme="editorial"] .home-hero .inner{padding:80px 20px 88px;}
+html[data-theme="editorial"] .home-hero h1{font-size:clamp(40px,6.4vw,72px);line-height:1.2;letter-spacing:0;}
+html[data-theme="editorial"] .home-hero h1 em{color:var(--ink);border-bottom:6px solid var(--orange);}
+html[data-theme="editorial"] .home-hero .dek{font-size:17px;color:var(--grey);max-width:420px;}
+html[data-theme="editorial"] .latest-ep{border:none;border-top:2px solid var(--ink);border-bottom:var(--hair);box-shadow:none;padding:20px 0;background:#fff;}
+html[data-theme="editorial"] .latest-ep .head img{border:none;width:96px;height:96px;}
+html[data-theme="editorial"] .latest-ep .head b{font-size:20px;}
+html[data-theme="editorial"] .platform-sec{border:none;background:#fff;padding:0 0 40px;}
+html[data-theme="editorial"] .platforms .pf{border:none;background:transparent!important;color:var(--ink)!important;padding:4px 0;margin:0 14px;border-bottom:1px solid var(--ink);border-radius:0;font-weight:500;letter-spacing:.14em;}
+html[data-theme="editorial"] .platforms .pf:hover{transform:none;box-shadow:none;color:var(--orange)!important;border-bottom-color:var(--orange);}
+html[data-theme="editorial"] .pf-title{letter-spacing:.32em;}
+html[data-theme="editorial"] .ep-grid{gap:0 32px;}
+html[data-theme="editorial"] .ep-card,html[data-theme="editorial"] .card,html[data-theme="editorial"] .prod{border:none;border-top:var(--hair);background:#fff;box-shadow:none;padding-top:18px;}
+html[data-theme="editorial"] .ep-card:hover,html[data-theme="editorial"] .card:hover,html[data-theme="editorial"] .prod:hover{transform:none;box-shadow:none;}
+html[data-theme="editorial"] .ep-card:hover h3{color:var(--orange);}
+html[data-theme="editorial"] .ep-card .cover{border-bottom:none;aspect-ratio:4/3;}
+html[data-theme="editorial"] .ep-card .cover img{filter:saturate(.85);}
+html[data-theme="editorial"] .ep-card .ep-no{background:#fff;color:var(--ink);top:0;left:0;letter-spacing:.2em;font-weight:500;}
+html[data-theme="editorial"] .ep-card .body{padding:16px 0 26px;}
+html[data-theme="editorial"] .ep-card h3{font-size:20px;line-height:1.5;}
+html[data-theme="editorial"] .ep-card .meta{border-top:none;padding-top:8px;letter-spacing:.1em;}
+html[data-theme="editorial"] .ep-grid.list .ep-card .cover{border-right:none;width:150px;}
+html[data-theme="editorial"] .hosts-sec,html[data-theme="editorial"] .shop-sec,html[data-theme="editorial"] .nl-sec{border:none;background:#fff;}
+html[data-theme="editorial"] .host-card{border:none;border-top:2px solid var(--ink);padding:22px 0;gap:26px;}
+html[data-theme="editorial"] .host-card .photo{border:none;border-radius:0;width:120px;height:150px;background:var(--sand);}
+html[data-theme="editorial"] .host-card .photo span{color:var(--ink);}
+html[data-theme="editorial"] .host-card b{font-size:28px;}
+html[data-theme="editorial"] .host-card small{color:var(--orange);letter-spacing:.34em;}
+html[data-theme="editorial"] .guest-grid{gap:0 24px;}
+html[data-theme="editorial"] .guest-card{border:none;border-top:var(--hair);background:#fff;align-items:flex-start;text-align:left;padding:16px 0 22px;}
+html[data-theme="editorial"] .guest-card:hover{transform:none;box-shadow:none;}
+html[data-theme="editorial"] .guest-card:hover b{color:var(--orange);}
+html[data-theme="editorial"] .guest-card .cnt{position:static;border:none;padding:0;order:3;}
+html[data-theme="editorial"] .ava{border:none;border-radius:0;background:var(--sand);}
+html[data-theme="editorial"] .ava.ph span{color:var(--ink);}
+html[data-theme="editorial"] .page-head{text-align:left;border-top:2px solid var(--ink);padding-top:16px;}
+html[data-theme="editorial"] .page-head h1{font-size:clamp(34px,5vw,52px);}
+html[data-theme="editorial"] .cats{justify-content:flex-start;}
+html[data-theme="editorial"] .cats .c{border:none;border-bottom:1px solid transparent;background:transparent;padding:6px 2px;margin-right:18px;letter-spacing:.2em;font-weight:500;}
+html[data-theme="editorial"] .cats .c.on{background:transparent;color:var(--ink);border-bottom-color:var(--ink);}
+html[data-theme="editorial"] .ep-head .cover img,html[data-theme="editorial"] .ep-head .cover .ph{border:none;}
+html[data-theme="editorial"] .ep-head .cat-tag,html[data-theme="editorial"] article.post .cat-tag{background:transparent;color:var(--orange);padding:0;letter-spacing:.4em;}
+html[data-theme="editorial"] .ep-head h1{font-size:clamp(30px,4.6vw,44px);line-height:1.35;}
+html[data-theme="editorial"] .ep-play,html[data-theme="editorial"] .ep-transcript details,html[data-theme="editorial"] .box{border:none;border-top:2px solid var(--ink);border-bottom:var(--hair);box-shadow:none;background:#fff;padding-left:0;padding-right:0;}
+html[data-theme="editorial"] .sec-t{padding-left:0;letter-spacing:.42em;font-weight:500;color:var(--orange);font-size:12px;}
+html[data-theme="editorial"] .sec-t::before{display:none;}
+html[data-theme="editorial"] .ep-page article.post h2::before{background:var(--orange);width:8px;height:8px;top:.7em;}
+html[data-theme="editorial"] .ep-chapters button{border:none;border-bottom:var(--hair);background:transparent;padding:10px 0;}
+html[data-theme="editorial"] .ep-transcript summary{padding:14px 0;}
+html[data-theme="editorial"] .ep-transcript .ai-note{background:transparent;border-left:none;border-right:none;padding-left:0;}
+html[data-theme="editorial"] .ep-transcript article.post{padding-left:0;padding-right:0;}
+html[data-theme="editorial"] .site-footer{background:#fff;color:var(--ink);border-top:2px solid var(--ink);}
+html[data-theme="editorial"] .site-footer .brandline b{font-family:var(--font-serif),serif;}
+html[data-theme="editorial"] .site-footer .brandline p,html[data-theme="editorial"] .site-footer .biz-info,html[data-theme="editorial"] .site-footer .fine-row{color:var(--grey);}
+html[data-theme="editorial"] .site-footer .biz-info b{color:var(--ink);}
+html[data-theme="editorial"] .site-footer .fine-row{border-top:var(--hair);}
+html[data-theme="editorial"] input,html[data-theme="editorial"] .nl-form input{border:none;border-bottom:1px solid var(--ink);background:transparent;border-radius:0;}

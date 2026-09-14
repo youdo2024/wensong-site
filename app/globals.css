@@ -35,7 +35,8 @@ button{font:inherit;color:inherit;}
 input,select,textarea{font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
 
 .frame{max-width:1060px;margin:0 auto;padding:0 20px;}
-.band{height:14px;background:repeating-linear-gradient(90deg,var(--seal) 0 44px,var(--rice) 44px 55px,var(--indigo) 55px 99px,var(--rice) 99px 110px);}
+/* 色帶（佑在幹嘛的米袋紅藍跑馬燈）整個拿掉：站長 2026-09-14「跟佑在幹嘛太像」。標記還在，只是不畫 */
+.band{display:none;}
 /* 按鈕文字不在詞中間折行（手機斷句）；長標籤靠縮 padding 而不是折行 */
 .btn{display:inline-block;text-decoration:none;font-size:15.5px;letter-spacing:.22em;padding:13px 28px;border:2px solid var(--ink);color:var(--ink);font-weight:600;background:var(--rice);cursor:pointer;font-family:var(--font-sans),"Noto Sans TC",sans-serif;transition:transform .15s,box-shadow .15s;white-space:nowrap;max-width:100%;}
 @media(max-width:420px){.btn{padding:12px 18px;letter-spacing:.14em;}}
@@ -969,9 +970,6 @@ img.img,img.cover,img.ava,img.main{object-fit:cover;}
 @media(prefers-reduced-motion:reduce){.seal-badge{animation:none;}}
 
 /* ── 動畫五重奏 ── */
-/* 1. 紅藍色帶流動（週期 110px 與花紋同步，無縫循環） */
-@keyframes band-flow{from{background-position-x:0;}to{background-position-x:110px;}}
-.band{animation:band-flow 7s linear infinite;}
 /* 2. 地圖圖釘落下 */
 @keyframes pin-drop{0%{opacity:0;transform:translateY(-16px) scale(.3);}70%{opacity:1;transform:translateY(2px) scale(1.12);}100%{opacity:1;transform:translateY(0) scale(1);}}
 .pin{transform-box:fill-box;transform-origin:center;animation:pin-drop .5s ease backwards;animation-delay:var(--pin-delay,0s);}
