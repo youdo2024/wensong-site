@@ -40,7 +40,7 @@ import { readFileSync } from "fs";
 import { relTime, statusTone, orderLast4 } from "@/components/admin/order-fmt";
 import { sponsorTone, sponsorModeLabel, remindTone } from "@/components/admin/sponsor-fmt";
 import { mailTabFromParams, contactTone, payLinkStatus, newsletterStatus } from "@/components/admin/list-fmt";
-import { willWrite, carriesField, SETTING_SOURCES } from "@/components/admin/settings-fields";
+import { willWrite, carriesField, SETTING_SOURCES, PREFIXES } from "@/components/admin/settings-fields";
 import { safeEqual } from "@/lib/safe-equal";
 import { taipeiDateExpired, taipeiYMDAt } from "@/lib/month";
 import { DEFAULT_EPOCH, packSession, parseEpoch, sessionUser, verifySession } from "@/lib/admin-session";
@@ -731,6 +731,28 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
 
   /* carriesField 是 actions.ts 每一個寫入前面問的那一句，跟 willWrite 必須同一把尺 */
   ok("carriesField 對得上 willWrite", carriesField(shopForm.keys(), "shop_enabled") && !carriesField(shopForm.keys(), "notify_pause"));
+
+  /*
+   * 白名單防漏：submit_terms_md 曾經漏在 SETTING_SOURCES 外面（投稿功能砍掉後的死碼），
+   * saveSettings 有 has("submit_terms_md") 判斷式，但白名單沒有這一鍵，carriesField
+   * 永遠回傳 false，這格設定不管表單怎麼送都存不進去，畫面上完全看不出來。
+   *
+   * 這條測試不是針對 submit_terms_md 寫死一條，而是直接讀 actions.ts 原始碼，
+   * 掃出所有 has("x") 與 setCheckbox(formData, "x") 用到的鍵，斷言每一個都能在
+   * SETTING_SOURCES 或 PREFIXES 找到來源。防的是「下一個人加了新的 has() 判斷，
+   * 卻忘了在 settings-fields.ts 補一行」，這條測試能在那一刻就抓到，不必等站長實測發現。
+   */
+  const actionsSrc = readFileSync(process.cwd() + "/app/admin/actions.ts", "utf8");
+  const usedKeys = new Set<string>();
+  /* has("x")：排除 formData.has("x")，那是別的 action 直接問表單有沒有這欄，跟設定白名單無關 */
+  for (const m of actionsSrc.matchAll(/(?<!formData\.)\bhas\("([A-Za-z0-9_]+)"\)/g)) usedKeys.add(m[1]);
+  for (const m of actionsSrc.matchAll(/setCheckbox\(formData,\s*"([A-Za-z0-9_]+)"\)/g)) usedKeys.add(m[1]);
+  /* setCheckbox(formData, k) 迴圈寫法：k 是變數，把陣列字面量裡的字串鍵一起收進來 */
+  for (const m of actionsSrc.matchAll(/for \(const k of \[([^\]]+)\]\) setCheckbox\(formData, k\)/g))
+    for (const s of m[1].matchAll(/"([A-Za-z0-9_]+)"/g)) usedKeys.add(s[1]);
+  ok("有掃到東西，regex 沒失效變成空跑一場", usedKeys.size > 20);
+  const uncovered = [...usedKeys].filter((k) => !(k in SETTING_SOURCES) && !PREFIXES.some((p) => k.startsWith(p)));
+  eq("saveSettings 用到的每個設定鍵都在白名單涵蓋範圍內", uncovered, []);
 }
 
 /* ── 贊助列表與提醒中心（重設計第四批）── */

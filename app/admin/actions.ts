@@ -1354,7 +1354,6 @@ export async function saveSettings(formData: FormData) {
   if (has("privacy_md")) setSetting("privacy_md", String(formData.get("privacy_md") || ""));
   if (has("terms_md")) setSetting("terms_md", String(formData.get("terms_md") || ""));
   if (has("returns_md")) setSetting("returns_md", String(formData.get("returns_md") || ""));
-  if (has("submit_terms_md")) setSetting("submit_terms_md", String(formData.get("submit_terms_md") || ""));
 
   /*
    * 文案信件（copy_*）併進設定·內容、通知文案（ncopy_*）併進設定·通知，

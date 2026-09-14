@@ -117,7 +117,7 @@ export const SETTING_SOURCES: Record<string, string[]> = {
  * lib/copy 與 lib/notify-copy 定義，列進上面那張表只會多一份要同步的清單。
  * 它們的規則本來就是「表單裡有這一格才寫」，用前綴判斷即可。
  */
-const PREFIXES = ["copy_", "ncopy_"];
+export const PREFIXES = ["copy_", "ncopy_"];
 
 /* 這次送出的表單（欄位名清單）會寫到哪些設定鍵。沒列出來的鍵這次一定不會被動到 */
 export function willWrite(presentFields: Iterable<string>): string[] {
