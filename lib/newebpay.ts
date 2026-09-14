@@ -81,10 +81,29 @@ export function verifyTradeSha(tradeInfoHex: string, sha: string, hashKey: strin
  * 所以重試時在後面接一段 R＋時間碼；回呼再把它剝掉還原訂單編號。
  * 訂單編號固定是 YD＋數字，不含字母 R，剝除很安全（比照 lib/ecpay.ts retryTradeNo／orderNoFromMtn）。
  */
+/*
+ * 評估過「用 .slice(0,30) 悄悄截斷」這個舊寫法後決定：不能留著。
+ * 以目前的訂單編號格式（YD+6碼日期+4碼序號＝12 碼）算，WO+編號最多 14 碼、
+ * 加上重試後綴（R＋時間戳的 36 進位字串，2026 年現在是 8～9 碼）最多 24 碼，
+ * 離 30 碼上限還有餘裕，今天不會踩到。但「靜默截斷」本身是個地雷：
+ * 訂單編號格式一旦在未來改長（例如序號從 4 碼加到 5 碼、或前綴多加一段），
+ * .slice(0,30) 會把重試用的時間碼尾端切掉，兩次刷卡失敗重試就可能撞出同一個
+ * MerchantOrderNo，藍新規格不收重複編號，會直接失敗，而且這個失敗只會在
+ * 「以後改了訂單編號格式」那一刻才出現，跟改動當下離得很遠，很難聯想到是這裡。
+ * 改成一旦超過上限就丟例外：現在的資料不會觸發，但下一個改動訂單編號格式的人
+ * 會在寫程式的當下就看到清楚的錯誤訊息，而不是line上收款到一半才發現撞號。
+ */
 export function newebpayOrderMtn(orderNo: string, retry = false): string {
   const base = `WO${String(orderNo || "").replace(/[^0-9A-Za-z]/g, "")}`;
-  const withRetry = retry ? `${base}R${Date.now().toString(36).toUpperCase()}` : base;
-  return withRetry.slice(0, 30);
+  if (!retry) {
+    if (base.length > 30)
+      throw new Error(`newebpayOrderMtn: 訂單編號過長（WO+編號共 ${base.length} 碼），超過藍新 MerchantOrderNo 30 碼上限，訂單編號格式需要重新設計`);
+    return base;
+  }
+  const suffix = `R${Date.now().toString(36).toUpperCase()}`;
+  if (base.length + suffix.length > 30)
+    throw new Error(`newebpayOrderMtn: 訂單編號加上重試後綴共 ${base.length + suffix.length} 碼，超過藍新 MerchantOrderNo 30 碼上限，繼續用 slice 截斷會讓重試撞號，訂單編號格式需要重新設計`);
+  return base + suffix;
 }
 export function orderNoFromNewebpayMtn(mtn: string): string {
   return String(mtn || "").replace(/^WO/, "").replace(/R[0-9A-Za-z]*$/, "");
