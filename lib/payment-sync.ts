@@ -370,7 +370,16 @@ export function applyNewebpayOrderResult(
     | undefined;
   if (!order) return { kind: "unknown" };
 
-  if (outcome === "paid" && typeof paidAmount === "number" && paidAmount > 0 && paidAmount !== order.total) {
+  /*
+   * 這裡刻意不排除 paidAmount===0（跟 applyEcpayOrderResult／applyTappayOrderResult
+   * 那兩支的 `paidAmount > 0` 不一樣，那兩支是因為金流那端有「欄位缺席」的合理情境，
+   * 0 當「未知」處理才不會誤殺正常付款）。藍新這一支的呼叫端（notify route、
+   * Apple Pay 幕後）一律傳真正解析出來的 Amt，正常付款不可能是 0，如果藍新真的
+   * 回報 0，那就是異常，應該被這裡攔下來記警示，而不是被當成「金額未知，不比對」
+   * 直接放行入帳——放行的話就是「用 0 元通知標記一筆訂單已付款」這種漏洞。
+   */
+  if (outcome === "paid" && typeof paidAmount === "number" && paidAmount !== order.total) {
+    console.error("[payment-sync] 藍新回報金額與應付不符", { orderNo, reported: paidAmount, expected: order.total });
     db.prepare("UPDATE orders SET pay_note=trim(COALESCE(pay_note,'') || ' ' || ?) WHERE id=?")
       .run(`⚠️金額不符：藍新回報 ${paidAmount}、應付 ${order.total}，未自動入帳`, order.id);
     return { kind: "order", orderNo, outcome: "failed" };
@@ -433,7 +442,10 @@ export function applyNewebpaySponsorResult(
     | undefined;
   if (!sp) return { kind: "unknown" };
 
-  if (outcome === "paid" && typeof paidAmount === "number" && paidAmount > 0 && paidAmount !== sp.amount) {
+  /* 同上（applyNewebpayOrderResult）：不排除 paidAmount===0，藍新這一支的呼叫端
+     一律傳真正解析出來的 Amt，0 是異常不是「未知」，不能被放行入帳。 */
+  if (outcome === "paid" && typeof paidAmount === "number" && paidAmount !== sp.amount) {
+    console.error("[payment-sync] 藍新回報贊助金額與應付不符", { sponsorId: sp.id, reported: paidAmount, expected: sp.amount });
     db.prepare("UPDATE sponsorships SET last_charge_note=trim(COALESCE(last_charge_note,'') || ' ' || ?) WHERE id=?")
       .run(`⚠️金額不符：藍新回報 ${paidAmount}、應付 ${sp.amount}，未自動入帳`, sp.id);
     return { kind: "sponsorship", id: sp.id, mode: sp.mode, outcome: "failed" };

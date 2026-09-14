@@ -35,8 +35,12 @@ export async function POST(req: NextRequest) {
 
   if (isNewebpayOrderMtn(mtn)) {
     const orderNo = orderNoFromNewebpayMtn(mtn);
+    /* r.amt 直接傳（不要用 `r.amt || undefined`）：那種寫法會把藍新真的回報 0 的
+       異常情況吃成 undefined，等於整段金額比對被跳過，見 lib/payment-sync.ts
+       applyNewebpayOrderResult 的說明。r.amt 本身一律是數字（parseNotify 保證），
+       不是「可能缺席」的欄位，用 || undefined 沒有必要，只有壞處。 */
     if (r.ok && r.payTime) {
-      applyNewebpayOrderResult(orderNo, "paid", r.tradeNo, label, `藍新付款成功（${label}）`, r.amt || undefined);
+      applyNewebpayOrderResult(orderNo, "paid", r.tradeNo, label, `藍新付款成功（${label}）`, r.amt);
     } else if (r.ok && r.atm) {
       applyNewebpayOrderAtmInfo(orderNo, r.atm.bankCode, r.atm.codeNo, r.atm.expireDate);
     } else if (!r.ok) {
@@ -49,7 +53,7 @@ export async function POST(req: NextRequest) {
     const id = sponsorIdFromNewebpayMtn(mtn);
     if (!id) return OK();
     if (r.ok && r.payTime) {
-      applyNewebpaySponsorResult(id, "paid", r.tradeNo, `藍新付款成功（${label}）`, r.amt || undefined);
+      applyNewebpaySponsorResult(id, "paid", r.tradeNo, `藍新付款成功（${label}）`, r.amt);
     } else if (r.ok && r.atm) {
       applyNewebpaySponsorAtmInfo(id, r.atm.bankCode, r.atm.codeNo, r.atm.expireDate);
     } else if (!r.ok) {
@@ -58,5 +62,9 @@ export async function POST(req: NextRequest) {
     return OK();
   }
 
+  /* 簽章驗證通過、但編號不是 WO／WS 開頭：目前不會發生，但如果哪天商店訂單或
+     贊助的編號規則改了、或藍新產品線擴充出新的前綴，一筆合法簽章的通知會被
+     靜默丟棄，之前這裡完全沒有 log，除錯沒有任何線索。 */
+  console.warn("[newebpay notify] 簽章驗證通過，但無法辨識的 MerchantOrderNo", { mtn, status: r.status });
   return OK();
 }

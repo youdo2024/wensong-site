@@ -51,7 +51,9 @@ export async function POST(req: NextRequest) {
       paymentToken: body.paymentToken,
     });
     if (!r.ok) return NextResponse.json({ ok: false, error: "Apple Pay 尚未開放（尚未取得藍新技術文件）", reason: r.reason }, { status: 501 });
-    applyNewebpayOrderResult(o.order_no, "paid", r.tradeNo, "信用卡", "藍新 Apple Pay 幕後付款成功", r.amt || undefined);
+    /* 直接傳 r.amt，不要用 `|| undefined`：見 app/api/newebpay/notify/route.ts 的說明，
+       0 是異常不是「欄位缺席」，用 || undefined 會讓金額比對被整段跳過 */
+    applyNewebpayOrderResult(o.order_no, "paid", r.tradeNo, "信用卡", "藍新 Apple Pay 幕後付款成功", r.amt);
     return NextResponse.json({ ok: true, redirect: `/shop/thanks?no=${encodeURIComponent(o.order_no)}&k=${o.token}` });
   }
 
@@ -77,6 +79,6 @@ export async function POST(req: NextRequest) {
     paymentToken: body.paymentToken,
   });
   if (!r.ok) return NextResponse.json({ ok: false, error: "Apple Pay 尚未開放（尚未取得藍新技術文件）", reason: r.reason }, { status: 501 });
-  applyNewebpaySponsorResult(sp.id, "paid", r.tradeNo, "藍新 Apple Pay 幕後付款成功", r.amt || undefined);
+  applyNewebpaySponsorResult(sp.id, "paid", r.tradeNo, "藍新 Apple Pay 幕後付款成功", r.amt);
   return NextResponse.json({ ok: true, redirect: `/support/thanks?mode=${sp.mode}&sid=${sp.id}&t=${encodeURIComponent(sp.pay_token)}` });
 }
