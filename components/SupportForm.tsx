@@ -314,11 +314,15 @@ export default function SupportForm({
             {/* 上下鍵與 ±鈕以 500 為一級：不能用 step=500（瀏覽器會擋掉 888 這種值），
                 所以隱藏原生調節鈕、攔方向鍵自行加減。
                 輸入框與按鈕直接當 .custom 的 flex 子項，不再包一層（巢狀 flex 在窄螢幕會把列擠爆跑版） */}
+            {/* step=1（不是 "any"）：金額只收整數，藍新只收整數扣款。
+                瀏覽器的原生表單驗證會擋下 199.99 這種小數（stepMismatch），
+                不讓表單送出；伺服器端 app/support/actions.ts 另外擋一次
+                Number.isInteger，防的是繞過瀏覽器直接打 API 的請求。 */}
             <input
               className="sans no-spin"
               type="number"
               min={100}
-              step="any"
+              step={1}
               placeholder="例如：500"
               autoFocus
               value={custom}

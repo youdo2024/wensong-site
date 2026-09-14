@@ -56,6 +56,18 @@ export async function createSponsorship(formData: FormData) {
      monthly_gateway=newebpay 時定額本來就該在站內完成，不受這道擋 */
   if (sMode === "hybrid" && mode === "monthly" && monthlyGateway() !== "newebpay" && !(await isAdmin())) redirect("/support");
   if (!email || !amount) { console.error("[support] 拒絕：缺 email 或金額", { email: Boolean(email), amount }); redirect(back("1")); }
+  /*
+   * 金額必須是整數，在這裡（進系統的第一道）就擋，不偷偷 Math.round() 取整。
+   *
+   * 前端 SupportForm 的自訂金額欄位已經把 step 從 "any" 改成 1，但那只擋得住
+   * 一般點擊與方向鍵；直接貼上小數、或繞過瀏覽器直接打這支 action，一樣送得出
+   * 199.99 這種值。藍新只收整數金額（buildMpgForm 用 Math.round），如果這裡默默
+   * 取整存進 sponsorships.amount，客人在畫面上看到、以為自己要付的金額
+   * 跟藍新實際扣款的金額就會兜不起來：付了 200，系統卻拿 199.99 去比對，
+   * 判定「金額不符」而不入帳，之後對帳也永遠查不回來（詳見審查報告的 [BUG] 證明）。
+   * 所以不取整，直接當壞資料拒絕，讓客人回去修正成整數。
+   */
+  if (!Number.isInteger(amount)) { console.error("[support] 拒絕：自訂金額不是整數", { amount }); redirect(back("1")); }
   /* 信箱：收據與電子發票全靠它，打錯的話對方付了錢什麼都收不到 */
   if (checkEmail(email)) redirect(back("email"));
   /* 防灌單：沒有這道，攻擊者可以連發表單塞爆待付款紀錄，

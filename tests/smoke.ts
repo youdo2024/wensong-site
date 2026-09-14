@@ -1774,6 +1774,8 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
+console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
+
 /* ── episodeSlugConflict：saveEpisode 的撞號檢查只顧「新 key」，沒顧「新 alias」──
    舊查詢只驗證新 key 是否撞到別集的 key 或 alias，可以把某集的英文別名設成
    另一集現有的 key 而不會跳錯；但 /ep/[key] 一律先比對 key 再查 alias，
@@ -1797,100 +1799,161 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
-/* ── transcriptExcerpt：JSON-LD 的逐字稿摘要不能對 Markdown 硬切 ──
-   舊寫法直接對 Markdown 原文 e.transcript.slice(0,5000)，**粗體**、
-   [文字](網址) 這類語法有機率被切在中間，殘留的破碎符號會以字面文字
-   塞進結構化資料。改成先去 Markdown 語法轉純文字，再找語意邊界截斷。 */
+/* ══════════════════════════════════════════════════════════════════
+   藍新金流審查（審查/金流.md）修復驗證（2026-09-14，第 3 段）：
+   每一條先跑過確認「修錯了就會失敗」，再對照 lib/newebpay.ts、payment-sync.ts、
+   app/api/newebpay/**、app/support/actions.ts、components/SupportForm.tsx、
+   app/api/orders/route.ts 的實際修法。只在這個檔尾追加，沒有動別人的測試。
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── [BUG] 贊助自訂金額必須是整數 ──
+   小數金額（例如 199.99）存進 sponsorships.amount 後，藍新只收整數扣款
+   （buildMpgForm 用 Math.round），通知回來的整數金額會跟資料庫裡的小數兜不起來，
+   系統判定「金額不符」永久不入帳，即使客人已經真的付了錢（見審查報告 [BUG] 證明）。
+   治本：金額進系統的第一道（createSponsorship）就用 Number.isInteger 擋下非整數
+   並拒絕，不能偷偷取整（那樣客人看到的金額會跟藍新實際扣款的金額兜不起來）。
+
+   createSponsorship 是「use server」action，內部用了 cookies／headers／redirect，
+   這幾支在純 Node 冒煙測試裡（沒有 Next 的請求環境）呼叫就會直接丟例外
+   「called outside a request scope」，沒辦法真的送一次 FormData 進去跑。
+   改成讀原始碼斷言這段防呆確實存在，跟上面 carriesField、SETTING_SOURCES
+   那條測試（app/admin/actions.ts）同一個做法，都是這個檔案裡對「use server」
+   action 既有的測試方式。 */
 {
-  const { transcriptExcerpt } = await import("@/lib/episodes");
-  eq("**粗體** 轉成純文字，不殘留星號", transcriptExcerpt("這是**粗體**文字"), "這是粗體文字");
-  eq("[文字](網址) 只留文字，不殘留連結語法", transcriptExcerpt("請看[這篇文章](https://example.com)"), "請看這篇文章");
-  eq("# 標題符號被去掉", transcriptExcerpt("# 標題\n內文"), "標題\n內文");
+  const actionsSrc = readFileSync(process.cwd() + "/app/support/actions.ts", "utf8");
+  ok("createSponsorship 有擋非整數金額（Number.isInteger）", actionsSrc.includes("Number.isInteger(amount)"));
+  ok("擋到之後是 redirect 回錯誤頁，不是往下繼續走", actionsSrc.includes('if (!Number.isInteger(amount)) { console.error("[support] 拒絕：自訂金額不是整數", { amount }); redirect(back("1")); }'));
+  ok("沒有用 Math.round(amount) 偷偷取整再存進資料庫", !actionsSrc.includes("Math.round(amount)"));
 
-  /* 刻意讓 ** 卡在原始長度 5000 字附近：舊寫法對「原始 Markdown」直接
-     slice(0,5000)，這裡會剛好切在 ** 中間，殘留孤立星號；新寫法先把
-     整段 Markdown 的 ** 都轉掉再截斷，輸出裡完全不該有 ** 這個符號。 */
-  const before = "字".repeat(4995);
-  const raw = `${before}**粗體被切一半**後面還有更多內容一直到超過五千字`;
-  const cut = transcriptExcerpt(raw, 5000);
-  ok("截斷後不會殘留孤立的 Markdown 星號", !cut.includes("**"));
-  ok("截斷後長度不超過上限", cut.length <= 5000);
-
-  const short = "很短的逐字稿內容";
-  eq("沒超過上限就整段照登（去語法後）", transcriptExcerpt(short, 5000), short);
+  const formSrc = readFileSync(process.cwd() + "/components/SupportForm.tsx", "utf8");
+  ok("自訂金額輸入框沒有 step=any（原本允許小數）", !formSrc.includes('step="any"'));
+  ok("自訂金額輸入框改成 step={1}（讓瀏覽器原生驗證擋下小數）", formSrc.includes("step={1}"));
 }
 
-/* ── upsertGuestImport：來賓匯入要用 slug 當比對鍵，不是 name ──
-   guests.slug 在 schema 是 UNIQUE NOT NULL，是這張表真正的身分欄；
-   舊寫法用 name 精確字串比對決定「更新既有這位」或「新增一位」，本機
-   若恰好有兩位同名不同人的來賓，推送時後面那位會直接覆蓋前面那位的
-   slug／簡介／照片，兩人資料被靜默合併。改用 slug 比對就不會撞。 */
+/* ── [SUSPECT]→確認是問題 total<=0 不該送 Amt=0、TotalAmount=0 給任何金流 ──
+   折扣碼、贈品湊出 0 元訂單時，原本的程式碼不看金額，一樣呼叫
+   buildMpgForm({amount:0,...}) 對藍新送出 Amt=0；這個欄位規格要求正整數，
+   實務上會被拒收，客人卡在金流商的錯誤頁走不完結帳，訂單也卡在 pending
+   永遠等不到回呼。修法：total<=0 時比照「模擬模式」，不管設定哪個金流，
+   一律直接視為已付款，不建任何金流表單。
+
+   app/api/orders/route.ts 的 POST 裡會呼叫 draftViewable 進而呼叫 isAdmin，
+   那支無條件呼叫 next/headers 的 cookies，在這個純 Node 冒煙測試環境
+   （沒有 Next 的請求環境）一樣會直接丟例外，沒辦法真的發一個請求進去跑
+   （已經實測確認會丟「called outside a request scope」）。
+   跟上面同一個理由，改成讀原始碼斷言這幾行判斷式確實存在。 */
 {
-  const { upsertGuestImport } = await import("@/lib/episodes");
-  const now = new Date().toISOString();
-  const slugA = "smk-guest-a", slugB = "smk-guest-b";
-  const cleanup = () => db.prepare("DELETE FROM guests WHERE slug IN (?,?)").run(slugA, slugB);
-  cleanup();
+  const ordersSrc = readFileSync(process.cwd() + "/app/api/orders/route.ts", "utf8");
+  ok("live 判斷排除 total<=0（0 元訂單不再看有沒有設定金流）", ordersSrc.includes("const live = total > 0 && ("));
+  ok("TapPay 分支只在 total>0 才建請款", ordersSrc.includes("if (result.useTappay && result.total > 0) {"));
+  ok("綠界分支只在 total>0 才建跳轉表單", ordersSrc.includes("if (result.useEcpay && result.total > 0) {"));
+  ok("藍新分支只在 total>0 才建 MPG 表單，不會對 0 元訂單送 Amt=0", ordersSrc.includes("if (result.useNewebpay && result.total > 0) {"));
+  ok("PayUni 分支同樣排除 total<=0", ordersSrc.includes("if (payuniEnabled() && result.total > 0) {"));
+}
+
+/* ── [SUSPECT]→確認是問題 續期扣款不比對金額 ──
+   app/api/newebpay/period/notify/route.ts 的「續期扣款成功」分支原本完全不比對
+   r.amt（藍新回報這一期扣了多少）跟 sponsorships.amount（委託應該扣多少），
+   直接照單全收：即使站長事後調整過方案金額、藍新那邊的委託沒同步更新，
+   系統一樣會把錯的金額當paid入帳、開錯金額的發票，後台完全看不出異常。
+   修法：比照單筆入帳的比對邏輯，金額不符就記一筆 sponsor_charges 為 failed
+   並 console.error，不入帳、不開發票、不寄扣款信、next_charge_at 不往後推。
+
+   這條邏輯直接寫在路由檔裡，沒有抽成獨立的 lib 函式可以單獨匯入測試；
+   而這支路由跟其他 app/api 底下的 route.ts 一樣，檔案最上面要 import next/server。
+   這個純 Node 冒煙測試環境（tests/hook.mjs 只改寫 @、./、../ 這幾種路徑別名，
+   沒有處理 next 套件的無副檔名匯入）載入任何一支 route.ts 都會直接丟模組解析
+   錯誤（已實測確認，不是猜的）。改成讀原始碼比對，跟上面兩條同一個做法。 */
+{
+  const periodNotifySrc = readFileSync(process.cwd() + "/app/api/newebpay/period/notify/route.ts", "utf8");
+  ok("續期扣款成功前有比對 r.amt 與 sp.amount", periodNotifySrc.includes("r.amt !== sp.amount"));
+  ok("金額不符時記一筆 status 為 failed、備註寫金額不符的 sponsor_charges", periodNotifySrc.includes('"failed", ') && periodNotifySrc.includes("⚠️金額不符：藍新回報"));
+  ok("金額不符有 console.error 記錄，不是靜默略過", periodNotifySrc.includes('console.error("[newebpay period notify] 續期金額不符，未入帳"'));
+  ok("委託本身的 last_charge_note 也寫得到金額不符", periodNotifySrc.includes("⚠️續期金額不符：藍新回報"));
+  const mismatchIdx = periodNotifySrc.indexOf("r.amt !== sp.amount");
+  const normalPaidIdx = periodNotifySrc.indexOf('"paid", ');
+  ok("金額不符的判斷寫在正常入帳（paid）之前，不是擺好看不影響流程", mismatchIdx > -1 && normalPaidIdx > -1 && mismatchIdx < periodNotifySrc.lastIndexOf('"paid", '));
+}
+
+/* ── [SUSPECT]→確認是問題 藍新回報金額剛好是 0 時，比對不該被跳過 ──
+   呼叫端原本把 r.amt 寫成「r.amt 或 undefined」（原始寫法是 r.amt || undefined）：
+   Amt=0 這種異常回報會被吃成 undefined，lib/payment-sync.ts 的比對條件是
+   typeof paidAmount === "number"，等於整段比對被跳過，變成「no diff，直接入帳」。
+   修法分兩處：
+     1. lib/payment-sync.ts 的 applyNewebpayOrderResult、applyNewebpaySponsorResult
+        拿掉「paidAmount > 0」這個排除（那是留給 ecpay、tappay 那種「欄位真的
+        可能缺席」的情境，藍新這邊呼叫端一律傳真正解析出來的數字，0 是異常不是缺席）。
+     2. 呼叫端（notify route、Apple Pay 幕後 route）直接傳 r.amt，不再把合法的
+        0 用 || undefined 吃掉。
+   第 1 點是純函式，可以直接匯入真的資料庫測完整行為；第 2 點是路由裡的接線，
+   跟上面同一個理由（這個測試環境載入不了 route.ts）改成讀原始碼比對實際傳入
+   的參數。 */
+{
+  const { applyNewebpayOrderResult, applyNewebpaySponsorResult } = await import("@/lib/payment-sync");
+
+  /* 一、商店訂單：藍新回報 Amt=0 */
+  const orderNo = "SMOKE-NB-ZEROAMT-0001";
+  db.prepare(
+    "INSERT INTO orders (order_no,name,phone,email,address,pay_method,invoice_type,invoice_data,items,subtotal,shipping,total,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+  ).run(orderNo, "冒煙測試", "0912345678", "smoke-zeroamt@example.com", "測試地址一段1號", "信用卡", "b2c", "{}", "[]", 500, 0, 500, "pending", new Date().toISOString());
   try {
-    const r1 = upsertGuestImport({ slug: slugA, name: "陳小美", title: "老闆", intro: "", photo: "", links: "[]", published: 1, featured: 0, sort: 0 }, now);
-    ok("第一次是新增", r1.action === "insert");
-    const r2 = upsertGuestImport({ slug: slugB, name: "陳小美", title: "另一位陳小美", intro: "", photo: "", links: "[]", published: 1, featured: 0, sort: 0 }, now);
-    ok("同名但 slug 不同，是新增，不是覆蓋前一位", r2.action === "insert" && r2.id !== r1.id);
-    const rowA = db.prepare("SELECT title FROM guests WHERE id=?").get(r1.id) as { title: string };
-    eq("前一位的資料沒有被同名的後一位覆蓋", rowA.title, "老闆");
-    const r3 = upsertGuestImport({ slug: slugA, name: "陳小美", title: "老闆娘", intro: "", photo: "", links: "[]", published: 1, featured: 0, sort: 0 }, now);
-    ok("同 slug 是更新，不是新增", r3.action === "update" && r3.id === r1.id);
-    const rowA2 = db.prepare("SELECT title, COUNT(*) OVER () AS n FROM guests WHERE slug=?").get(slugA) as { title: string; n: number };
-    eq("更新後 title 換成新值", rowA2.title, "老闆娘");
-    eq("同 slug 不會產生第二筆", rowA2.n, 1);
+    const res = applyNewebpayOrderResult(orderNo, "paid", "TN-SMOKE-ZEROAMT", "信用卡", "藍新付款成功", 0);
+    eq("藍新回報 Amt=0 不會被判定成入帳成功", res.outcome, "failed");
+    const o = db.prepare("SELECT status, COALESCE(pay_note,'') note FROM orders WHERE order_no=?").get(orderNo) as { status: string; note: string };
+    eq("金額比對沒被跳過，訂單維持 pending 等人工確認", o.status, "pending");
+    ok("有留下金額不符的紀錄，不是靜靜地什麼都沒發生", o.note.includes("金額不符"));
+
+    /* 正常付款（金額相符）不能被這個防呆誤傷 */
+    const res2 = applyNewebpayOrderResult(orderNo, "paid", "TN-SMOKE-MATCHAMT", "信用卡", "藍新付款成功", 500);
+    eq("金額相符時照常入帳", res2.outcome, "paid");
+    const o2 = db.prepare("SELECT status FROM orders WHERE order_no=?").get(orderNo) as { status: string };
+    eq("金額相符時訂單真的變成 paid", o2.status, "paid");
   } finally {
-    cleanup();
+    db.prepare("DELETE FROM orders WHERE order_no=?").run(orderNo);
   }
-}
 
-/* ── tools/transcribe/push.mjs：部分失敗要用非零退出碼，不能只在全軍覆沒時才算失敗 ──
-   舊寫法 `if (fail > 0 && ok === 0) process.exit(1)`，只有「全部失敗」才退出 1；
-   一批裡有些成功有些失敗，仍以 exit code 0 結束。若被其他腳本鏈依賴退出碼
-   判斷整批是否成功，會誤判「有東西失敗」為「全部順利」。
-   用 --local 模式對一個臨時 sqlite 測，不打網路、不動正式資料庫；
-   一個 key 有 out/<key>.md 且資料庫裡有這一集（會成功），另一個 key
-   沒有 .md 檔（會失敗），組成「部分失敗」的情境。 */
-{
-  const { execFileSync } = await import("node:child_process");
-  const fs = await import("node:fs");
-  const os = await import("node:os");
-  const path = await import("node:path");
-  const { default: DatabaseCtor } = await import("better-sqlite3");
-
-  const outDir = path.join(process.cwd(), "tools/transcribe/out");
-  const okKey = "smk-push-ok";
-  const missingKey = "smk-push-missing";
-  const mdPath = path.join(outDir, `${okKey}.md`);
-  fs.writeFileSync(mdPath, "測試逐字稿內容");
-
-  const tmpDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "wensong-push-smoke-"));
-  const tmpDb = new DatabaseCtor(path.join(tmpDataDir, "site.db"));
-  tmpDb.exec("CREATE TABLE episodes (key TEXT, transcript TEXT, updated_at TEXT)");
-  tmpDb.prepare("INSERT INTO episodes (key,transcript,updated_at) VALUES (?,?,?)").run(okKey, "", new Date().toISOString());
-  tmpDb.close();
-
+  /* 二、贊助：同一組防禦邏輯 */
+  const insSp = db.prepare(
+    "INSERT INTO sponsorships (mode,amount,email,pay_method,invoice_type,invoice_data,status,created_at,provider) VALUES ('once',?,?,?,?,?,?,?,?)"
+  ).run(500, "smoke-zeroamt-sp@example.com", "信用卡", "b2c", "{}", "pending", new Date().toISOString(), "newebpay");
+  const spId = Number(insSp.lastInsertRowid);
   try {
-    let exitCode = 0;
-    try {
-      execFileSync(
-        process.execPath,
-        [path.join(process.cwd(), "tools/transcribe/push.mjs"), okKey, missingKey, "--local", "--force"],
-        { env: { ...process.env, DATA_DIR: tmpDataDir }, stdio: "pipe" }
-      );
-    } catch (e) {
-      exitCode = (e as { status?: number }).status ?? 1;
-    }
-    eq("一批裡有一集失敗，整批要用非零退出碼結束，不能因為另一集成功就蓋過去", exitCode, 1);
+    const res = applyNewebpaySponsorResult(spId, "paid", "TN-SMOKE-SP-ZEROAMT", "藍新付款成功", 0);
+    eq("贊助：藍新回報 Amt=0 不會被判定成入帳成功", res.outcome, "failed");
+    const sp = db.prepare("SELECT status, COALESCE(last_charge_note,'') note FROM sponsorships WHERE id=?").get(spId) as { status: string; note: string };
+    eq("贊助狀態維持 pending", sp.status, "pending");
+    ok("贊助也留下金額不符的紀錄", sp.note.includes("金額不符"));
   } finally {
-    fs.rmSync(mdPath, { force: true });
-    fs.rmSync(tmpDataDir, { recursive: true, force: true });
+    db.prepare("DELETE FROM sponsorships WHERE id=?").run(spId);
   }
+
+  /* 三、呼叫端接線：notify route、Apple Pay 幕後 route 都要直接傳 r.amt */
+  const notifySrc = readFileSync(process.cwd() + "/app/api/newebpay/notify/route.ts", "utf8");
+  ok("商店訂單分流：入帳呼叫直接傳 r.amt", notifySrc.includes('applyNewebpayOrderResult(orderNo, "paid", r.tradeNo, label, ') && notifySrc.includes(", r.amt);"));
+  ok("贊助分流：入帳呼叫直接傳 r.amt", notifySrc.includes('applyNewebpaySponsorResult(id, "paid", r.tradeNo, ') && notifySrc.includes(", r.amt);"));
+  ok("驗簽通過但無法辨識的 MerchantOrderNo 有留下 console.warn，不是靜默丟棄", notifySrc.includes('console.warn("[newebpay notify] 簽章驗證通過，但無法辨識的 MerchantOrderNo"'));
+
+  const applepaySrc = readFileSync(process.cwd() + "/app/api/newebpay/applepay/pay/route.ts", "utf8");
+  ok("Apple Pay 幕後扣款同樣不會用 r.amt || undefined 吃掉合法的 0", !applepaySrc.includes("r.amt || undefined"));
 }
 
-console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
+/* ── [SUSPECT]→評估後決定要修 重試編號的 slice(0,30) 靜默截斷 ──
+   以目前的訂單編號格式（YD加6碼日期加4碼序號共12碼）算，WO加編號加重試後綴
+   還在 30 碼上限內，今天不會被截斷；但「靜默截斷」本身是地雷：格式一旦
+   在未來改長，會把重試用的時間碼尾端切掉，兩次刷卡失敗重試撞出同一個
+   MerchantOrderNo，藍新不收重複編號會直接失敗。決定：不要悄悄截斷，
+   改成超過上限就丟例外，讓下一個改動訂單編號格式的人在寫程式當下就看到
+   清楚的錯誤，而不是收款收到一半才發現撞號。 */
+{
+  const { newebpayOrderMtn } = await import("@/lib/newebpay");
+  eq("正常長度的訂單編號照常編碼", newebpayOrderMtn("YD2609140001"), "WOYD2609140001");
+  ok("正常長度加重試也照常編碼（WO加編號加R加時間碼）", /^WOYD2609140001R[0-9A-Z]+$/.test(newebpayOrderMtn("YD2609140001", true)));
+  let threwNoRetry = false;
+  try { newebpayOrderMtn("YD" + "1".repeat(30)); } catch { threwNoRetry = true; }
+  ok("訂單編號本身就超過 30 碼上限：寧可丟例外也不要悄悄截斷", threwNoRetry);
+  let threwRetry = false;
+  try { newebpayOrderMtn("YD" + "1".repeat(20), true); } catch { threwRetry = true; }
+  ok("訂單編號加上重試後綴會超過 30 碼上限：一樣寧可丟例外也不要悄悄截斷造成撞號", threwRetry);
+}
+
 process.exit(fail === 0 ? 0 : 1);
