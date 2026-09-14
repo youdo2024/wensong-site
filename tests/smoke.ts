@@ -1825,6 +1825,48 @@ eq("空字串不裝懂", fmtDate(""), "");
   eq("formData 拿不到欄位時是 undefined，也要擋下", validDbId(undefined), null);
 }
 
+/* ── glossary/fix.mjs：替換規則逐條依序套用會連鎖誤替換 ──
+   舊寫法對每條規則各自呼叫一次 text.replace()，逐條依序套用；如果某條規則
+   的「正確」字串（right）恰好包含後面某條規則的「錯誤」字串（wrong），
+   後面那條規則會二次命中已經修正過的文字，沒有任何防重入檢查。
+   例如規則 A→AB、B→C：對 "A" 逐條套用會先變 "AB"，再被第二條規則命中
+   其中的 B 變成 "AC"（連鎖誤替換）；單一 pass 掃描原始字串就不會這樣。 */
+{
+  const { applyGlossaryFixes } = await import("@/tools/transcribe/glossary/fix.mjs");
+  const cascade = applyGlossaryFixes("A", [{ wrong: "A", right: "AB" }, { wrong: "B", right: "C" }]);
+  eq("不會連鎖誤替換：A→AB 之後不該再被 B→C 命中", cascade.text, "AB");
+
+  const normal = applyGlossaryFixes("溫爽的 是 夢想欸", [{ wrong: "溫爽的", right: "問爽的" }, { wrong: "夢想欸", right: "猛送欸" }]);
+  eq("一般替換照常運作", normal.text, "問爽的 是 猛送欸");
+  eq("命中紀錄都在", normal.hits.map((h) => h.wrong).sort(), ["夢想欸", "溫爽的"].sort());
+
+  const longest = applyGlossaryFixes("哲佑講的", [{ wrong: "哲佑", right: "則佑" }, { wrong: "佑", right: "祐" }]);
+  eq("同位置多條規則都能吃到時，長字串規則優先命中", longest.text, "則佑講的");
+}
+
+/* ── glossary/fix.mjs 的 CLI guard：這個 repo 的路徑帶空白與中文字（iCloud），
+   手動拼 `file://${process.argv[1]}` 跟 import.meta.url（一定是 percent-encoded）
+   永遠對不上，CLI 分支會靜默不執行、什麼檔案都不會產生。跑一次真正的
+   `node fix.mjs <key>` 子行程，確認在這個實際路徑下真的會產生 .fixed.md。 */
+{
+  const { execFileSync } = await import("node:child_process");
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const key = "smk-fix-cli-test";
+  const outDir = path.join(process.cwd(), "tools/transcribe/out");
+  const mdPath = path.join(outDir, `${key}.md`);
+  const fixedPath = path.join(outDir, `${key}.fixed.md`);
+  fs.writeFileSync(mdPath, "溫爽的測試逐字稿");
+  try {
+    execFileSync(process.execPath, [path.join(process.cwd(), "tools/transcribe/glossary/fix.mjs"), key], { stdio: "pipe" });
+    ok("CLI 真的跑了，產生出 .fixed.md（不是因為路徑比對失敗而靜默不做事）", fs.existsSync(fixedPath));
+    eq("內容真的被替換過", fs.existsSync(fixedPath) ? fs.readFileSync(fixedPath, "utf8") : "", "問爽的測試逐字稿");
+  } finally {
+    fs.rmSync(mdPath, { force: true });
+    fs.rmSync(fixedPath, { force: true });
+  }
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 
 /* ── episodeSlugConflict：saveEpisode 的撞號檢查只顧「新 key」，沒顧「新 alias」──
