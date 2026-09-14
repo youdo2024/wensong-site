@@ -1848,5 +1848,49 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
+/* ── tools/transcribe/push.mjs：部分失敗要用非零退出碼，不能只在全軍覆沒時才算失敗 ──
+   舊寫法 `if (fail > 0 && ok === 0) process.exit(1)`，只有「全部失敗」才退出 1；
+   一批裡有些成功有些失敗，仍以 exit code 0 結束。若被其他腳本鏈依賴退出碼
+   判斷整批是否成功，會誤判「有東西失敗」為「全部順利」。
+   用 --local 模式對一個臨時 sqlite 測，不打網路、不動正式資料庫；
+   一個 key 有 out/<key>.md 且資料庫裡有這一集（會成功），另一個 key
+   沒有 .md 檔（會失敗），組成「部分失敗」的情境。 */
+{
+  const { execFileSync } = await import("node:child_process");
+  const fs = await import("node:fs");
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const { default: DatabaseCtor } = await import("better-sqlite3");
+
+  const outDir = path.join(process.cwd(), "tools/transcribe/out");
+  const okKey = "smk-push-ok";
+  const missingKey = "smk-push-missing";
+  const mdPath = path.join(outDir, `${okKey}.md`);
+  fs.writeFileSync(mdPath, "測試逐字稿內容");
+
+  const tmpDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "wensong-push-smoke-"));
+  const tmpDb = new DatabaseCtor(path.join(tmpDataDir, "site.db"));
+  tmpDb.exec("CREATE TABLE episodes (key TEXT, transcript TEXT, updated_at TEXT)");
+  tmpDb.prepare("INSERT INTO episodes (key,transcript,updated_at) VALUES (?,?,?)").run(okKey, "", new Date().toISOString());
+  tmpDb.close();
+
+  try {
+    let exitCode = 0;
+    try {
+      execFileSync(
+        process.execPath,
+        [path.join(process.cwd(), "tools/transcribe/push.mjs"), okKey, missingKey, "--local", "--force"],
+        { env: { ...process.env, DATA_DIR: tmpDataDir }, stdio: "pipe" }
+      );
+    } catch (e) {
+      exitCode = (e as { status?: number }).status ?? 1;
+    }
+    eq("一批裡有一集失敗，整批要用非零退出碼結束，不能因為另一集成功就蓋過去", exitCode, 1);
+  } finally {
+    fs.rmSync(mdPath, { force: true });
+    fs.rmSync(tmpDataDir, { recursive: true, force: true });
+  }
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);

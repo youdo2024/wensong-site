@@ -132,7 +132,10 @@ async function main() {
 
   if (db) db.close();
   console.log(`[push] 完成：成功 ${ok} 集，失敗／略過 ${fail} 集`);
-  if (fail > 0 && ok === 0) process.exit(1);
+  /* 只要有集失敗就要用非零退出碼，不能只在「全部失敗」時才算失敗：
+     部分失敗（有些成功、有些失敗）如果被其他腳本鏈依賴退出碼判斷整批
+     是否成功，exit 0 會被誤判成整批順利。 */
+  if (fail > 0) process.exit(1);
 }
 
 main();
