@@ -57,6 +57,7 @@ import { syncSummary, type SyncState } from "@/lib/subscriber-import";
 import { shouldSyncNow, SYNC_HOUR } from "@/lib/sheet-sync";
 import { fmtDateTimeDash } from "@/lib/format";
 import { recipientOf } from "@/lib/recipient";
+import { buildPartnerCsv, type PartnerProduct, type PartnerOrderRow } from "@/lib/partner-data";
 
 let pass = 0, fail = 0;
 function eq(label: string, got: unknown, want: unknown) {
@@ -123,6 +124,27 @@ eq("總盒數", shipListTotal([{ name: "a", phone: "p", address: "z", qty: 2 }, 
   const oldOrder = { name: "老客戶", phone: "0911222333" };
   const r3 = recipientOf(oldOrder);
   eq("舊訂單物件 fallback 成訂購人", r3, { name: "老客戶", phone: "0911222333", sameAsBuyer: true });
+}
+
+/*
+ * 夥伴 CSV 漏了逐位備註：畫面上（app/partner/page.tsx）看得到 note，
+ * 但 buildPartnerCsv 的欄位清單沒有它，靠列印/CSV 作業的夥伴看不到備註，
+ * 可能漏包裝指示、出錯貨。
+ */
+{
+  const row: PartnerOrderRow = {
+    orderId: 1, orderNo: "YDSMOKE0001", itemIdx: 0, name: "小明", phone: "0912345678",
+    shipMethod: "宅配", address: "台北市中山區", zipNote: "", note: "剖半兩份，不要辣",
+    qty: 1, status: "paid", createdAt: new Date().toISOString(),
+  };
+  const product: PartnerProduct = {
+    id: 1, name: "冒煙測試商品", partnerId: 1, optionName: "口味",
+    weeks: [{ choice: "第一週", paidQty: 1, shippedQty: 0, pendingQty: 0, reservedQty: 0, remain: null, toShip: [row], shipped: [] }],
+    totalPaid: 1, totalShipped: 0, totalPending: 0, totalReserved: 0,
+  };
+  const csv = buildPartnerCsv(product);
+  ok("CSV 表頭補得到備註欄", csv.includes("備註"));
+  ok("CSV 內容印得出逐位備註", csv.includes("剖半兩份，不要辣"));
 }
 
 /* ── 圖片 srcset：只對站內上傳圖動手 ── */

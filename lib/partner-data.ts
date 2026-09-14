@@ -281,12 +281,14 @@ export function buildPartnerCsv(p: PartnerProduct): string {
     out.push("");
     out.push(`${csvEsc(w.choice || "（無規格）")},${csvEsc(`待出貨 ${w.paidQty}`)},${csvEsc(`已出貨 ${w.shippedQty}`)}`);
     /* 訂購人／訂購人電話排最後：畫面上收件人與訂購人不同時才有小字提醒，
-       匯出之前漏了這兩欄，夥伴印出來對不到人（既有 bug，順手一起補） */
-    out.push(["狀態", "訂單編號", "數量", "收件人", "電話", "取貨方式", "地址／門市", "下單時間", "訂購人", "訂購人電話"].map(csvEsc).join(","));
+       匯出之前漏了這兩欄，夥伴印出來對不到人（既有 bug，順手一起補）。
+       備註排在最後一欄：畫面上（app/partner/page.tsx）逐位備註本來就看得到，
+       CSV 漏了這欄會讓只看列印稿的夥伴漏看包裝指示（2026-09-14 審查抓到）。 */
+    out.push(["狀態", "訂單編號", "數量", "收件人", "電話", "取貨方式", "地址／門市", "下單時間", "訂購人", "訂購人電話", "備註"].map(csvEsc).join(","));
     for (const r of w.toShip)
-      out.push([csvEsc("待出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt)), csvEsc(r.buyerName || ""), csvEsc(r.buyerPhone || "")].join(","));
+      out.push([csvEsc("待出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt)), csvEsc(r.buyerName || ""), csvEsc(r.buyerPhone || ""), csvEsc(r.note || "")].join(","));
     for (const r of w.shipped)
-      out.push([csvEsc("已出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt)), csvEsc(r.buyerName || ""), csvEsc(r.buyerPhone || "")].join(","));
+      out.push([csvEsc("已出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt)), csvEsc(r.buyerName || ""), csvEsc(r.buyerPhone || ""), csvEsc(r.note || "")].join(","));
   }
   return "﻿" + out.join("\n");
 }
