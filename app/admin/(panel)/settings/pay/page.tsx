@@ -59,9 +59,13 @@ export default async function SettingsPay({
     },
     {
       name: "贊助金流",
-      state: ec.live ? "綠界・正式" : ecpayEnabled() ? "綠界・測試特店" : "綠界・未設定",
-      ok: ec.live,
-      hint: ec.live ? "站內贊助收款" : "沒讀到 ECPAY_MERCHANT_ID／HASH_KEY／HASH_IV，收不到真正的款項",
+      /* 贊助的金流順序：綠界有金鑰就綠界，否則藍新（問爽的主力）。原本這行寫死綠界，藍新刷成功了還顯示未設定 */
+      state: ec.live ? "綠界・正式" : ecpayEnabled() ? "綠界・測試特店"
+        : newebpayEnabled() ? (process.env.NEWEBPAY_TEST === "1" ? "藍新・測試站" : "藍新・正式") : "未設定",
+      ok: ec.live || (newebpayEnabled() && process.env.NEWEBPAY_TEST !== "1"),
+      hint: ec.live ? "站內贊助收款（綠界）"
+        : newebpayEnabled() ? (process.env.NEWEBPAY_TEST === "1" ? "站內贊助走藍新測試站，刷不到真錢；正式要把 NEWEBPAY_TEST 改 0" : "站內單筆與每月定額都走藍新")
+        : "沒讀到 NEWEBPAY_MERCHANT_ID／HASH_KEY／HASH_IV，收不到真正的款項",
     },
     {
       name: "LINE Pay",
