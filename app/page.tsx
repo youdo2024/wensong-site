@@ -17,7 +17,7 @@ import { t } from "@/lib/copy";
 import { buildMetadata } from "@/lib/seo";
 import { BRAND } from "@/lib/brand";
 import { displayTitle, epLabel, fmtDuration, type EpisodeRow } from "@/lib/episodes";
-import { hosts, newsletterBlock, platformLinks } from "@/lib/site-config";
+import { hosts, newsletterBlock, platformLinks, subscribeFeedback } from "@/lib/site-config";
 import { enabledPays, homeSupportSection, navSupportHome, shopEnabled, supportHref, supportMode, supportUrl, monthlyExternalUrl, applePayOnsiteEnabled } from "@/lib/shop";
 import { ecpayEnabled } from "@/lib/ecpay";
 import { newebpayEnabled } from "@/lib/newebpay";
@@ -32,7 +32,9 @@ export const metadata = buildMetadata({ path: "/" });
 
 type GuestCard = { id: number; slug: string; name: string; title: string; photo: string; n: number };
 
-export default function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ subscribed?: string }> }) {
+  const { subscribed } = await searchParams;
+  const subMsg = subscribeFeedback(subscribed);
   const podcastCover = getSetting("podcast_cover", "");
   const latest = db
     .prepare("SELECT * FROM episodes WHERE published=1 ORDER BY pub_date DESC, id DESC LIMIT 7")
@@ -281,6 +283,7 @@ export default function Home() {
               <h2>{t("nl_title")}</h2>
               <p><NbText text={t("nl_sub")} /></p>
             </div>
+            {subMsg && <p className={subMsg.ok ? "msg-ok" : "msg-err"}>{subMsg.text}</p>}
             <form className="nl-form" action="/api/subscribe" method="post">
               <input type="email" name="email" placeholder="你的 Email" required />
               <button className="btn fill" type="submit">訂閱</button>

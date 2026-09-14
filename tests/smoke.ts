@@ -1600,5 +1600,15 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
+/* ── subscribeFeedback：/api/subscribe 送出後 303 到 /?subscribed=1|0，
+   首頁原本完全沒讀這個查詢字串，使用者訂閱成功或被拒都是一片死寂 ── */
+{
+  const { subscribeFeedback } = await import("@/lib/site-config");
+  ok("subscribed=1 要有成功文案", !!subscribeFeedback("1")?.ok);
+  ok("subscribed=0 要有失敗文案，且標成不是 ok", subscribeFeedback("0") !== null && subscribeFeedback("0")?.ok === false);
+  eq("沒有這個查詢字串就不顯示任何東西", subscribeFeedback(undefined), null);
+  eq("亂填的值也不顯示", subscribeFeedback("garbage"), null);
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);

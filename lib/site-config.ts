@@ -44,3 +44,15 @@ export function hosts(): HostInfo[] {
 export function newsletterBlock(): boolean {
   return getSetting("newsletter_block", "0") === "1";
 }
+
+/*
+ * 首頁電子報訂閱回饋文案。app/api/subscribe/route.ts 送出後一律 303 到
+ * /?subscribed=1|0，但首頁原本完全沒接這個查詢字串，使用者送出表單後
+ * 不知道到底訂閱成功還是因為 email 格式錯／送太頻繁被靜默拒絕。
+ * 值不是 "1" 或 "0" 時（沒帶這個參數、或有人亂改網址）一律不顯示任何東西。
+ */
+export function subscribeFeedback(v: string | undefined): { ok: boolean; text: string } | null {
+  if (v === "1") return { ok: true, text: "訂閱成功，謝謝。" };
+  if (v === "0") return { ok: false, text: "沒訂閱成功：Email 格式不對，或剛剛送太多次了，等一下再試一次。" };
+  return null;
+}
