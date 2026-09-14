@@ -1311,6 +1311,7 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
     encryptTradeInfo, decryptTradeInfo, tradeSha, verifyTradeSha, parseNotify,
     newebpayOrderMtn, orderNoFromNewebpayMtn, isNewebpayOrderMtn,
     newebpaySponsorMtn, sponsorIdFromNewebpayMtn, isNewebpaySponsorMtn,
+    buildMpgForm, NEWEBPAY_ATM_BANKS,
   } = await import("@/lib/newebpay");
 
   const K = "01234567890123456789012345678901"; // 32 碼
@@ -1376,6 +1377,33 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
     const badParsed = parseNotify({ Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: notifyJsonHex, TradeSha: okSha.slice(0, -1) + (okSha.endsWith("A") ? "B" : "A"), Version: "2.0" });
     eq("錯簽章一律拒絕（回 null）", badParsed, null);
     eq("缺 TradeSha 也拒絕", parseNotify({ Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: notifyJsonHex, TradeSha: "", Version: "2.0" }), null);
+
+    /* ATM 指定銀行（BankType）：站長要求指定台灣銀行，客人不用在藍新頁選銀行。
+       查證見 docs/newebpay-spec.md「ATM 指定銀行與幕後取號」，現行只接受 BOT／HNCB／KGI，
+       FirstBank 藍新已移除，白名單裡不該再出現。 */
+    ok("銀行白名單只有 BOT／HNCB／KGI，不含已移除的 FirstBank",
+      NEWEBPAY_ATM_BANKS.some((b) => b.key === "BOT") &&
+      NEWEBPAY_ATM_BANKS.some((b) => b.key === "HNCB") &&
+      NEWEBPAY_ATM_BANKS.some((b) => b.key === "KGI") &&
+      !NEWEBPAY_ATM_BANKS.some((b) => b.key === "FirstBank"));
+    const atmForm = buildMpgForm({ orderNo: "YD260914000701", amount: 500, itemDesc: "測試商品", email: "a@b.c", method: "atm", kind: "order", bankType: "BOT" });
+    const atmQs = decryptTradeInfo(atmForm.fields.TradeInfo, K, V);
+    const atmParams = new URLSearchParams(atmQs);
+    eq("ATM 表單帶 VACC=1", atmParams.get("VACC"), "1");
+    eq("ATM 表單帶指定的 BankType", atmParams.get("BankType"), "BOT");
+    const creditForm = buildMpgForm({ orderNo: "YD260914000701", amount: 500, itemDesc: "測試商品", email: "a@b.c", method: "credit", kind: "order" });
+    const creditParams = new URLSearchParams(decryptTradeInfo(creditForm.fields.TradeInfo, K, V));
+    eq("信用卡表單不帶 BankType", creditParams.get("BankType"), null);
+    const atmNoBankForm = buildMpgForm({ orderNo: "YD260914000701", amount: 500, itemDesc: "測試商品", email: "a@b.c", method: "atm", kind: "order" });
+    const atmNoBankParams = new URLSearchParams(decryptTradeInfo(atmNoBankForm.fields.TradeInfo, K, V));
+    eq("沒指定銀行時 ATM 表單也不帶 BankType（讓客人在藍新頁自己選）", atmNoBankParams.get("BankType"), null);
+
+    /* Apple Pay：站長在藍新開通，三種付款方式互斥，只送其中一個開關（查證見 docs/newebpay-spec.md） */
+    const applepayForm = buildMpgForm({ orderNo: "YD260914000701", amount: 500, itemDesc: "測試商品", email: "a@b.c", method: "applepay", kind: "order" });
+    const applepayParams = new URLSearchParams(decryptTradeInfo(applepayForm.fields.TradeInfo, K, V));
+    eq("Apple Pay 表單帶 APPLEPAY=1", applepayParams.get("APPLEPAY"), "1");
+    eq("Apple Pay 表單不帶 CREDIT", applepayParams.get("CREDIT"), null);
+    eq("Apple Pay 表單不帶 VACC", applepayParams.get("VACC"), null);
   } finally {
     delete process.env.NEWEBPAY_MERCHANT_ID;
     delete process.env.NEWEBPAY_HASH_KEY;

@@ -128,7 +128,21 @@ function taipeiExpireDate(daysAhead: number): string {
   return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}`;
 }
 
-export type NewebpayMethod = "credit" | "atm";
+export type NewebpayMethod = "credit" | "atm" | "applepay";
+
+/*
+ * ATM／WebATM 指定銀行（站長 2026-09-14）：MPG 的 BankType 參數，帶了就直接顯示該銀行
+ * 的虛擬帳號，客人在藍新頁不用再選銀行。清單照藍新現行《線上交易－幕前支付技術串接手冊》
+ * NDNF-1.2.5（2026/09/01）4.2.1 節：BOT＝台灣銀行、HNCB＝華南銀行、KGI＝凱基銀行
+ * （僅支援 ATM 轉帳，不支援 WebATM，這裡用不到 WebATM 所以無妨）。
+ * 第一銀行已在 NDNF-1.0.7（2023/07/13）被藍新從 BankType 移除，不能再帶 FirstBank，
+ * 查證細節見 docs/newebpay-spec.md「ATM 指定銀行與幕後取號」。
+ */
+export const NEWEBPAY_ATM_BANKS: { key: string; label: string }[] = [
+  { key: "BOT", label: "台灣銀行" },
+  { key: "HNCB", label: "華南銀行" },
+  { key: "KGI", label: "凱基銀行" },
+];
 
 /*
  * 組出送往藍新 MPG 的完整表單欄位（MerchantID／TradeInfo／TradeSha／Version），
@@ -144,6 +158,7 @@ export function buildMpgForm(opts: {
   method: NewebpayMethod;
   kind: "order" | "sponsor";
   retry?: boolean;
+  bankType?: string; /* method=atm 時要指定的銀行代碼（NEWEBPAY_ATM_BANKS 之一），空字串或不帶＝讓客人在藍新頁自己選 */
 }): { action: string; fields: Record<string, string>; merchantOrderNo: string } {
   const cfg = newebpayConfig();
   const site = (process.env.SITE_URL || "https://www.wensong.tw").replace(/\/$/, "");
@@ -169,6 +184,12 @@ export function buildMpgForm(opts: {
        比對帳判定 ATM 逾期的 4 天窗（lib/reconcile.ts FAIL_AFTER_HOURS_ATM）短，留有緩衝。
        文件沒有寫死天數，這是本次串接的假設值，見 docs/newebpay-spec.md。 */
     p.ExpireDate = taipeiExpireDate(3);
+    if (opts.bankType) p.BankType = opts.bankType;
+  } else if (opts.method === "applepay") {
+    /* APPLEPAY：查證見 docs/newebpay-spec.md「Apple Pay」一節，跟 BankType 同一份
+       《線上交易－幕前支付技術串接手冊》NDNF-1.2.5 第 4.2.1 節。三種付款方式互斥，
+       同一筆只送其中一個開關，不像綠界可以同時開多種讓客人在頁面上選。 */
+    p.APPLEPAY = 1;
   } else {
     p.CREDIT = 1;
   }

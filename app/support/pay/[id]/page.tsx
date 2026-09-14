@@ -8,7 +8,7 @@ import { ecpayBackstageAtmOn, takeAtmNumberForSponsorship } from "@/lib/ecpay-ge
 import { buildMpgForm, newebpayEnabled, type NewebpayMethod } from "@/lib/newebpay";
 import { buildPeriodForm } from "@/lib/newebpay-period";
 import { resetRound } from "@/lib/remind";
-import { isPayMethodOff } from "@/lib/shop";
+import { isPayMethodOff, newebpayAtmBank } from "@/lib/shop";
 import { payItemName } from "@/lib/item-name";
 import { buildMetadata } from "@/lib/seo";
 import { safeEqual } from "@/lib/safe-equal";
@@ -168,7 +168,7 @@ export default async function SponsorPay({
     const payLabel = sp.pay_method || "信用卡";
     if (isPayMethodOff(payLabel, "support"))
       redirect(`/support/thanks?mode=${sp.mode}&pay=failed&sid=${sp.id}&t=${encodeURIComponent(sp.pay_token)}`);
-    const method: NewebpayMethod = payLabel === "ATM 轉帳" ? "atm" : "credit";
+    const method: NewebpayMethod = payLabel === "ATM 轉帳" ? "atm" : payLabel === "Apple Pay" ? "applepay" : "credit";
     /* 每次進頁重生 MerchantOrderNo（藍新不接受重複），回呼靠它裡面帶的贊助 id 找回這筆贊助，
        不需要像綠界那樣另外查歷史表。buildMpgForm 回傳的 merchantOrderNo 一定要原封寫回
        trade_no：對帳查詢用的是這個值，自己重算一次時間戳會跟送出去的那組對不上。 */
@@ -179,6 +179,7 @@ export default async function SponsorPay({
       email: sp.email,
       method,
       kind: "sponsor",
+      bankType: method === "atm" ? newebpayAtmBank() : undefined,
     });
     db.prepare("UPDATE sponsorships SET trade_no=? WHERE id=?").run(merchantOrderNo, sp.id);
     return (

@@ -82,7 +82,7 @@ export default async function CartPage() {
                 : gateway === "ecpay"
                   ? enabledPays(["LINE Pay", "ATM 轉帳", "信用卡", "Apple Pay", "多元支付"]).filter((p) => p !== "LINE Pay" || linepayEnabled())
                   : gateway === "newebpay"
-                    ? enabledPays(["ATM 轉帳", "信用卡"])
+                    ? enabledPays(["ATM 轉帳", "信用卡", "Apple Pay"])
                     : enabledPays(["LINE Pay", "ATM 轉帳", "信用卡", "Apple Pay"])
             }
             showAddon={addonEnabled()}

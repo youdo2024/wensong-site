@@ -5,7 +5,7 @@ import { PAYUNI, buildUppFields, payMethodParams, payuniEnabled, siteUrl } from 
 import { sendOrderCreatedMail, sendOrderPaidMail } from "@/lib/mail";
 import { notifyChoiceFull, notifyProductPurchases } from "@/lib/notify";
 import { parseChoiceStocks } from "@/lib/choice-stock";
-import { addonEnabled, addonTiers, applyDiscount, coldEnabled, findDiscount, freightRates, isPayMethodOff, shopGateway } from "@/lib/shop";
+import { addonEnabled, addonTiers, applyDiscount, coldEnabled, findDiscount, freightRates, isPayMethodOff, newebpayAtmBank, shopGateway } from "@/lib/shop";
 import { tappayEnabled } from "@/lib/tappay";
 import { buildCheckoutFields, ecpayEnabled, type EcpayMethod } from "@/lib/ecpay";
 import { ecpayBackstageAtmOn, takeAtmNumberForOrder } from "@/lib/ecpay-genpay";
@@ -335,12 +335,12 @@ export async function POST(req: NextRequest) {
         throw new OrderError("金流啟用作業中，暫時無法結帳");
       if (useEcpay && payMethod === "LINE Pay" && !linepayEnabled())
         throw new OrderError("LINE Pay 尚未啟用，請改用其他付款方式");
-      /* 藍新模式：只接信用卡與 ATM（見 lib/newebpay.ts），其餘方式在這個模式下不該出現，
+      /* 藍新模式：只接信用卡、ATM、Apple Pay（見 lib/newebpay.ts），其餘方式在這個模式下不該出現，
          前台已經濾過，這裡再擋一次防有人繞過網頁直接打 API */
       const useNewebpay = shopGateway() === "newebpay" && newebpayEnabled();
       if (shopGateway() === "newebpay" && !newebpayEnabled())
         throw new OrderError("金流啟用作業中，暫時無法結帳");
-      if (useNewebpay && !["信用卡", "ATM 轉帳"].includes(payMethod || "信用卡"))
+      if (useNewebpay && !["信用卡", "ATM 轉帳", "Apple Pay"].includes(payMethod || "信用卡"))
         throw new OrderError("此付款方式目前暫停使用，請改用其他方式");
       const live = useTappay || useEcpay || useNewebpay || payuniEnabled();
       /* 訪客的 GA client_id：付款完成時伺服器端回報 purchase 用，能歸因回原流量來源 */
@@ -449,8 +449,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, ecpay: ec });
     }
     if (result.useNewebpay) {
-      /* 藍新只接信用卡與 ATM，其餘方式在建單那段已經擋下 */
-      const method: NewebpayMethod = payMethod === "ATM 轉帳" ? "atm" : "credit";
+      /* 藍新只接信用卡、ATM、Apple Pay，其餘方式在建單那段已經擋下 */
+      const method: NewebpayMethod = payMethod === "ATM 轉帳" ? "atm" : payMethod === "Apple Pay" ? "applepay" : "credit";
       const nb = buildMpgForm({
         orderNo: result.orderNo,
         amount: result.total,
@@ -458,6 +458,7 @@ export async function POST(req: NextRequest) {
         email: result.emailTrim,
         method,
         kind: "order",
+        bankType: method === "atm" ? newebpayAtmBank() : undefined,
       });
       return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, newebpay: { action: nb.action, fields: nb.fields } });
     }

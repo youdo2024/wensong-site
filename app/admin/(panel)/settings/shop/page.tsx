@@ -4,6 +4,7 @@ import { getSetting } from "@/lib/db";
 import { saveSettings } from "@/app/admin/actions";
 import { PAY_METHOD_KEYS, freightMode, payMethodsOff } from "@/lib/shop";
 import { ECPAY_ATM_BANKS } from "@/lib/ecpay";
+import { NEWEBPAY_ATM_BANKS } from "@/lib/newebpay";
 import MultiInput from "@/components/MultiInput";
 import Switch from "@/components/admin/Switch";
 import StickySave from "@/components/admin/StickySave";
@@ -205,7 +206,7 @@ export default async function SettingsShop({
             換完 Zeabur 金鑰後想一次打開商店與贊助兩邊，到<Link href="/admin/settings/system">設定・系統</Link>按「測試 LINE Pay」。
           </p>
           <div className="field">
-            <label>ATM 轉帳直接指定銀行（綠界）</label>
+            <label>ATM 轉帳直接指定銀行（綠界，問爽的不用）</label>
             <select name="ecpay_atm_bank" defaultValue={getSetting("ecpay_atm_bank", "")}>
               <option value="">不指定，讓客人在綠界頁自己選</option>
               {ECPAY_ATM_BANKS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
@@ -213,16 +214,29 @@ export default async function SettingsShop({
             <p className="fine">
               指定了就直接產該銀行的虛擬帳號，客人少一步選銀行；客人用同一家銀行轉帳不用跨行手續費，所以選你客人最常用的那家。
               綠界頁面還是會出現一下（訂單成立頁），只是不用選。台新、玉山、富邦目前綠界暫不提供，所以不在清單。
+              這組只在商店金流選「綠界」時生效，問爽的目前走藍新，不會用到這組。
             </p>
           </div>
           {/* 開關放在 .field 外面：.field label 的字距與底邊距會蓋到開關列 */}
           <div className="sw-list">
             <Switch
               name="ecpay_atm_backstage"
-              label="商店與贊助的 ATM 改走幕後取號（客人不進綠界頁面，帳號直接顯示在感謝頁與信裡）"
-              hint="要先到設定・系統探測成功才勾。銀行用上面那格選的（沒選就中國信託）。取號失敗會自動退回原本的綠界頁，客人不會卡住。商店與贊助同一個開關。"
+              label="商店與贊助的 ATM 改走幕後取號（綠界，問爽的不用；客人不進綠界頁面，帳號直接顯示在感謝頁與信裡）"
+              hint="要先到設定・系統探測成功才勾。銀行用上面那格選的（沒選就中國信託）。取號失敗會自動退回原本的綠界頁，客人不會卡住。商店與贊助同一個開關。這組只在商店金流選「綠界」時生效。藍新沒有這條路：藍新的「非信用卡應用 API 機制」（涵蓋 ATM／WebATM／超商代碼／條碼）需要另外書面申請並經藍新審核通過才能用，問爽的目前沒有申請，ATM 一律要經過藍新頁面才能取號；取號後帳號一樣會顯示在感謝頁與信裡，客人體驗差別不大。"
               defaultChecked={getSetting("ecpay_atm_backstage", "0") === "1"}
             />
+          </div>
+          <div className="field">
+            <label>ATM 指定銀行（藍新）</label>
+            <select name="newebpay_atm_bank" defaultValue={getSetting("newebpay_atm_bank", "BOT")}>
+              <option value="">不指定，讓客人在藍新頁自己選</option>
+              {NEWEBPAY_ATM_BANKS.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+            </select>
+            <p className="fine">
+              商店金流選「藍新」時，ATM 轉帳會直接指定這家銀行的虛擬帳號，客人在藍新頁不用再選銀行，預設台灣銀行。
+              藍新目前 BankType 只支援台灣銀行、華南銀行、凱基銀行三家（第一銀行藍新已於 2023 年從這個參數移除）。
+              客人還是會短暫看到藍新的付款頁（取號那一步），藍新沒有提供不經過頁面直接取號的做法，見上面幕後取號的說明。
+            </p>
           </div>
         </div>
 

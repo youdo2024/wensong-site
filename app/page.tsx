@@ -241,7 +241,7 @@ export default function Home() {
                     modeTabs
                     bare
                     monthlyExternal={monthlyExternalUrl()}
-                    pays={enabledPays(["信用卡", "ATM 轉帳"], "support")}
+                    pays={enabledPays(["信用卡", "ATM 轉帳", "Apple Pay"], "support")}
                     provider="newebpay"
                   />
                 ) : supportMode() === "hybrid" && supportUrl() ? (

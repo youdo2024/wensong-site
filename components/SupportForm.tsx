@@ -130,9 +130,11 @@ export default function SupportForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Apple Pay 只在支援的裝置（Safari／蘋果裝置）顯示，其他人看不到才不會困惑 */
+  /* Apple Pay 只在支援的裝置（Safari／蘋果裝置）顯示，其他人看不到才不會困惑。
+     藍新的 MPG 頁面本身也會依裝置判斷要不要顯示 Apple Pay 按鈕，但我們自己的付款方式
+     選單先濾一次，非 Apple 裝置的人不會選到一個進了藍新頁才發現不能用的選項。 */
   useEffect(() => {
-    if (!ecpay) return;
+    if (!ecpay && !newebpay) return;
     const w = window as unknown as { ApplePaySession?: { canMakePayments?: () => boolean } };
     /* Safari 在非 HTTPS 頁面（本機開發）呼叫 canMakePayments 會直接丟 InvalidAccessError */
     let ok = false;

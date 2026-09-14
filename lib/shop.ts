@@ -2,6 +2,7 @@ import db, { getSetting, json } from "./db";
 import { normalizeBrand, type CvsBrand } from "./cvs";
 import { linepayEnabled } from "./linepay";
 import { taipeiDateExpired } from "./month";
+import { NEWEBPAY_ATM_BANKS } from "./newebpay";
 
 export function shopEnabled(): boolean {
   return getSetting("shop_enabled", "1") === "1";
@@ -127,6 +128,17 @@ export type ShopGateway = "ecpay" | "payuni" | "tappay" | "newebpay";
 export function shopGateway(): ShopGateway {
   const v = getSetting("shop_gateway", "payuni");
   return v === "tappay" ? "tappay" : v === "ecpay" ? "ecpay" : v === "newebpay" ? "newebpay" : "payuni";
+}
+
+/*
+ * 藍新 ATM／WebATM 指定銀行（站長 2026-09-14）：預設台灣銀行，滿足「客人不用在藍新頁選
+ * 銀行」的要求；後台設定・商店可以改選華南或凱基，選空字串就退回讓客人自己選。
+ * 白名單值放在 lib/newebpay.ts 的 NEWEBPAY_ATM_BANKS（不在這裡重複定義），
+ * lib/newebpay.ts 本身刻意不 import db，所以這支讀設定的函式放在這裡而不是那邊。
+ */
+export function newebpayAtmBank(): string {
+  const v = getSetting("newebpay_atm_bank", "BOT");
+  return NEWEBPAY_ATM_BANKS.some((b) => b.key === v) ? v : "";
 }
 
 /* 付款方式開關：後台可暫停個別方式（例如 LINE Pay 尚未開通）
@@ -305,7 +317,7 @@ export function discountLabel(d: Discount): string {
 export function retryPayOptions(): string[] {
   const gw = shopGateway();
   if (gw === "tappay") return enabledPays(["信用卡"]);
-  /* 藍新只做信用卡與 ATM（見 lib/newebpay.ts），其餘方式不能出現在重付連結上 */
-  if (gw === "newebpay") return enabledPays(["ATM 轉帳", "信用卡"]);
+  /* 藍新做信用卡、ATM、Apple Pay（見 lib/newebpay.ts），其餘方式不能出現在重付連結上 */
+  if (gw === "newebpay") return enabledPays(["ATM 轉帳", "信用卡", "Apple Pay"]);
   return enabledPays(["ATM 轉帳", "信用卡", "LINE Pay", "Apple Pay", "多元支付"]).filter((p) => p !== "LINE Pay" || linepayEnabled());
 }

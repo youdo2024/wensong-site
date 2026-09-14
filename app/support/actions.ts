@@ -95,7 +95,7 @@ export async function createSponsorship(formData: FormData) {
   /* 藍新模式的基本檢查：定期定額委託只收信用卡（規格沒有 ATM 定期扣款這條路），單筆才收 ATM */
   if (useNewebpay) {
     if (mode === "monthly" && payMethod !== "信用卡") { console.error("[support] 拒絕：藍新定額非信用卡", { payMethod }); redirect(back("method")); }
-    if (mode === "once" && !["信用卡", "ATM 轉帳"].includes(payMethod)) { console.error("[support] 拒絕：藍新單筆付款方式不支援", { payMethod }); redirect(back("method")); }
+    if (mode === "once" && !["信用卡", "ATM 轉帳", "Apple Pay"].includes(payMethod)) { console.error("[support] 拒絕：藍新單筆付款方式不支援", { payMethod }); redirect(back("method")); }
   }
 
   /* 發票偏好：雲端寄 Email（預設）／手機條碼載具／愛心碼捐贈／公司統編 */

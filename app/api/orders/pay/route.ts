@@ -7,7 +7,7 @@ import { resetRound } from "@/lib/remind";
 import { linepayEnabled } from "@/lib/linepay";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { reopenFailedOrderForRetry } from "@/lib/payment-sync";
-import { isPayMethodOff, shopGateway } from "@/lib/shop";
+import { isPayMethodOff, newebpayAtmBank, shopGateway } from "@/lib/shop";
 import { safeEqual } from "@/lib/safe-equal";
 
 /*
@@ -78,12 +78,12 @@ export async function GET(req: NextRequest) {
     if (items.length) itemName = items.map((i) => `${i.name}x${i.qty}`).join("#").slice(0, 400);
   } catch { /* 組不出來就用預設，不要因為品名擋住付款 */ }
 
-  /* 藍新模式：只接信用卡與 ATM。GET 轉不過藍新要的 POST 表單，一樣回自動送出頁。
+  /* 藍新模式：只接信用卡、ATM、Apple Pay。GET 轉不過藍新要的 POST 表單，一樣回自動送出頁。
      重試一定要換新的 MerchantOrderNo（藍新不收重複），新號寫回 trade_no，對帳查詢才知道該問哪一筆。 */
   if (shopGateway() === "newebpay") {
-    if (!newebpayEnabled() || !["信用卡", "ATM 轉帳"].includes(method))
+    if (!newebpayEnabled() || !["信用卡", "ATM 轉帳", "Apple Pay"].includes(method))
       return NextResponse.redirect(`${site}/shop/thanks?no=${encodeURIComponent(no)}&k=${o.token}&pay=failed`, 303);
-    const nbMethod: NewebpayMethod = method === "ATM 轉帳" ? "atm" : "credit";
+    const nbMethod: NewebpayMethod = method === "ATM 轉帳" ? "atm" : method === "Apple Pay" ? "applepay" : "credit";
     const nb = buildMpgForm({
       orderNo: o.order_no,
       amount: o.total,
@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
       method: nbMethod,
       kind: "order",
       retry: true,
+      bankType: nbMethod === "atm" ? newebpayAtmBank() : undefined,
     });
     db.prepare("UPDATE orders SET trade_no=? WHERE order_no=? AND status='pending'").run(nb.merchantOrderNo, o.order_no);
     const nbInputs = Object.entries(nb.fields)

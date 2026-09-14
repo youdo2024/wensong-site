@@ -92,7 +92,7 @@ export default async function SupportPage({
         ) : sp.error === "payoff" ? (
           <p className="msg-err">這個付款方式目前停用。站長請到後台「設定・商店」的付款方式，把「支持」那一排的信用卡勾回來。</p>
         ) : sp.error === "method" ? (
-          <p className="msg-err">每月定額只能用信用卡，單筆只收信用卡與 ATM。</p>
+          <p className="msg-err">每月定額只能用信用卡，單筆收信用卡、Apple Pay 與 ATM。</p>
         ) : sp.error === "tier" ? (
           <p className="msg-err">每月定額請選固定級距的金額。</p>
         ) : sp.error === "rate" ? (
@@ -100,7 +100,7 @@ export default async function SupportPage({
         ) : sp.error ? (
           <p className="msg-err">資料不完整，請確認金額與 Email 後再送出。</p>
         ) : null}
-        <SupportForm tiers={tiers} initAmount={initAmount} initMode={initMode} initShowCustom={sp.custom === "1"} pays={ecpayEnabled() ? enabledPays(["LINE Pay", "Apple Pay", "信用卡", "ATM 轉帳", "多元支付"], "support").filter((p) => p !== "LINE Pay" || linepayEnabled()) : newebpayEnabled() ? enabledPays(["信用卡", "ATM 轉帳"], "support") : enabledPays(["LINE Pay", "Apple Pay", "信用卡", "銀行轉帳"], "support")} provider={ecpayEnabled() ? "ecpay" : newebpayEnabled() ? "newebpay" : portalyEnabled() ? "portaly" : "payuni"} monthlyExternal={monthlyExternalUrl()} modeTabs bare />
+        <SupportForm tiers={tiers} initAmount={initAmount} initMode={initMode} initShowCustom={sp.custom === "1"} pays={ecpayEnabled() ? enabledPays(["LINE Pay", "Apple Pay", "信用卡", "ATM 轉帳", "多元支付"], "support").filter((p) => p !== "LINE Pay" || linepayEnabled()) : newebpayEnabled() ? enabledPays(["信用卡", "ATM 轉帳", "Apple Pay"], "support") : enabledPays(["LINE Pay", "Apple Pay", "信用卡", "銀行轉帳"], "support")} provider={ecpayEnabled() ? "ecpay" : newebpayEnabled() ? "newebpay" : portalyEnabled() ? "portaly" : "payuni"} monthlyExternal={monthlyExternalUrl()} modeTabs bare />
           </div>
           <div className="band" />
         </div>
