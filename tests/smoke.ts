@@ -1746,5 +1746,28 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
+/* ── transcriptExcerpt：JSON-LD 的逐字稿摘要不能對 Markdown 硬切 ──
+   舊寫法直接對 Markdown 原文 e.transcript.slice(0,5000)，**粗體**、
+   [文字](網址) 這類語法有機率被切在中間，殘留的破碎符號會以字面文字
+   塞進結構化資料。改成先去 Markdown 語法轉純文字，再找語意邊界截斷。 */
+{
+  const { transcriptExcerpt } = await import("@/lib/episodes");
+  eq("**粗體** 轉成純文字，不殘留星號", transcriptExcerpt("這是**粗體**文字"), "這是粗體文字");
+  eq("[文字](網址) 只留文字，不殘留連結語法", transcriptExcerpt("請看[這篇文章](https://example.com)"), "請看這篇文章");
+  eq("# 標題符號被去掉", transcriptExcerpt("# 標題\n內文"), "標題\n內文");
+
+  /* 刻意讓 ** 卡在原始長度 5000 字附近：舊寫法對「原始 Markdown」直接
+     slice(0,5000)，這裡會剛好切在 ** 中間，殘留孤立星號；新寫法先把
+     整段 Markdown 的 ** 都轉掉再截斷，輸出裡完全不該有 ** 這個符號。 */
+  const before = "字".repeat(4995);
+  const raw = `${before}**粗體被切一半**後面還有更多內容一直到超過五千字`;
+  const cut = transcriptExcerpt(raw, 5000);
+  ok("截斷後不會殘留孤立的 Markdown 星號", !cut.includes("**"));
+  ok("截斷後長度不超過上限", cut.length <= 5000);
+
+  const short = "很短的逐字稿內容";
+  eq("沒超過上限就整段照登（去語法後）", transcriptExcerpt(short, 5000), short);
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);

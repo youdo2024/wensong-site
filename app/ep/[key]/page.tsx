@@ -21,7 +21,7 @@ import { t } from "@/lib/copy";
 import { absUrl, articleSeoTitle, buildMetadata, clampDesc } from "@/lib/seo";
 import { BRAND } from "@/lib/brand";
 import { articleShopCta, supportEnabled } from "@/lib/shop";
-import { coverOf, displayTitle, epLabel, fmtDuration, guestsOfEpisode, type EpisodeRow } from "@/lib/episodes";
+import { coverOf, displayTitle, epLabel, fmtDuration, guestsOfEpisode, transcriptExcerpt, type EpisodeRow } from "@/lib/episodes";
 import { fmtDate } from "@/lib/format";
 import { hosts, platformLinks } from "@/lib/site-config";
 
@@ -104,7 +104,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ key: s
     associatedMedia: { "@type": "AudioObject", contentUrl: e.audio_url, encodingFormat: e.audio_type || "audio/mpeg", ...(e.duration ? { duration: iso(e.duration) } : {}) },
     partOfSeries: { "@type": "PodcastSeries", name: BRAND.fullName, url: absUrl("/") },
     actor: [...hostList.map((h) => ({ "@type": "Person", name: h.name })), ...guests.map((g) => ({ "@type": "Person", name: g.name, url: absUrl(`/guests/${g.slug}`) }))],
-    ...(transcriptHtml ? { transcript: e.transcript.slice(0, 5000) } : {}),
+    ...(transcriptHtml ? { transcript: transcriptExcerpt(e.transcript) } : {}),
   };
 
   const shopCtaHere = articleShopCta();

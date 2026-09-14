@@ -379,6 +379,32 @@ export function episodeSlugConflict(id: number, key: string, alias: string): boo
   return !!row;
 }
 
+/*
+ * 逐字稿轉成 JSON-LD 用的純文字摘要（集數頁的結構化資料 transcript 欄位）。
+ *
+ * 舊寫法直接對 Markdown 原文 e.transcript.slice(0,5000) 硬切，`**粗體**`、
+ * `[文字](網址)` 這類語法有機率被切一半，殘留的破碎符號會以字面文字塞進
+ * 結構化資料。這裡先去掉常見 Markdown 語法轉成純文字，再找換行／句號等
+ * 語意邊界截斷，避免在語法或詞彙正中間切斷。
+ */
+export function transcriptExcerpt(md: string, max = 5000): string {
+  const plain = md
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/^[-*+]\s+/gm, "")
+    .replace(/(\*\*|__)(.*?)\1/g, "$2")
+    .replace(/(\*|_)(.*?)\1/g, "$2")
+    .replace(/`([^`]*)`/g, "$1")
+    .trim();
+  if (plain.length <= max) return plain;
+  const cut = plain.slice(0, max);
+  const boundary = Math.max(cut.lastIndexOf("\n"), cut.lastIndexOf("。"), cut.lastIndexOf("！"), cut.lastIndexOf("？"));
+  return (boundary > max * 0.5 ? cut.slice(0, boundary + 1) : cut).trim();
+}
+
 export function episodesOfGuest(guestId: number): EpisodeRow[] {
   return db
     .prepare("SELECT e.* FROM episodes e JOIN episode_guests eg ON eg.episode_id=e.id WHERE eg.guest_id=? AND e.published=1 ORDER BY e.pub_date DESC")
