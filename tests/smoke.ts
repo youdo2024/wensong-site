@@ -1807,6 +1807,24 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
+/* ── validDbId：deleteEpisode／deleteGuest 對非法 id 沒有守門 ──
+   formData.get("id") 轉 Number 後沒驗證是否為合法正整數；缺欄位或亂填時
+   Number() 得到 NaN，better-sqlite3 會把 NaN 當 REAL 綁進去，
+   WHERE id=NaN 比對不到任何列，DELETE 靜默無效，但後面仍會照常寫入
+   操作記錄、導回列表頁，看起來像操作成功。 */
+{
+  const { validDbId } = await import("@/lib/episodes");
+  eq("正常的正整數字串", validDbId("5"), 5);
+  eq("正常的正整數（非字串）", validDbId(5), 5);
+  eq("空字串是壞的", validDbId(""), null);
+  eq("null 是壞的", validDbId(null), null);
+  eq("亂打的字母是壞的", validDbId("abc"), null);
+  eq("負數是壞的", validDbId("-3"), null);
+  eq("0 是壞的（沒有 id=0 的資料列）", validDbId("0"), null);
+  eq("小數不是合法 id", validDbId("3.5"), null);
+  eq("formData 拿不到欄位時是 undefined，也要擋下", validDbId(undefined), null);
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 
 /* ── episodeSlugConflict：saveEpisode 的撞號檢查只顧「新 key」，沒顧「新 alias」──

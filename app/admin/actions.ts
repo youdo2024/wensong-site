@@ -4,7 +4,7 @@ import { clientIp } from "@/lib/ratelimit";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import db, { setSetting, getSetting } from "@/lib/db";
-import { episodeSlugConflict, parseChapterLine } from "@/lib/episodes";
+import { episodeSlugConflict, parseChapterLine, validDbId } from "@/lib/episodes";
 import { bumpSessionEpoch, checkAccountPassword, checkPassword, createSession, currentAdmin, destroySession, isAdmin, loginLocked, recordLoginFail, clearLoginFails, passwordUsable, accountModeEnabled } from "@/lib/auth";
 import { logAdmin } from "@/lib/admin-log";
 import { sendOrderShippedMail, sendMail } from "@/lib/mail";
@@ -2043,7 +2043,8 @@ export async function saveEpisode(formData: FormData) {
 
 export async function deleteEpisode(formData: FormData) {
   await guard();
-  const id = Number(formData.get("id"));
+  const id = validDbId(formData.get("id"));
+  if (id === null) redirect("/admin/episodes");
   db.transaction(() => {
     db.prepare("DELETE FROM episode_guests WHERE episode_id=?").run(id);
     db.prepare("DELETE FROM episodes WHERE id=?").run(id);
@@ -2122,7 +2123,8 @@ export async function saveGuest(formData: FormData) {
 
 export async function deleteGuest(formData: FormData) {
   await guard();
-  const id = Number(formData.get("id"));
+  const id = validDbId(formData.get("id"));
+  if (id === null) redirect("/admin/guests");
   db.transaction(() => {
     db.prepare("DELETE FROM episode_guests WHERE guest_id=?").run(id);
     db.prepare("DELETE FROM guests WHERE id=?").run(id);

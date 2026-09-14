@@ -433,6 +433,18 @@ export function upsertGuestImport(g: GuestImportInput, now: string): { action: "
   return { action: "insert", id: Number(r.lastInsertRowid) };
 }
 
+/*
+ * 表單傳來的 id 是否為合法的資料庫主鍵（deleteEpisode／deleteGuest 存檔前檢查）。
+ * formData.get("id") 轉 Number 後沒驗證是否為合法正整數；缺欄位或亂填時
+ * Number() 得到 NaN，better-sqlite3 會把 NaN 當 REAL 綁進去，WHERE id=NaN
+ * 比對不到任何列，DELETE 靜默無效，但後面仍會照常寫入操作記錄、導回列表頁，
+ * 看起來像操作成功。回傳合法的正整數 id，不合法一律回 null。
+ */
+export function validDbId(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 export function episodesOfGuest(guestId: number): EpisodeRow[] {
   return db
     .prepare("SELECT e.* FROM episodes e JOIN episode_guests eg ON eg.episode_id=e.id WHERE eg.guest_id=? AND e.published=1 ORDER BY e.pub_date DESC")
