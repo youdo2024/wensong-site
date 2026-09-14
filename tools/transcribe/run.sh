@@ -83,6 +83,7 @@ while IFS=$'\t' read -r KEY AUDIO_URL; do
       --batch_size "$BATCH_SIZE" \
       --output_dir out \
       --output_format json \
+      --initial_prompt "$(cat glossary/prompt.txt)" \
       ${DIARIZE_ARGS[@]+"${DIARIZE_ARGS[@]}"} \
       > "out/$KEY.log" 2>&1; then
     echo "$KEY: whisperx 執行失敗，見 out/$KEY.log" >> "$FAILED_LOG"

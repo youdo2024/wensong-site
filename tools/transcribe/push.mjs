@@ -37,14 +37,16 @@ function keysToProcess() {
     if (!fs.existsSync(outDir)) return [];
     return fs
       .readdirSync(outDir)
-      .filter((f) => f.endsWith(".md"))
+      .filter((f) => f.endsWith(".md") && !f.endsWith(".fixed.md"))
       .map((f) => f.slice(0, -3));
   }
   return keys;
 }
 
 function readMd(key) {
-  const p = path.join(outDir, `${key}.md`);
+  /* 有 fix.mjs 修過的版本就用修過的（glossary/替換表.tsv），沒有才用原始輸出 */
+  const fixed = path.join(outDir, `${key}.fixed.md`);
+  const p = fs.existsSync(fixed) ? fixed : path.join(outDir, `${key}.md`);
   if (!fs.existsSync(p)) {
     console.error(`[push] 找不到 ${p}，略過`);
     return null;
