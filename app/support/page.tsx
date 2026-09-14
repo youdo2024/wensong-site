@@ -87,9 +87,10 @@ export default async function SupportPage({
           <p className="msg-err">手機條碼載具格式不對，斜線開頭共 8 碼（例如 /AB12CD3）。</p>
         ) : sp.error === "email" ? (
           <p className="msg-err">Email 看起來不對，請確認網域選對了再送出（收據與電子發票會寄到這個信箱）。</p>
+        ) : sp.error === "rate" ? (
+          <p className="msg-err">短時間內送出太多次了，同一個 Email 一天最多 5 次。請 1 小時後再試，或換一個 Email。</p>
         ) : sp.error ? (
           <p className="msg-err">資料不完整，請確認金額與 Email 後再送出。</p>
-        {error === "rate" && <p className="msg-err">短時間內送出太多次了，同一個 Email 一天最多 5 次。請 1 小時後再試，或換一個 Email。</p>}
         ) : null}
         <SupportForm tiers={tiers} initAmount={initAmount} initMode={initMode} initShowCustom={sp.custom === "1"} pays={ecpayEnabled() ? enabledPays(["LINE Pay", "Apple Pay", "信用卡", "ATM 轉帳", "多元支付"], "support").filter((p) => p !== "LINE Pay" || linepayEnabled()) : newebpayEnabled() ? enabledPays(["信用卡", "ATM 轉帳"], "support") : enabledPays(["LINE Pay", "Apple Pay", "信用卡", "銀行轉帳"], "support")} provider={ecpayEnabled() ? "ecpay" : newebpayEnabled() ? "newebpay" : portalyEnabled() ? "portaly" : "payuni"} monthlyExternal={monthlyExternalUrl()} modeTabs bare />
           </div>
