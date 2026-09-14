@@ -27,6 +27,8 @@ export const SETTING_SOURCES: Record<string, string[]> = {
   support_mode: ["support_mode"],
   support_enabled: ["support_mode"],
   support_url: ["support_url"],
+  /* 每月定額走藍新還是外連（設定・贊助）。漏了這行時 saveSettings 的 has() 永遠 false，怎麼存都存不進去（2026-09-14 站長實測） */
+  monthly_gateway: ["monthly_gateway"],
 
   /* ── 商店頁 ── */
   shop_enabled: ["shop_enabled"],
