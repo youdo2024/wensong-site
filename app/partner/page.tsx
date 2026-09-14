@@ -191,7 +191,11 @@ export default async function PartnerPage({
                       {r.buyerName && (
                         <>
                           <br />
-                          <span style={{ color: "var(--gold)" }}>多地址配送・訂購人 {r.buyerName}</span>
+                          <span style={{ color: "var(--gold)" }}>
+                            {r.recipIdx != null
+                              ? `多地址配送・訂購人 ${r.buyerName}`
+                              : `訂購人：${r.buyerName}${r.buyerPhone ? `／${r.buyerPhone}` : ""}`}
+                          </span>
                         </>
                       )}
                     </div>

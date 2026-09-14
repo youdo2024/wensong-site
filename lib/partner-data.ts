@@ -1,4 +1,5 @@
 import { isMultiShip, recipientAddress, type ShipRecipient } from "./multi-ship";
+import { recipientOf } from "./recipient";
 import db, { json } from "./db";
 import { fmtDateTimeDash } from "./format";
 import { parseChoiceStocks } from "./choice-stock";
@@ -28,8 +29,12 @@ export type PartnerOrderRow = {
   itemIdx: number;
   /* 多地址配送才有：這一列是名單裡的第幾位。一般訂單為 null */
   recipIdx?: number | null;
-  /* 多地址配送的整筆訂單共用的主要訂購人（通知信寄給他） */
+  /*
+   * 主要訂購人（通知信寄給他）。多地址配送一定有值；一般訂單只在
+   * 收件人不是訂購人本人時才有值，兩種情況共用同一個顯示位置。
+   */
   buyerName?: string;
+  buyerPhone?: string;
   name: string;
   phone: string;
   shipMethod: string;
@@ -70,6 +75,7 @@ export type PartnerProduct = {
 type OrderRow = {
   id: number; order_no: string; name: string; phone: string; address: string;
   zip: string; ship_method: string; items: string; status: string; created_at: string; ship_list: string;
+  recipient_name: string; recipient_phone: string;
 };
 /* shipped 是夥伴逐品項出貨寫回 items JSON 的旗標（舊訂單沒有＝未出）。
    不記物流單號：站長不使用。 */
@@ -118,7 +124,7 @@ export function partnerData(partnerId?: number): PartnerProduct[] {
 
   const orders = db
     .prepare(
-      "SELECT id,order_no,name,phone,address,zip,ship_method,items,status,created_at,ship_list FROM orders WHERE status IN ('pending','paid','shipped','done') ORDER BY id"
+      "SELECT id,order_no,name,phone,address,zip,ship_method,items,status,created_at,ship_list,recipient_name,recipient_phone FROM orders WHERE status IN ('pending','paid','shipped','done') ORDER BY id"
     )
     .all() as OrderRow[];
 
@@ -154,7 +160,7 @@ export function partnerData(partnerId?: number): PartnerProduct[] {
           const shipped = o.status === "shipped" || o.status === "done" || Boolean(r.shipped);
           const row: PartnerOrderRow = {
             orderId: o.id, orderNo: o.order_no, itemIdx: -1, recipIdx,
-            name: r.name, phone: r.phone, buyerName: o.name, note: r.note || "",
+            name: r.name, phone: r.phone, buyerName: o.name, buyerPhone: o.phone, note: r.note || "",
             /* 取貨方式逐位獨立：同一筆訂單可以六盒宅配六盒超商 */
             shipMethod: isCvsMethod(r.shipMethod) ? String(r.shipMethod) : "宅配",
             /* 宅配列把 3 碼郵遞區號放進地址開頭（抄託運單一行掃過去），
@@ -181,6 +187,8 @@ export function partnerData(partnerId?: number): PartnerProduct[] {
       continue;
     }
 
+    /* 出貨主資訊換成收件人：收件人欄空著就是訂購人本人，全站只有這一套判斷規則 */
+    const rec = recipientOf(o);
     items.forEach((it, itemIdx) => {
       if (!wanted.has(it.id)) return;
       const w = weekOf(it.id, it.choice || "");
@@ -188,7 +196,9 @@ export function partnerData(partnerId?: number): PartnerProduct[] {
          點了第一週不代表其他週也出了。訂單狀態 shipped/done＝整筆都出完（後台手動改的情況）。 */
       const itemShipped = o.status === "shipped" || o.status === "done" || Boolean(it.shipped);
       const row: PartnerOrderRow = {
-        orderId: o.id, orderNo: o.order_no, itemIdx, name: o.name, phone: o.phone,
+        orderId: o.id, orderNo: o.order_no, itemIdx, name: rec.name, phone: rec.phone,
+        /* 收件人不是訂購人本人才多帶一行，畫面與 CSV 都靠這兩個欄位有沒有值判斷 */
+        ...(rec.sameAsBuyer ? {} : { buyerName: o.name, buyerPhone: o.phone }),
         shipMethod: o.ship_method || "宅配",
         ...(isCvsMethod(o.ship_method)
           ? { address: o.address, zipNote: "" , note: ""}
@@ -270,11 +280,13 @@ export function buildPartnerCsv(p: PartnerProduct): string {
   for (const w of p.weeks) {
     out.push("");
     out.push(`${csvEsc(w.choice || "（無規格）")},${csvEsc(`待出貨 ${w.paidQty}`)},${csvEsc(`已出貨 ${w.shippedQty}`)}`);
-    out.push(["狀態", "訂單編號", "數量", "收件人", "電話", "取貨方式", "地址／門市", "下單時間"].map(csvEsc).join(","));
+    /* 訂購人／訂購人電話排最後：畫面上收件人與訂購人不同時才有小字提醒，
+       匯出之前漏了這兩欄，夥伴印出來對不到人（既有 bug，順手一起補） */
+    out.push(["狀態", "訂單編號", "數量", "收件人", "電話", "取貨方式", "地址／門市", "下單時間", "訂購人", "訂購人電話"].map(csvEsc).join(","));
     for (const r of w.toShip)
-      out.push([csvEsc("待出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt))].join(","));
+      out.push([csvEsc("待出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt)), csvEsc(r.buyerName || ""), csvEsc(r.buyerPhone || "")].join(","));
     for (const r of w.shipped)
-      out.push([csvEsc("已出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt))].join(","));
+      out.push([csvEsc("已出貨"), csvEsc(r.orderNo), r.qty, csvEsc(r.name), csvEsc(r.phone), csvEsc(r.shipMethod), csvEsc(r.address), csvEsc(fmtDateTimeDash(r.createdAt)), csvEsc(r.buyerName || ""), csvEsc(r.buyerPhone || "")].join(","));
   }
   return "﻿" + out.join("\n");
 }

@@ -6,6 +6,7 @@ import { cvsPickupText } from "@/lib/multi-ship";
 import { zipDisplay } from "@/lib/zip-lookup";
 import { csvCell } from "@/lib/csv";
 import { isCvsMethod } from "@/lib/cvs";
+import { recipientOf } from "@/lib/recipient";
 
 /* 匯出訂單名單（CSV with BOM，Excel 直接開啟） */
 /* 多地址名單轉成一格文字：姓名/電話/地址/盒數（已出貨的標星號） */
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
     subtotal: number; shipping: number; total: number; status: string; created_at: string;
     addon_amount: number; discount_code: string; discount_amount: number;
     invoice_no: string; pay_note: string; remind_count: number; source: string; env: string;
+    recipient_name: string; recipient_phone: string;
   }[];
 
   /* 商品／規格過濾：只留下含有該品項的訂單，並算出符合的數量 */
@@ -62,7 +64,9 @@ export async function GET(req: NextRequest) {
   /* 公式注入防護見 lib/csv.ts */
   const esc = csvCell;
   const lines = [
-    [...(productId > 0 ? ["符合數量"] : []), "訂單編號", "狀態", "收件人", "電話", "Email", "取貨方式", "地址", "多地址收件名單", "品項明細", "小計", "折扣碼", "折抵金額", "加購贊助", "運費", "總金額", "付款方式", "發票", "發票號碼", "來源頁", "瀏覽器環境", "待付款提醒", "金流備註", "成立時間"].join(","),
+    /* 收件人姓名／電話排在最後：原欄位順序與位置不動，「收件人」「電話」那兩欄本來就是訂購人
+       （見下面 esc(o.name)/esc(o.phone)），維持原樣，新收件人欄位另外補在最後 */
+    [...(productId > 0 ? ["符合數量"] : []), "訂單編號", "狀態", "收件人", "電話", "Email", "取貨方式", "地址", "多地址收件名單", "品項明細", "小計", "折扣碼", "折抵金額", "加購贊助", "運費", "總金額", "付款方式", "發票", "發票號碼", "來源頁", "瀏覽器環境", "待付款提醒", "金流備註", "成立時間", "收件人姓名", "收件人電話"].join(","),
     ...rows.map((o) => {
       const items = json<{ name: string; choice: string | null; qty: number }[]>(o.items, [])
         .map((i) => `${i.name}${i.choice ? `(${i.choice})` : ""}x${i.qty}`)
@@ -72,6 +76,8 @@ export async function GET(req: NextRequest) {
         o.invoice_type === "b2b"
           ? `三聯式 ${inv.company || ""} ${inv.taxId || ""}`
           : `二聯式 ${inv.carrierType || ""} ${inv.carrierNo || ""}`;
+      /* 收件人為空就是同訂購人，全站只有這一套判斷規則 */
+      const recip = recipientOf(o);
       return [
         ...(productId > 0 ? [matchQty.get(o.order_no) || 0] : []),
         esc(o.order_no), esc(ORDER_STATUS[o.status] ?? o.status), esc(o.name), esc(o.phone), esc(o.email), esc(o.ship_method || "宅配"),
@@ -88,6 +94,7 @@ export async function GET(req: NextRequest) {
         esc(o.status === "pending" ? (o.remind_count ? `已寄 ${o.remind_count} 次` : "尚未提醒") : ""),
         esc(o.pay_note || ""),
         esc(fmtDateTimeDash(o.created_at)),
+        esc(recip.name), esc(recip.phone),
       ].join(",");
     }),
   ];

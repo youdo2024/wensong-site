@@ -15,6 +15,7 @@ import { shopViewable } from "@/lib/shop-preview";
 import ShopClosed from "@/components/ShopClosed";
 import { tappayConfig, tappayEnabled } from "@/lib/tappay";
 import { isCvsMethod } from "@/lib/cvs";
+import { recipientOf } from "@/lib/recipient";
 
 export const metadata: Metadata = buildMetadata({ title: "購物車", path: "/cart", noindex: true });
 export const dynamic = "force-dynamic";
@@ -33,12 +34,14 @@ export default async function CartPage() {
   const member = await getMember();
   const presets = { name: member?.name || "", phone: "", email: member?.email || "", address: "" };
   if (member?.email) {
-    const last = db.prepare("SELECT name,phone,address,ship_method FROM orders WHERE email=? ORDER BY id DESC LIMIT 1")
-      .get(member.email) as { name: string; phone: string; address: string; ship_method: string } | undefined;
+    const last = db.prepare("SELECT name,phone,address,ship_method,recipient_name FROM orders WHERE email=? ORDER BY id DESC LIMIT 1")
+      .get(member.email) as { name: string; phone: string; address: string; ship_method: string; recipient_name: string } | undefined;
     if (last) {
       presets.name = last.name;
       presets.phone = last.phone;
-      if (!isCvsMethod(last.ship_method)) presets.address = last.address;
+      /* 地址只在上一筆是「同訂購人」時才帶：上一筆是寄給別人的，這次多半也不是寄回自己家，
+         帶錯地址比不帶更糟，讓客人重新選一次比較保險 */
+      if (!isCvsMethod(last.ship_method) && recipientOf(last).sameAsBuyer) presets.address = last.address;
     }
   }
 

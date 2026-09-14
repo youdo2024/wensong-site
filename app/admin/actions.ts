@@ -723,18 +723,25 @@ export async function updateOrderContact(formData: FormData) {
   const address = String(formData.get("address") || "").trim();
   /* 郵遞區號手動值：留空＝交給系統即時推導；填了就以人的為準（lib/zip-lookup.ts 的優先序） */
   const zip = String(formData.get("zip") || "").trim();
+  /* 收件人：留空＝同訂購人。姓名空著就不管電話欄位打了什麼，強制一起清空，
+     不讓「填了電話沒填姓名」這種半吊子資料存進去（lib/recipient.ts 的判斷只看姓名） */
+  const recipientName = String(formData.get("recipient_name") || "").trim();
+  const recipientPhoneRaw = String(formData.get("recipient_phone") || "").replace(/[\s-]/g, "");
+  const recipientPhone = recipientName ? recipientPhoneRaw : "";
 
   const bad = (m: string) => redirect(`/admin/orders/${id}?err=${encodeURIComponent(m)}`);
   if (!id) bad("找不到這筆訂單");
   if (!name) bad("姓名不能空白");
   if (!/^09\d{8}$/.test(phone)) bad("電話請填 10 碼手機號碼（09 開頭）");
+  if (recipientName && !/^09\d{8}$/.test(recipientPhone)) bad("收件人電話請填 10 碼手機號碼（09 開頭）");
   if (zip && !/^\d{3}$/.test(zip)) bad("郵遞區號請填 3 碼數字，或留空讓系統自動判別");
   const emailErr = checkEmail(email);
   if (emailErr) bad(emailErr);
 
   const prev = db.prepare("SELECT email FROM orders WHERE id=?").get(id) as { email: string } | undefined;
   if (!prev) bad("找不到這筆訂單");
-  db.prepare("UPDATE orders SET name=?, phone=?, email=?, address=?, zip=? WHERE id=?").run(name, phone, email, address, zip, id);
+  db.prepare("UPDATE orders SET name=?, phone=?, email=?, address=?, zip=?, recipient_name=?, recipient_phone=? WHERE id=?")
+    .run(name, phone, email, address, zip, recipientName, recipientPhone, id);
   /* 信箱換過要留痕跡：日後對帳或客訴時查得到原本寄到哪裡去了 */
   if (prev && prev.email !== email) {
     const stamp = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(5, 16).replace("T", " ");

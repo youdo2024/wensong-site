@@ -15,6 +15,7 @@ import { isMultiShip, shipListTotal, type ShipRecipient } from "@/lib/multi-ship
 import ShipListForm from "@/components/ShipListForm";
 import Check from "@/components/admin/Check";
 import { emailTypoSuggestion } from "@/lib/email-typo";
+import { recipientOf } from "@/lib/recipient";
 
 import { requireAdmin } from "@/lib/admin-guard";
 import { zipDisplay } from "@/lib/zip-lookup";
@@ -42,6 +43,8 @@ type OrderRow = {
   ship_method: string; ship_list: string; zip: string;
   /* 催款次數：狀態列那句「已催 n 次」用的，lib/remind.ts 每寄一次就加一 */
   remind_count: number;
+  /* 留空＝同訂購人，見 lib/recipient.ts */
+  recipient_name: string; recipient_phone: string;
 };
 
 /* 狀態決定語意色：待處理是琥珀、完成是綠、失敗與取消是朱紅，其餘灰。四個顏色，沒有第五個 */
@@ -311,13 +314,15 @@ export default async function OrderDetail({
 
   /* ── 資料分頁：收件、多地址名單、發票、明細、結帳連結 ── */
   const zip = zipDisplay(o.address, o.zip);
+  /* 收件人欄空著就是訂購人本人，全站只有這一套判斷規則（lib/recipient.ts） */
+  const recip = recipientOf(o);
   const data = (
     <>
       <Card title="收 件" pad={false}>
         <KV
           rows={[
-            { k: "姓名", v: o.name },
-            { k: "電話", v: <span className="sans">{o.phone}</span> },
+            { k: "訂購人", v: o.name },
+            { k: "訂購人電話", v: <span className="sans">{o.phone}</span> },
             {
               k: "Email",
               v: (
@@ -330,6 +335,8 @@ export default async function OrderDetail({
                 </>
               ),
             },
+            { k: "收件人", v: recip.sameAsBuyer ? <span className="tone-muted">同訂購人</span> : recip.name },
+            { k: "收件人電話", v: recip.sameAsBuyer ? <span className="tone-muted">同訂購人</span> : <span className="sans">{recip.phone}</span> },
             { k: "地址", v: o.address || "—" },
             /* 只放三碼。zipDisplay 的 text 是「郵遞區號＋地址」整串，那是給地址欄用的，放這裡會把地址印兩次 */
             ...(isCvsMethod(o.ship_method) ? [] : [{ k: "郵遞區號", v: o.zip ? `${o.zip}（手動指定）` : (zip.text.match(/^(\d{3})\s/)?.[1] || "—") + (zip.note ? `　${zip.note}` : "") }]),
@@ -352,6 +359,14 @@ export default async function OrderDetail({
             <div className="field full">
               <label>Email（確認信與電子發票寄到這裡）</label>
               <input type="email" name="email" defaultValue={o.email} required />
+            </div>
+            <div className="field full">
+              <label>收件人姓名（留空＝同訂購人）</label>
+              <input type="text" name="recipient_name" defaultValue={o.recipient_name} />
+            </div>
+            <div className="field full">
+              <label>收件人電話（留空＝同訂購人；填了姓名就要一起填）</label>
+              <input type="text" name="recipient_phone" defaultValue={o.recipient_phone} inputMode="numeric" />
             </div>
             <div className="field full">
               <label>地址／取貨門市</label>

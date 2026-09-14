@@ -3,6 +3,8 @@ import { sendMail, wrapMail, wrapOwnerMail } from "./mail";
 import { logMail } from "./mail-log";
 import { money, ORDER_STATUS } from "./format";
 import { parseChoiceStocks } from "./choice-stock";
+import { recipientOf } from "./recipient";
+import { isMultiShip } from "./multi-ship";
 
 /*
  * 商品購買通知：後台勾選「通知」的商品一有人下單（即時，不等付款），
@@ -13,6 +15,7 @@ import { parseChoiceStocks } from "./choice-stock";
 type OrderRow = {
   id: number; order_no: string; name: string; phone: string; email: string;
   address: string; ship_method: string; items: string; total: number; status: string; created_at: string;
+  recipient_name?: string; recipient_phone?: string;
 };
 type Item = { id: number; name: string; choice: string | null; price: number; qty: number };
 
@@ -378,7 +381,7 @@ export async function notifyProductPurchases(orderId: number): Promise<void> {
   /* 站長名單空也不能 return：夥伴的通知走自己的名單，跟站長有沒有填無關 */
 
   const o = db
-    .prepare("SELECT id,order_no,name,phone,email,address,ship_method,items,total,created_at,notified FROM orders WHERE id=?")
+    .prepare("SELECT id,order_no,name,phone,email,address,ship_method,items,total,created_at,notified,recipient_name,recipient_phone FROM orders WHERE id=?")
     .get(orderId) as (OrderRow & { notified: number }) | undefined;
   if (!o) return;
 
@@ -425,6 +428,20 @@ export async function notifyProductPurchases(orderId: number): Promise<void> {
       return `有人訂購 ${amount}${name} x${qty}${more}｜問爽的`;
     };
 
+    /*
+     * 訂購人與收件人分兩段列出，相同時只列一段。
+     * 這裡原本把 o.name／o.phone（訂購人）標成「收件人」，是既有 bug（順手修）：
+     * 站長看這封信會以為訂購人就是要收貨的人，多地址配送那種訂單的地址欄
+     * 本來就是空的（名單在 ship_list，站長之後才補），一起補上一句說明，
+     * 不要讓地址那一行看起來像漏資料。
+     */
+    const rec = recipientOf(o);
+    const recipientLine = rec.sameAsBuyer
+      ? `訂購人：${esc(o.name)}　${esc(o.phone)}<br>`
+      : `訂購人：${esc(o.name)}　${esc(o.phone)}<br>收件人：${esc(rec.name)}　${esc(rec.phone)}<br>`;
+    const addressLine = isMultiShip(o.ship_method)
+      ? "（多地址配送，收件名單另在後台補齊）"
+      : esc(o.address);
     const buildMail = (hitItems: Item[], workbenchLink: string, forPartner = false) => (forPartner ? wrapMail : wrapOwnerMail)(
       forPartner ? "有人訂購了你的商品" : "有人下單了",
       `<p style="font-size:15px;line-height:2;">訂單 <b class="sans">${o.order_no}</b>${forPartner ? " 有你要出的貨：" : " 的內容："}</p>
@@ -432,8 +449,8 @@ export async function notifyProductPurchases(orderId: number): Promise<void> {
          ${hitItems.map((i) => `<tr><td style="padding:4px 0;">${esc(i.name)}${i.choice ? `（${esc(i.choice)}）` : ""}</td><td style="text-align:right;">× ${i.qty}</td></tr>`).join("")}
        </table>
        <p style="font-size:13.5px;color:#8A7A6E;line-height:1.9;">
-         收件人：${esc(o.name)}　${esc(o.phone)}<br>
-         ${esc(o.ship_method || "宅配")}：${esc(o.address)}<br>
+         ${recipientLine}
+         ${esc(o.ship_method || "宅配")}：${addressLine}<br>
          ${forPartner
            /* 夥伴不看金額（拆帳談判的界線），而且 o.total 是整張訂單的總額——
               混買單的話裡面含別家商品的錢，給了既違反界線也給錯數字。

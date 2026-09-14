@@ -452,6 +452,8 @@ export default function CheckoutForm({
   const phoneRef = useRef<HTMLInputElement>(null);
   const [phoneBad, setPhoneBad] = useState(false);
   const phoneOk = (v: string) => /^09\d{8}$/.test(v.replace(/[\s-]/g, ""));
+  /* 收件人不是我：勾了才展開兩欄，沒勾就送空字串（後端存空＝同訂購人） */
+  const [diffRecipient, setDiffRecipient] = useState(false);
 
   async function placeOrder(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -473,8 +475,9 @@ export default function CheckoutForm({
     {
       const form = e.currentTarget;
       const LABELS: Record<string, string> = {
-        name: "收件人全名", phone: "手機號碼", email: "Email", street: "收件地址",
+        name: "訂購人全名", phone: "手機號碼", email: "Email", street: "收件地址",
         store_name: "門市名稱", store_no: "門市店號",
+        recipient_name: "收件人姓名", recipient_phone: "收件人電話",
       };
       const missing: { el: HTMLElement; label: string }[] = [];
       for (const raw of Array.from(form.elements)) {
@@ -500,6 +503,12 @@ export default function CheckoutForm({
       /* 捲回欄位並聚焦，使用者才知道是哪一格出問題 */
       phoneRef.current?.scrollIntoView({ block: "center" });
       phoneRef.current?.focus();
+      return;
+    }
+    /* 收件人電話跟訂購人同一套規則（09 開頭 10 碼）：勾了「不是我」才驗，沒勾就不用管 */
+    const recipientPhoneVal = String(fd.get("recipient_phone") || "").replace(/[\s-]/g, "");
+    if (diffRecipient && !phoneOk(recipientPhoneVal)) {
+      setErr("收件人電話請填 10 碼手機號碼（09 開頭）");
       return;
     }
     if (!noShip && shipEff === "宅配" && (!city || !dist)) {
@@ -541,6 +550,9 @@ export default function CheckoutForm({
         shipMethod: shipEff,
         storeName: fd.get("store_name"),
         storeNo: fd.get("store_no"),
+        /* 沒勾「收件人不是我」就送空字串，後端存空＝同訂購人，舊訂單的行為完全不變 */
+        recipientName: diffRecipient ? String(fd.get("recipient_name") || "").trim() : "",
+        recipientPhone: diffRecipient ? recipientPhoneVal : "",
         newsletter,
         lineOptin: lineNotify && lineOptin,
         payMethod: pay,
@@ -648,10 +660,10 @@ export default function CheckoutForm({
       <form className="box" onSubmit={placeOrder} noValidate>
         <div className="band" />
         <div className="inner">
-          <h3 className="f">收 件 人 資 訊</h3>
+          <h3 className="f">訂 購 人 資 訊</h3>
           <div className="form-grid">
             <div className="field">
-              <label>收件人（全名） <em>＊</em></label>
+              <label>訂購人（全名） <em>＊</em></label>
               <input type="text" name="name" defaultValue={presets.name} required />
             </div>
             <div className="field">
@@ -684,6 +696,32 @@ export default function CheckoutForm({
                 label={<label>Email <em>＊</em>（寄送訂單確認與發票）</label>}
               />
             </div>
+            {/* 收件人不是訂購人本人：企業付款連結、免寄送的服務費都不適用，維持原本各自的流程 */}
+            {!payLink && !noShip && (
+              <div className="field full">
+                <div className="soft-chk">
+                  <input
+                    type="checkbox"
+                    checked={diffRecipient}
+                    onChange={(e) => setDiffRecipient(e.target.checked)}
+                    aria-label="收件人不是我（寄給別人）"
+                  />
+                  <span>收件人不是我（寄給別人）</span>
+                </div>
+              </div>
+            )}
+            {!payLink && !noShip && diffRecipient && (
+              <>
+                <div className="field">
+                  <label>收件人姓名 <em>＊</em></label>
+                  <input type="text" name="recipient_name" required />
+                </div>
+                <div className="field">
+                  <label>收件人電話 <em>＊</em></label>
+                  <input className="sans" type="tel" name="recipient_phone" placeholder="0912345678" inputMode="numeric" maxLength={10} required />
+                </div>
+              </>
+            )}
             {/* 收服務費那種沒有貨要寄，整塊物流與地址不該出現 */}
             {!noShip && <div className="field full">
               <label>取貨方式 <em>＊</em></label>

@@ -56,6 +56,7 @@ import { rememberSponsorTradeNo, sponsorByTradeNo, sponsorTradeNoHistory, staleS
 import { syncSummary, type SyncState } from "@/lib/subscriber-import";
 import { shouldSyncNow, SYNC_HOUR } from "@/lib/sheet-sync";
 import { fmtDateTimeDash } from "@/lib/format";
+import { recipientOf } from "@/lib/recipient";
 
 let pass = 0, fail = 0;
 function eq(label: string, got: unknown, want: unknown) {
@@ -108,6 +109,21 @@ ok("別的字不認", !isMultiShip("宅配"));
 eq("超商地址組合", recipientAddress({ name: "x", phone: "y", shipMethod: "7-11店到店", address: "", storeName: "虎爺", storeNo: "210133", qty: 1 }),
    "7-11「虎爺」門市（店號 210133）取貨");
 eq("總盒數", shipListTotal([{ name: "a", phone: "p", address: "z", qty: 2 }, { name: "b", phone: "p", address: "z", qty: 3 }]), 5);
+
+/* ── 訂購人／收件人：收件人欄空著就是訂購人本人，全站只靠這一支判斷 ── */
+{
+  const r1 = recipientOf({ name: "王小明", phone: "0912345678", recipient_name: "", recipient_phone: "" });
+  eq("收件人為空回傳訂購人", r1, { name: "王小明", phone: "0912345678", sameAsBuyer: true });
+
+  const r2 = recipientOf({ name: "王小明", phone: "0912345678", recipient_name: "陳小美", recipient_phone: "0987654321" });
+  eq("有填就回傳收件人", r2, { name: "陳小美", phone: "0987654321", sameAsBuyer: false });
+
+  /* 舊訂單物件根本沒有 recipient_name／recipient_phone 這兩個欄位（改欄位之前建的），
+     helper 不能因為欄位不存在就炸掉或誤判成「有填」 */
+  const oldOrder = { name: "老客戶", phone: "0911222333" };
+  const r3 = recipientOf(oldOrder);
+  eq("舊訂單物件 fallback 成訂購人", r3, { name: "老客戶", phone: "0911222333", sameAsBuyer: true });
+}
 
 /* ── 圖片 srcset：只對站內上傳圖動手 ── */
 const g = imgSrc("/api/images/a.jpg", "100vw");

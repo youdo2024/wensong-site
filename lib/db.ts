@@ -498,7 +498,13 @@ function addColumn(table: string, col: string, def: string) {
     }
   }
 }
-void addColumn;
+/*
+ * 訂購人／收件人可以分開。留空＝同訂購人，這是唯一的判斷依據
+ * （lib/recipient.ts 的 recipientOf 統一處理顯示），
+ * 資料庫這裡不回填、不改寫任何一筆舊訂單。
+ */
+addColumn("orders", "recipient_name", "TEXT DEFAULT ''");
+addColumn("orders", "recipient_phone", "TEXT DEFAULT ''");
 
 /* ═══════════════════════ 預設設定（既有資料庫不覆蓋） ═══════════════════════ */
 const defSet = db.prepare("INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)");

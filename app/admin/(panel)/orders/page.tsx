@@ -14,6 +14,7 @@ import { orderStats } from "@/lib/order-stats";
 import { amegoConfig } from "@/lib/amego";
 import { tappayConfig, tappayEnabled } from "@/lib/tappay";
 import { shopGateway } from "@/lib/shop";
+import { recipientOf } from "@/lib/recipient";
 
 import { requireAdmin } from "@/lib/admin-guard";
 import AdminTabs from "@/components/AdminTabs";
@@ -62,17 +63,18 @@ export default async function AdminOrders({
     { id: number; name: string; option_choices: string }[];
   const list = (
     status === "all"
-      ? db.prepare("SELECT id,order_no,name,email,total,status,created_at,remind_at,remind_count,source,env,pay_note,pay_method FROM orders ORDER BY id DESC").all()
-      : db.prepare("SELECT id,order_no,name,email,total,status,created_at,remind_at,remind_count,source,env,pay_note,pay_method FROM orders WHERE status=? ORDER BY id DESC").all(status)
-  ) as { id: number; order_no: string; name: string; email: string; total: number; status: string; created_at: string; remind_at: string; remind_count: number; source: string; env: string; pay_note: string; pay_method: string }[];
+      ? db.prepare("SELECT id,order_no,name,email,total,status,created_at,remind_at,remind_count,source,env,pay_note,pay_method,recipient_name FROM orders ORDER BY id DESC").all()
+      : db.prepare("SELECT id,order_no,name,email,total,status,created_at,remind_at,remind_count,source,env,pay_note,pay_method,recipient_name FROM orders WHERE status=? ORDER BY id DESC").all(status)
+  ) as { id: number; order_no: string; name: string; email: string; total: number; status: string; created_at: string; remind_at: string; remind_count: number; source: string; env: string; pay_note: string; pay_method: string; recipient_name: string }[];
   /*
    * 搜尋：用訂單編號、信箱、姓名或電話找人。
    * 沒有這個的話，收到一封退信卻翻不到是哪一筆，等於看得到問題卻碰不到它。
+   * 姓名同時比對訂購人與收件人，兩邊都可能是站長要找的那個人。
    */
   const kw = String(q || "").trim().toLowerCase();
   if (kw) {
     const hit = (o: (typeof list)[number]) =>
-      [o.order_no, o.email, o.name].some((v) => String(v || "").toLowerCase().includes(kw));
+      [o.order_no, o.email, o.name, o.recipient_name].some((v) => String(v || "").toLowerCase().includes(kw));
     for (let i = list.length - 1; i >= 0; i--) if (!hit(list[i])) list.splice(i, 1);
   }
 
@@ -169,10 +171,16 @@ export default async function AdminOrders({
       ) : (
         <>
           <div className="ad-rows">
-            {list.map((o) => (
+            {list.map((o) => {
+              const recip = recipientOf(o);
+              return (
               <Link key={o.id} className="ad-row" href={`/admin/orders/${o.id}`} data-tone={statusTone(o.status)}>
                 <span className="ad-l">
-                  <span className="ad-nm">{o.name || "（沒有留名字）"}<span className="no sans">　{orderLast4(o.order_no)}</span></span>
+                  <span className="ad-nm">
+                    {recip.name || "（沒有留名字）"}
+                    {!recip.sameAsBuyer && <span className="fine">　（訂購人：{o.name}）</span>}
+                    <span className="no sans">　{orderLast4(o.order_no)}</span>
+                  </span>
                   <span className="ad-tm sans">{relTime(o.created_at)}</span>
                 </span>
                 <span className="ad-r">
@@ -180,7 +188,8 @@ export default async function AdminOrders({
                   <span className="ad-st2"><i />{ORDER_STATUS[o.status] ?? o.status}</span>
                 </span>
               </Link>
-            ))}
+              );
+            })}
           </div>
           <p className="ad-listnote">整行可點進詳情，動作在詳情頁做。要一鍵催款去「<Link href="/admin/remind">提醒</Link>」。</p>
         </>
@@ -194,7 +203,9 @@ export default async function AdminOrders({
             <thead><tr><th>訂單</th><th>姓名</th><th>金額・付款</th><th>狀態</th><th>時間</th><th>動作</th></tr></thead>
             <tbody>
               {list.length === 0 && <tr><td colSpan={6} className="empty">沒有符合的訂單</td></tr>}
-              {list.map((o) => (
+              {list.map((o) => {
+                const recip = recipientOf(o);
+                return (
                 <tr key={o.id}>
                   {/* 編號、信箱、來源同一格：來源與 App 內建瀏覽器是付款失敗時唯一的線索，
                       畫布上沒有這一欄，但拿掉等於失敗了只能用猜的，所以收進副行 */}
@@ -206,7 +217,10 @@ export default async function AdminOrders({
                       {o.source && <><br /><span className="tone-muted" title={o.source}>{o.source}{o.env ? `（${ENV_LABEL[o.env] || o.env}）` : ""}</span></>}
                     </span>
                   </td>
-                  <td data-label="姓名">{o.name}</td>
+                  <td data-label="姓名">
+                    {recip.name}
+                    {!recip.sameAsBuyer && <span className="sub2">（訂購人：{o.name}）</span>}
+                  </td>
                   <td className="sans" data-label="金額・付款">
                     {money(o.total)}
                     <span className="sub2">
@@ -229,7 +243,8 @@ export default async function AdminOrders({
                     <span className="sub2"><Link href={`/admin/orders/${o.id}#notify`}>其他通知 →</Link></span>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

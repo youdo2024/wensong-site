@@ -10,6 +10,8 @@ import { isReviewSite, reviewMailTo } from "./review-mode";
 import { newsleopardEnabled, sendEmail } from "./newsleopard";
 import { taipeiYMD } from "./month";
 import { logMail, copyPlan, copyTarget, type MailKind } from "./mail-log";
+import { recipientOf } from "./recipient";
+import { isMultiShip } from "./multi-ship";
 
 /*
  * 交易信件：訂單確認、出貨通知、支持收據（含停止連結）。
@@ -491,6 +493,11 @@ type OrderLike = {
   /* 發票選項（結帳時填的）。用來在信裡講一句「這張發票去哪了」 */
   invoice_type?: string;
   invoice_data?: string;
+  /* 訂購人電話與出貨方式：判斷收件人是否不同、多地址配送要不要照樣寄出貨信 */
+  phone?: string;
+  ship_method?: string;
+  recipient_name?: string;
+  recipient_phone?: string;
 };
 
 /*
@@ -552,8 +559,18 @@ export function esc(v: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
+/*
+ * 訂購人與收件人分兩段列出，相同時只列一段（訂購人，收件人就不重複講一次）。
+ * 信一律寄給訂購人（開頭已經叫過他的名字），這裡只是把「東西寄給誰」講清楚。
+ */
+function recipientBlock(o: OrderLike): string {
+  const r = recipientOf(o);
+  if (r.sameAsBuyer) return "";
+  return `訂購人：${esc(o.name)}　${esc(o.phone)}<br>收件人：${esc(r.name)}　${esc(r.phone)}<br>`;
+}
+
 function addrLine(o: OrderLike): string {
-  return hasShipping(o) ? `收件／取貨：${esc(o.address)}<br>` : "";
+  return hasShipping(o) ? `${recipientBlock(o)}收件／取貨：${esc(o.address)}<br>` : "";
 }
 
 export function itemRows(itemsJson: string): string {
@@ -797,9 +814,16 @@ export function sendOrderPayLinkMail(o: OrderResume) {
 /* opts.note：分批出貨時說明這批寄了什麼（多週訂單一週寄一批，一批一封信）。
    信裡不寫物流單號——站長不使用單號，寫了只會讓顧客去查一個查不到的東西。 */
 export function sendOrderShippedMail(o: OrderLike, opts?: { note?: string }) {
-  /* 沒有收件地址＝沒有東西要寄，這封信就不該存在。真的走到這裡代表別處有錯，
-     寧可留下 log 也不要寄一封「已出貨」給一位根本沒有訂貨的人。 */
-  if (!hasShipping(o)) {
+  /*
+   * 沒有收件地址＝沒有東西要寄，這封信就不該存在。真的走到這裡代表別處有錯，
+   * 寧可留下 log 也不要寄一封「已出貨」給一位根本沒有訂貨的人。
+   *
+   * 但多地址配送是例外：訂單本身的 address 欄一定是空的（實際地址在
+   * ship_list，逐位補），這不是「沒有東西要寄」，是「地址記在別的地方」。
+   * 之前沒有排除這種情況，多地址訂單一封出貨信都收不到（既有 bug，順手修）。
+   * 那份地址已經寫在呼叫端組好的 opts.note 裡（見 app/api/partner/ship/route.ts）。
+   */
+  if (!hasShipping(o) && !isMultiShip(o.ship_method)) {
     console.error("[mail] 略過出貨通知：這筆訂單沒有收件地址", o.order_no);
     return Promise.resolve(false);
   }
@@ -808,7 +832,7 @@ export function sendOrderShippedMail(o: OrderLike, opts?: { note?: string }) {
     `<p style="font-size:15px;line-height:2;">${esc(o.name)} 你好，${t("m_ship_body")}</p>
      ${opts?.note ? `<p style="font-size:14.5px;line-height:2;border:2px solid #D97F12;border-radius:12px;padding:10px 14px;color:#D97F12;">${opts.note}</p>` : ""}
      <p style="font-size:14px;color:#8A7A6E;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
-     <p style="font-size:13.5px;color:#8A7A6E;">收件／取貨：${esc(o.address)}</p>
+     ${hasShipping(o) ? `<p style="font-size:13.5px;color:#8A7A6E;">${recipientBlock(o)}收件／取貨：${esc(o.address)}</p>` : ""}
      ${lineInviteHtml(o)}`
   );
   return sendMail(o.email, `已出貨 ${o.order_no}｜問爽的 WenSong`, html, undefined, { refNo: o.order_no });

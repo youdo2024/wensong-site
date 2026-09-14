@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "格式錯誤" }, { status: 400 });
 
-  const { name, phone, email, address, shipMethod, storeName, storeNo, newsletter, lineOptin, payMethod, invoiceType, invoiceData, items, addon, discountCode, source, env, payLink } = body as {
+  const { name, phone, email, address, shipMethod, storeName, storeNo, newsletter, lineOptin, payMethod, invoiceType, invoiceData, items, addon, discountCode, source, env, payLink, recipientName, recipientPhone } = body as {
     name?: string; phone?: string; email?: string; address?: string;
     shipMethod?: string; storeName?: string; storeNo?: string; newsletter?: boolean;
     /* 結帳最後一格「用 LINE 收通知」：只記意願，感謝頁看它決定綁定按鈕多大 */
@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
     source?: string; env?: string;
     /* 付款連結權杖：品項、數量、價格一律以資料庫裡那條連結為準，不看前端送什麼 */
     payLink?: string;
+    /* 收件人不是訂購人才會有值；留空＝同訂購人（lib/recipient.ts 的判斷依據） */
+    recipientName?: string; recipientPhone?: string;
   };
 
   /*
@@ -113,13 +115,23 @@ export async function POST(req: NextRequest) {
       ? cvsPickupText(storeName, storeNo, cvsBrandForAddress)
       : String(address || "").trim();
   if (!name?.trim() || !phone?.trim() || !email?.trim())
-    return NextResponse.json({ error: "請完整填寫收件人資訊" }, { status: 400 });
+    return NextResponse.json({ error: "請完整填寫訂購人資訊" }, { status: 400 });
   /* 信箱：確認信、發票、待付款提醒全靠它，打錯的話對方什麼都收不到 */
   const emailErr = checkEmail(email);
   if (emailErr) return NextResponse.json({ error: emailErr }, { status: 400 });
   /* 電話：台灣手機 10 碼（09 開頭），物流通知用 */
   if (!/^09\d{8}$/.test(String(phone).replace(/[\s-]/g, "")))
     return NextResponse.json({ error: "電話請填 10 碼手機號碼（09 開頭）" }, { status: 400 });
+  /*
+   * 收件人：留空＝同訂購人，前端沒勾「收件人不是我」就送空字串。
+   * 填了姓名就當作勾了，電話要跟訂購人同一套格式（09 開頭 10 碼）；
+   * 直接打 API 只塞電話不塞姓名的話，姓名沒填，電話也一起當沒填，
+   * 存進資料庫的規則跟 lib/recipient.ts 的判斷一致：只看姓名。
+   */
+  const recipientNameTrim = String(recipientName || "").trim();
+  const recipientPhoneTrim = recipientNameTrim ? String(recipientPhone || "").replace(/[\s-]/g, "") : "";
+  if (recipientNameTrim && !/^09\d{8}$/.test(recipientPhoneTrim))
+    return NextResponse.json({ error: "收件人電話請填 10 碼手機號碼（09 開頭）" }, { status: 400 });
   /* 發票選項（站內開票用）：統編 8 碼、手機條碼載具斜線開頭 8 碼、捐贈碼 3~7 碼 */
   const invD = (invoiceData || {}) as { carrierNo?: string; taxId?: string; npoban?: string };
   if (invoiceType === "b2b" && !taxIdChecksumOk(String(invD.taxId || "")))
@@ -347,8 +359,8 @@ export async function POST(req: NextRequest) {
       const gaCid = gaClientIdFromCookie(req.cookies.get("_ga")?.value);
       const gaSess = gaSessionFromCookie(req.cookies.get(GA_SESSION_COOKIE)?.value);
       db.prepare(
-        `INSERT INTO orders (order_no,name,phone,email,address,ship_method,pay_method,invoice_type,invoice_data,items,subtotal,shipping,total,status,created_at,addon_amount,discount_code,discount_amount,ga_cid,token,ga_sid,ga_snum,source,env,pay_link,ship_detail,line_optin)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        `INSERT INTO orders (order_no,name,phone,email,address,ship_method,pay_method,invoice_type,invoice_data,items,subtotal,shipping,total,status,created_at,addon_amount,discount_code,discount_amount,ga_cid,token,ga_sid,ga_snum,source,env,pay_link,ship_detail,line_optin,recipient_name,recipient_phone)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
       ).run(
         orderNo, name.trim(), phone.trim(), email.trim(), shipAddress,
         noShip ? "無需寄送" : isMulti ? MULTI_SHIP : isCvs ? cvsMethodOf(cartBrand) : "宅配",
@@ -369,7 +381,8 @@ export async function POST(req: NextRequest) {
         ["fb", "ig", "line", "wv"].includes(String(env || "")) ? String(env) : "",
         link ? link.token : "",
         shipDetail,
-        lineOptin === true ? 1 : 0
+        lineOptin === true ? 1 : 0,
+        recipientNameTrim, recipientPhoneTrim
       );
       /*
        * 連結在「訂單成立」的這一刻就用掉，不是等付款成功。
