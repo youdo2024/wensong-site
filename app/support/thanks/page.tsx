@@ -185,10 +185,6 @@ export default async function SupportThanks({
             <p>{t("sthx_p1")}</p>
             {monthly && <p>{t("sthx_monthly")}</p>}
             {lineBlock}
-            {/* 對價交付：支持完成當下就拿得到的東西 */}
-            <p style={{ marginTop: 18 }}>
-              <a className="btn" href="/downloads/doudzao-wallpapers.zip" download>下載豆棗手繪桌布集</a>
-            </p>
             <p style={{ marginTop: 14 }}>
               <Link className="btn" href="/">{t("sthx_btn")}</Link>
             </p>

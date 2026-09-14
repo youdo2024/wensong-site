@@ -822,7 +822,6 @@ export function sendSponsorThanksMail(sp: {
   const html = wrap(
     t("m_sp_title"),
     `<p style="font-size:15px;line-height:2;">${esc(sp.display_name) || "你"}好，收到你的${monthly ? "每月" : "單次"}支持 <b>${money(sp.amount)}</b>${monthly ? "／月" : ""}。${t("m_sp_body")}</p>
-     <p style="text-align:center;margin:18px 0;"><a href="${siteUrl()}/downloads/doudzao-wallpapers.zip" style="display:inline-block;border:2px solid #EA962E;border-radius:999px;background:#FFFFFF;color:#D97F12;text-decoration:none;font-size:14px;letter-spacing:.1em;padding:10px 22px;">下載豆棗手繪桌布集</a></p>
      <p style="font-size:12.5px;color:#8A7A6E;line-height:1.9;">收據摘要：本筆為數位內容服務${monthly ? "（每月方案，屬繼續性服務契約，隨時可停止）" : "（單次方案）"}，金額 ${money(sp.amount)}，統一發票將另行寄達。</p>
      ${monthly ? `<p style="font-size:13.5px;color:#8A7A6E;">${t("m_sp_monthly_note")}</p>` : ""}
      <p style="font-size:13.5px;color:#8A7A6E;">${t("m_sp_invoice")}</p>`,

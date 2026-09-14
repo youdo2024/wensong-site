@@ -221,7 +221,12 @@ export async function createSponsorship(formData: FormData) {
        這條 PayUni 分支原本沒帶，一旦綠界停用而退回 PayUni，贊助會全部 404。 */
     redirect(`/support/pay/${id}?t=${payToken}`);
   }
-  /* 模擬模式：直接視為成功，立即寄感謝信 */
+  /* 模擬模式只准本機開發用。正式站沒有任何金流可走時不能假裝成功（2026-09-14 站長實測：
+     定期定額還沒上線時按下去直接跳感謝頁，資料庫多了一筆沒付錢的 active）。 */
+    if (process.env.NODE_ENV === "production") {
+    db.prepare("UPDATE sponsorships SET status='failed', last_charge_note='沒有可用的金流，未建立付款' WHERE id=?").run(id);
+    redirect(back("1"));
+  }
   void sendSponsorThanksMail({ id, mode, amount, display_name: displayName, email });
   redirect(`/support/thanks?mode=${mode}`);
 }
