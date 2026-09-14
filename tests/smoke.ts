@@ -1675,5 +1675,53 @@ eq("空字串不裝懂", fmtDate(""), "");
   eq("往返一致：格式化再解析拿回同一個 t", parseChapterLine(`${fmtChapterTime(7325)} X`), { t: 7325, label: "X" });
 }
 
+/* ── episodeGuestCounts：後台集數列表一次 JOIN 查完，不要在迴圈裡逐集各查一次 ──
+   舊寫法 guestCount(id) 對每一列各自下一次 SQL，而且同一列被呼叫兩次，
+   N 集就是 2N 次額外查詢。這裡除了驗證數字對不對，也用 db.prepare 的呼叫次數
+   確認整段真的只準備了 1 條查詢，不管有幾集都一樣，不會退回 N+1。 */
+{
+  const { episodeGuestCounts } = await import("@/lib/episodes");
+  const now = new Date().toISOString();
+  const epGuids = ["smk-cnt-e1", "smk-cnt-e2", "smk-cnt-e3"];
+  const guestSlugs = ["smk-cnt-g1", "smk-cnt-g2"];
+  const cleanup = () => {
+    db.prepare(`DELETE FROM episode_guests WHERE episode_id IN (SELECT id FROM episodes WHERE guid IN (${epGuids.map(() => "?").join(",")}))`).run(...epGuids);
+    db.prepare(`DELETE FROM episodes WHERE guid IN (${epGuids.map(() => "?").join(",")})`).run(...epGuids);
+    db.prepare(`DELETE FROM guests WHERE slug IN (${guestSlugs.map(() => "?").join(",")})`).run(...guestSlugs);
+  };
+  cleanup();
+  try {
+    const epIds = epGuids.map((guid) => Number(db.prepare("INSERT INTO episodes (guid,key,title,created_at) VALUES (?,?,?,?)").run(guid, guid, guid, now).lastInsertRowid));
+    const guestIds = guestSlugs.map((slug) => Number(db.prepare("INSERT INTO guests (slug,name,created_at) VALUES (?,?,?)").run(slug, slug, now).lastInsertRowid));
+    /* e1 沒有來賓、e2 有 1 位、e3 有 2 位 */
+    db.prepare("INSERT INTO episode_guests (episode_id,guest_id) VALUES (?,?)").run(epIds[1], guestIds[0]);
+    db.prepare("INSERT INTO episode_guests (episode_id,guest_id) VALUES (?,?)").run(epIds[2], guestIds[0]);
+    db.prepare("INSERT INTO episode_guests (episode_id,guest_id) VALUES (?,?)").run(epIds[2], guestIds[1]);
+
+    /* db（lib/db.ts 匯出的）是個 lazy Proxy，直接改 db.prepare 只會設到 Proxy
+       用不到的 target 上，攔不到真正的呼叫；改攔 Database.prototype.prepare
+       才抓得到 Proxy 底層真正呼叫的那個方法。 */
+    const { default: DatabaseCtor } = await import("better-sqlite3");
+    const origPrepare = DatabaseCtor.prototype.prepare;
+    let prepareCalls = 0;
+    DatabaseCtor.prototype.prepare = function (this: InstanceType<typeof DatabaseCtor>, sql: string) {
+      prepareCalls++;
+      return origPrepare.call(this, sql);
+    } as typeof origPrepare;
+    let counts: Record<number, number>;
+    try {
+      counts = episodeGuestCounts();
+    } finally {
+      DatabaseCtor.prototype.prepare = origPrepare;
+    }
+    eq("沒有來賓的集數不出現在對照表（或算 0）", counts[epIds[0]] || 0, 0);
+    eq("1 位來賓算對", counts[epIds[1]], 1);
+    eq("2 位來賓算對", counts[epIds[2]], 2);
+    eq("不管幾集，只準備 1 條 SQL（不是 N+1）", prepareCalls, 1);
+  } finally {
+    cleanup();
+  }
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);

@@ -5,7 +5,7 @@ import { fmtDate } from "@/lib/format";
 import { monthRange } from "@/lib/month";
 import PublishToggle from "@/components/PublishToggle";
 import { syncEpisodesNow } from "@/app/admin/actions";
-import { displayTitle, epLabel, fmtDuration, type EpisodeRow } from "@/lib/episodes";
+import { displayTitle, epLabel, episodeGuestCounts, fmtDuration, type EpisodeRow } from "@/lib/episodes";
 import { requireAdmin } from "@/lib/admin-guard";
 import PageHead from "@/components/admin/PageHead";
 import Empty from "@/components/admin/Empty";
@@ -33,7 +33,7 @@ export default async function AdminEpisodes({ searchParams }: { searchParams: Pr
   const drafts = list.filter((e) => !e.published).length;
   const noNotes = list.filter((e) => !e.transcript).length;
   const last = json<{ ok?: boolean; added?: number; updated?: number; total?: number; guestsAdded?: number; msg?: string; at?: string }>(getSetting("episodes_sync_last", "{}"), {});
-  const guestCount = (id: number) => (db.prepare("SELECT COUNT(*) AS n FROM episode_guests WHERE episode_id=?").get(id) as { n: number }).n;
+  const guestCounts = episodeGuestCounts();
 
   const mr = monthRange();
   const pvRows = db.prepare("SELECT page, ym, count FROM page_views").all() as { page: string; ym: string; count: number }[];
@@ -77,7 +77,7 @@ export default async function AdminEpisodes({ searchParams }: { searchParams: Pr
               <span className="ad-l">
                 <span className="ad-nm">
                   <Link href={`/admin/episodes/${e.id}`}>{displayTitle(e)}</Link>
-                  <span className="no">　{epLabel(e.series, e.ep_no)}{e.transcript ? "" : "・無逐字稿"}{guestCount(e.id) ? `・來賓 ${guestCount(e.id)}` : ""}</span>
+                  <span className="no">　{epLabel(e.series, e.ep_no)}{e.transcript ? "" : "・無逐字稿"}{guestCounts[e.id] ? `・來賓 ${guestCounts[e.id]}` : ""}</span>
                 </span>
                 <span className="ad-tm sans">{e.pub_date ? fmtDate(e.pub_date) : "—"}・{fmtDuration(e.duration)}</span>
               </span>

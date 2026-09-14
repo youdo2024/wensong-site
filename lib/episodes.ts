@@ -347,6 +347,20 @@ export function firstPublishedDate(): string {
   return row.d || "";
 }
 
+/*
+ * 集數 -> 來賓人數的對照表，一次 JOIN 查完。
+ * 後台集數列表原本對每一列各自下一次 SQL（guestCount(id)），而且同一列被呼叫
+ * 兩次（判斷要不要顯示、顯示數字各一次），N 集就是 2N 次額外查詢；來賓列表
+ * 早就用同樣的 JOIN 寫法處理過同樣需求，這裡補齊集數列表那邊的寫法。
+ * 沒有來賓的集數不會出現在回傳的物件裡，呼叫端用 counts[id] || 0 取值。
+ */
+export function episodeGuestCounts(): Record<number, number> {
+  const rows = db.prepare("SELECT episode_id AS id, COUNT(guest_id) AS n FROM episode_guests GROUP BY episode_id").all() as { id: number; n: number }[];
+  const map: Record<number, number> = {};
+  for (const r of rows) map[r.id] = r.n;
+  return map;
+}
+
 export function episodesOfGuest(guestId: number): EpisodeRow[] {
   return db
     .prepare("SELECT e.* FROM episodes e JOIN episode_guests eg ON eg.episode_id=e.id WHERE eg.guest_id=? AND e.published=1 ORDER BY e.pub_date DESC")
