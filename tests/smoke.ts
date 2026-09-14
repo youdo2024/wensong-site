@@ -1838,7 +1838,7 @@ eq("空字串不裝懂", fmtDate(""), "");
 
   const normal = applyGlossaryFixes("溫爽的 是 夢想欸", [{ wrong: "溫爽的", right: "問爽的" }, { wrong: "夢想欸", right: "猛送欸" }]);
   eq("一般替換照常運作", normal.text, "問爽的 是 猛送欸");
-  eq("命中紀錄都在", normal.hits.map((h) => h.wrong).sort(), ["夢想欸", "溫爽的"].sort());
+  eq("命中紀錄都在", normal.hits.map((h: { wrong: string }) => h.wrong).sort(), ["夢想欸", "溫爽的"].sort());
 
   const longest = applyGlossaryFixes("哲佑講的", [{ wrong: "哲佑", right: "則佑" }, { wrong: "佑", right: "祐" }]);
   eq("同位置多條規則都能吃到時，長字串規則優先命中", longest.text, "則佑講的");
