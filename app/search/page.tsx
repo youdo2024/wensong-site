@@ -42,7 +42,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <h1>找文章</h1>
         </div>
 
-        <form action="/search" method="get" style={{ display: "flex", gap: 10, maxWidth: 560, marginBottom: 34 }}>
+        <form className="search-form" action="/search" method="get" style={{ display: "flex", gap: 10, maxWidth: 560, marginBottom: 34 }}>
           <input
             type="search"
             name="q"
