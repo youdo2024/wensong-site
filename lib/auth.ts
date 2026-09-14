@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { getSetting, setSetting } from "./db";
 import { cookieSecure } from "./cookie-secure";
-import { passwordUsable } from "./admin-password";
+import { passwordUsable, accountModeEnabled } from "./admin-password";
 import { appSecret } from "./app-secret";
 import { packSession, parseEpoch, sessionUser, verifySession, type SessionUser } from "./admin-session";
 import { findUser, seedAdminUsersFromEnv, touchLogin, verifyPassword } from "./admin-users";
@@ -21,6 +21,8 @@ function secret(): string {
 
 /* 密碼沒有後備方案：正式環境沒設就只能用預設密碼，必須讓站長看得到這件事 */
 export function adminPasswordIsDefault(): boolean {
+  /* 帳號制（ADMIN_USER_1..3）啟用時這個警告不適用：那時 ADMIN_PASSWORD 本來就不需要設 */
+  if (accountModeEnabled(process.env)) return false;
   return !process.env.ADMIN_PASSWORD;
 }
 
