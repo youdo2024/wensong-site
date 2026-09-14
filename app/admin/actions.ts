@@ -4,6 +4,7 @@ import { clientIp } from "@/lib/ratelimit";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import db, { setSetting, getSetting } from "@/lib/db";
+import { parseChapterLine } from "@/lib/episodes";
 import { bumpSessionEpoch, checkAccountPassword, checkPassword, createSession, destroySession, isAdmin, loginLocked, recordLoginFail, clearLoginFails, passwordUsable, accountModeEnabled } from "@/lib/auth";
 import { logAdmin } from "@/lib/admin-log";
 import { sendOrderShippedMail, sendMail } from "@/lib/mail";
@@ -1982,10 +1983,8 @@ function slugOk(s: string): boolean {
 export async function parseChapters(text: string): Promise<{ t: number; label: string }[]> {
   const out: { t: number; label: string }[] = [];
   for (const raw of text.split("\n")) {
-    const m = raw.trim().match(/^(\d{1,2}(?::\d{1,2}){1,2})\s+(.+)$/);
-    if (!m) continue;
-    const t = m[1].split(":").map(Number).reduce((a, x) => a * 60 + x, 0);
-    out.push({ t, label: m[2].trim() });
+    const c = parseChapterLine(raw);
+    if (c) out.push(c);
   }
   return out;
 }

@@ -11,7 +11,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 import StickySave from "@/components/admin/StickySave";
 import PageHead from "@/components/admin/PageHead";
 import DangerZone from "@/components/admin/DangerZone";
-import { cleanDescription, displayTitle, epLabel, fmtDuration, type EpisodeRow } from "@/lib/episodes";
+import { cleanDescription, displayTitle, epLabel, fmtChapterTime, fmtDuration, type EpisodeRow } from "@/lib/episodes";
 import { fmtDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "編輯集數" };
@@ -30,7 +30,7 @@ export default async function EditEpisode({ params, searchParams }: { params: Pr
   const guests = db.prepare("SELECT id,name,title FROM guests ORDER BY sort,name").all() as { id: number; name: string; title: string }[];
   const linked = new Set((db.prepare("SELECT guest_id FROM episode_guests WHERE episode_id=?").all(e.id) as { guest_id: number }[]).map((r) => r.guest_id));
   const chapters = json<{ t: number; label: string }[]>(e.chapters, []);
-  const chaptersText = chapters.map((c) => `${Math.floor(c.t / 60)}:${String(c.t % 60).padStart(2, "0")} ${c.label}`).join("\n");
+  const chaptersText = chapters.map((c) => `${fmtChapterTime(c.t)} ${c.label}`).join("\n");
 
   return (
     <>

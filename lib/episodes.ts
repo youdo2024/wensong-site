@@ -177,6 +177,28 @@ export function fmtDuration(sec: number): string {
 }
 
 /* 集數顯示名：main 23 → 「第 23 集」；submit → 「投稿 03」；pilot → 「試播集」 */
+/*
+ * 章節時間字串的解析與格式化（後台編輯集數的「章節」欄位用，app/admin/actions.ts
+ * 的 parseChapters 與編輯頁的 chaptersText 都要用同一套格式基準）。
+ *
+ * 輸出固定「分:秒」，分鐘數可以超過 99（節目本身有超過 1 小時的集數，
+ * 100 分鐘後的章節分鐘數會是 3 位數）。舊正則的第一段只吃 1~2 位數，
+ * 100 分鐘那一行整行解析失敗會被靜默跳過，只要編輯頁重新儲存
+ * （哪怕沒動章節欄位），那個章節就從資料庫消失了。
+ */
+export function parseChapterLine(raw: string): { t: number; label: string } | null {
+  const m = raw.trim().match(/^(\d{1,3}(?::\d{1,2}){1,2})\s+(.+)$/);
+  if (!m) return null;
+  const t = m[1].split(":").map(Number).reduce((a, x) => a * 60 + x, 0);
+  return { t, label: m[2].trim() };
+}
+
+export function fmtChapterTime(t: number): string {
+  const m = Math.floor(t / 60);
+  const s = t % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export function epLabel(series: string, epNo: string): string {
   if (series === "main") return `第 ${Number(epNo)} 集`;
   if (series === "submit") return `投稿 ${epNo}`;
