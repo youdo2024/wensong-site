@@ -27,7 +27,7 @@ import { createHmac, createCipheriv } from "crypto";
 import { deriveZip, zipDisplay } from "@/lib/zip-lookup";
 import { createThrottle, isNoise, sanitizeCspUrl, violationKey } from "@/lib/csp-noise";
 import { passwordUsable, accountModeEnabled } from "@/lib/admin-password";
-import { hashPassword, verifyPassword, parseAdminUserEnv } from "@/lib/admin-users";
+import { hashPassword, verifyPassword, parseAdminUserEnv, checkAccountPassword } from "@/lib/admin-users";
 import { activeChoices, choiceActive, parseChoiceExpiry, splitChoices, weekRetired } from "@/lib/choice-split";
 import { csvCell } from "@/lib/csv";
 import { brandOfMethod, cvsMethodOf, isCvsMethod, normalizeBrand } from "@/lib/cvs";
@@ -982,6 +982,37 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
   eq("完全沒有 | 是壞格式，回 null", parseAdminUserEnv("nopipe"), null);
   eq("前後空白會被修掉", parseAdminUserEnv("  bob  |  Bob T  |  scrypt$aa$bb  "),
     { username: "bob", name: "Bob T", passHash: "scrypt$aa$bb" });
+}
+
+/*
+ * checkAccountPassword 計時側信道：帳號不存在時原本直接 return null，完全不呼叫
+ * verifyPassword（scrypt），造成「帳號不存在」與「帳號存在但密碼錯」有數量級的
+ * 時間差，可以拿來列舉帳號是否存在（2026-09-14 審查抓到）。
+ *
+ * scrypt（N=16384）比起字串比對／直接 return null 慢上兩個數量級，效應夠大，
+ * 用寬鬆的門檻（查無帳號的耗時不能低於帳號存在那條路徑的三成）就能穩定抓到，
+ * 不會因為機器忙線而變成不穩定的測試。
+ */
+{
+  const tmpUser = `smoke_timing_${Date.now()}`;
+  db.prepare("INSERT INTO admin_users (username,name,pass_hash,active,created_at) VALUES (?,?,?,1,?)")
+    .run(tmpUser, "冒煙計時測試", hashPassword("correct-password-xyz"), new Date().toISOString());
+  try {
+    const t0 = process.hrtime.bigint();
+    checkAccountPassword(tmpUser, "wrong-password");
+    const existingMs = Number(process.hrtime.bigint() - t0) / 1e6;
+
+    const t1 = process.hrtime.bigint();
+    checkAccountPassword(`不存在的帳號_${Date.now()}`, "wrong-password");
+    const missingMs = Number(process.hrtime.bigint() - t1) / 1e6;
+
+    ok(
+      `帳號查無的耗時不能遠低於帳號存在但密碼錯（存在 ${existingMs.toFixed(1)}ms／查無 ${missingMs.toFixed(1)}ms）`,
+      missingMs > existingMs * 0.3
+    );
+  } finally {
+    db.prepare("DELETE FROM admin_users WHERE username=?").run(tmpUser);
+  }
 }
 
 /* ── 站內短網址（2026-09-07）── */

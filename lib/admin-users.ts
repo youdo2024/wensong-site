@@ -103,3 +103,31 @@ export function seedAdminUsersFromEnv(env: NodeJS.ProcessEnv = process.env): voi
     upsert.run({ username: parsed.username, name: parsed.name, pass_hash: parsed.passHash, created_at: new Date().toISOString() });
   }
 }
+
+/* 帳號查無時仍要花的假雜湊：固定值，內容本身無意義，只是為了讓 scrypt 的成本被花掉 */
+const DUMMY_HASH = hashPassword("這不是真的帳號-只給計時側信道防禦跑一次-scrypt");
+
+/*
+ * 帳號制核心：核對帳號密碼，對了就補上 last_login_at 並回傳登入者，錯了回 null。
+ *
+ * 帳號查無時仍對固定假雜湊跑一次 verifyPassword（scrypt，成本固定），
+ * 讓「帳號不存在」跟「帳號存在但密碼錯」耗費差不多的時間。原本查無直接
+ * return null、完全不碰 scrypt，兩條路徑差了兩個數量級（scrypt 預設成本
+ * N=16384 要跑幾十毫秒，直接 return null 是微秒級），等於用回應時間
+ * 洩漏「這個帳號存不存在」，形成帳號列舉的計時側信道（2026-09-14 審查抓到）。
+ *
+ * 放在這支檔案（不是 lib/auth.ts）：這裡不 import next/headers，
+ * 純函式＋db，冒煙測試載得動，跟 findUser／touchLogin 同一套規矩。
+ * lib/auth.ts 原樣出口，呼叫端（app/admin/actions.ts 的 login）一行都不用改。
+ */
+export function checkAccountPassword(username: string, pw: string): { id: number; name: string } | null {
+  seedAdminUsersFromEnv();
+  const user = username ? findUser(username) : undefined;
+  if (!user) {
+    verifyPassword(pw, DUMMY_HASH);
+    return null;
+  }
+  if (!verifyPassword(pw, user.pass_hash)) return null;
+  touchLogin(user.id);
+  return { id: user.id, name: user.name };
+}
