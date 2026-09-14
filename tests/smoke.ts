@@ -1631,5 +1631,18 @@ eq("空字串不裝懂", fmtDate(""), "");
   eq("亂填的值也不顯示", subscribeFeedback("garbage"), null);
 }
 
+/* ── 章節時間往返：長集數（100 分鐘以上）的章節不能被靜默丟掉 ──
+   後台編輯頁把章節格式化成「分:秒」（fmtChapterTime），分鐘數可以超過 99；
+   舊的 parseChapterLine 正則只吃 1~2 位數的第一段，100 分鐘那行整行解析失敗
+   會被跳過，只要編輯頁重新儲存（哪怕沒動章節欄位），資料就靜默流失。 */
+{
+  const { parseChapterLine, fmtChapterTime } = await import("@/lib/episodes");
+  eq("100 分鐘整的章節格式化", fmtChapterTime(6000), "100:00");
+  eq("100 分鐘的章節能被解析回來，不是被跳過", parseChapterLine("100:00 開場"), { t: 6000, label: "開場" });
+  eq("一般章節（12:30）照舊", parseChapterLine("12:30 開始聊創業"), { t: 750, label: "開始聊創業" });
+  eq("解析不出時間就回 null", parseChapterLine("這行沒有時間"), null);
+  eq("往返一致：格式化再解析拿回同一個 t", parseChapterLine(`${fmtChapterTime(7325)} X`), { t: 7325, label: "X" });
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);
