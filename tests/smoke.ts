@@ -55,7 +55,7 @@ import { orderNotifyRecipients, logOrderNotifySkip } from "@/lib/notify";
 import { rememberSponsorTradeNo, sponsorByTradeNo, sponsorTradeNoHistory, staleSponsorPaymentAction } from "@/lib/sponsor-trade-no";
 import { syncSummary, type SyncState } from "@/lib/subscriber-import";
 import { shouldSyncNow, SYNC_HOUR } from "@/lib/sheet-sync";
-import { fmtDateTimeDash } from "@/lib/format";
+import { fmtDateTimeDash, fmtDate } from "@/lib/format";
 import { recipientOf } from "@/lib/recipient";
 import { buildPartnerCsv, type PartnerProduct, type PartnerOrderRow } from "@/lib/partner-data";
 
@@ -1568,6 +1568,17 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
   const parsed = parseChargeResult({ anything: 1 });
   eq("parseChargeResult 同樣未查證，一律回 ok:false", parsed.ok, false);
 }
+
+/* ── fmtDate：集數卡片／後台日期要用台北日曆，不是 UTC 日曆 ──
+   pub_date 存的是 UTC ISO（new Date().toISOString()）。晚上 16:00-23:59 UTC
+   落在台北隔天 00:00-07:59，如果 fmtDate 只是把 UTC 那天的日期字串換分隔符號，
+   這種時段發布的集數會顯示成前一天。fmtDate 現在要吃完整 ISO 字串自己做 +8 位移，
+   呼叫端不能先 slice(0,10) 把時間砍掉再傳進來（那樣位移就沒東西可移了）。 */
+eq("UTC 晚上 16:30 是台北隔天 00:30", fmtDate("2026-08-02T16:30:00.000Z"), "2026.08.03");
+eq("UTC 23:59 是台北隔天 07:59", fmtDate("2026-08-02T23:59:00.000Z"), "2026.08.03");
+eq("UTC 上午沒跨日，台北還是當天", fmtDate("2026-08-02T03:00:00.000Z"), "2026.08.02");
+eq("只有日期沒有時間（文章 date 欄位）照樣算對", fmtDate("2026-08-02"), "2026.08.02");
+eq("空字串不裝懂", fmtDate(""), "");
 
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);

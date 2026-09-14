@@ -22,7 +22,7 @@ export default function EpisodeCard({ e, fallbackCover = "", style }: { e: Episo
         <h3>{displayTitle(e)}</h3>
         {e.summary && <p>{e.summary}</p>}
         <div className="meta sans">
-          {e.pub_date && <span>{fmtDate(e.pub_date.slice(0, 10))}</span>}
+          {e.pub_date && <span>{fmtDate(e.pub_date)}</span>}
           {e.duration > 0 && <span>{fmtDuration(e.duration)}</span>}
         </div>
       </div>

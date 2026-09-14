@@ -79,7 +79,7 @@ export default function Home() {
                   <img src={first.cover || first.image || podcastCover} alt="" />
                 )}
                 <div>
-                  <small className="sans">{epLabel(first.series, first.ep_no)}・{fmtDate(first.pub_date.slice(0, 10))}・{fmtDuration(first.duration)}</small>
+                  <small className="sans">{epLabel(first.series, first.ep_no)}・{fmtDate(first.pub_date)}・{fmtDuration(first.duration)}</small>
                   <b>{displayTitle(first)}</b>
                 </div>
               </Link>

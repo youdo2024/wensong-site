@@ -65,7 +65,7 @@ export default async function AdminEpisodes({ searchParams }: { searchParams: Pr
       {synced === "ok" && <p className="msg-ok">同步完成：新增 {last.added ?? 0} 集、更新 {last.updated ?? 0} 集、共 {last.total ?? 0} 集{(last.guestsAdded ?? 0) > 0 && <>，自動建了 {last.guestsAdded} 位來賓（去「來賓」補資料）</>}。</p>}
       {synced === "fail" && <p className="msg-err">同步失敗：{last.msg || "原因不明"}。RSS 網址在「設定・內容」。</p>}
       {last.at && !synced && (
-        <p className="fine">上次同步：{fmtDate(String(last.at).slice(0, 10))}{last.ok === false ? `（失敗：${last.msg}）` : ""}。每天自動抓一次，新集數上架後最晚隔天出現。</p>
+        <p className="fine">上次同步：{fmtDate(String(last.at))}{last.ok === false ? `（失敗：${last.msg}）` : ""}。每天自動抓一次，新集數上架後最晚隔天出現。</p>
       )}
 
       {list.length === 0 ? (
@@ -79,7 +79,7 @@ export default async function AdminEpisodes({ searchParams }: { searchParams: Pr
                   <Link href={`/admin/episodes/${e.id}`}>{displayTitle(e)}</Link>
                   <span className="no">　{epLabel(e.series, e.ep_no)}{e.transcript ? "" : "・無逐字稿"}{guestCount(e.id) ? `・來賓 ${guestCount(e.id)}` : ""}</span>
                 </span>
-                <span className="ad-tm sans">{e.pub_date ? fmtDate(e.pub_date.slice(0, 10)) : "—"}・{fmtDuration(e.duration)}</span>
+                <span className="ad-tm sans">{e.pub_date ? fmtDate(e.pub_date) : "—"}・{fmtDuration(e.duration)}</span>
               </span>
               <span className="ad-r">
                 <span className="ad-amt sans">{(e.views || 0).toLocaleString()}</span>

@@ -37,7 +37,7 @@ export default async function EditEpisode({ params, searchParams }: { params: Pr
       <PageHead
         back={{ href: "/admin/episodes", label: "回集數列表" }}
         title="編 輯 集 數"
-        sub={<>{epLabel(e.series, e.ep_no)}・網址 /ep/{e.key}・{e.pub_date ? fmtDate(e.pub_date.slice(0, 10)) : "—"}・{fmtDuration(e.duration)}</>}
+        sub={<>{epLabel(e.series, e.ep_no)}・網址 /ep/{e.key}・{e.pub_date ? fmtDate(e.pub_date) : "—"}・{fmtDuration(e.duration)}</>}
         action={<a className="btn" href={`/ep/${e.key}`} target="_blank" rel="noopener">看前台 ↗</a>}
       />
       {error === "key" && <p className="msg-err">網址 key 只能是小寫英數與連字號，而且不能跟別集重複。</p>}

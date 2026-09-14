@@ -136,7 +136,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ key: s
             <span className="cat-tag">{epLabel(e.series, e.ep_no)}</span>
             <h1>{title}</h1>
             <div className="meta sans">
-              {e.pub_date && <span>{fmtDate(e.pub_date.slice(0, 10))}</span>}
+              {e.pub_date && <span>{fmtDate(e.pub_date)}</span>}
               {e.duration > 0 && <span>{fmtDuration(e.duration)}</span>}
               {guests.length > 0 && <span>feat. {guests.map((g) => g.name).join("、")}</span>}
             </div>

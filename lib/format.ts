@@ -4,8 +4,22 @@ export function money(n: number): string {
 export function dollar(n: number): string {
   return "$" + n.toLocaleString("en-US");
 }
+/*
+ * 集數卡片／後台列表用的純日期顯示（不含時分）。
+ *
+ * 資料庫存的 pub_date 是 UTC ISO。舊寫法只是把字串裡的 "-" 換成 "."，
+ * 呼叫端還會先 slice(0,10) 把時間砍掉——等於直接顯示 UTC 那一天的日曆日期。
+ * 晚上 16:00-23:59 UTC 落在台北隔天 00:00-07:59，這個時段發布的集數會被顯示成前一天。
+ * 跟 fmtDateTime 一樣固定 +8 位移取台北日期，呼叫端要傳完整 ISO 字串，
+ * 不能先 slice(0,10)（那樣時間資訊已經沒了，位移就沒有意義）。
+ */
 export function fmtDate(iso: string): string {
-  return iso.replaceAll("-", ".");
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso.replaceAll("-", ".");
+  const t = new Date(d.getTime() + 8 * 3600 * 1000);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${t.getUTCFullYear()}.${p(t.getUTCMonth() + 1)}.${p(t.getUTCDate())}`;
 }
 /*
  * 後台時間顯示：資料庫存的是 UTC（new Date().toISOString()），
