@@ -1580,5 +1580,25 @@ eq("UTC 上午沒跨日，台北還是當天", fmtDate("2026-08-02T03:00:00.000Z
 eq("只有日期沒有時間（文章 date 欄位）照樣算對", fmtDate("2026-08-02"), "2026.08.02");
 eq("空字串不裝懂", fmtDate(""), "");
 
+/* ── firstPublishedDate：MIN(pub_date) 混進空字串會回傳空字串（about 頁「從 X 年開始」文案） ──
+   pub_date 解析失敗時存空字串。空字串在字典序 DESC/ASC 都比任何非空字串小，
+   MIN(pub_date) 只要有一集是空字串，結果永遠是那個空字串，不是真正最早那集的日期。 */
+{
+  const { firstPublishedDate } = await import("@/lib/episodes");
+  const now = new Date().toISOString();
+  const mk = (guid: string, key: string, pub: string) =>
+    db.prepare("INSERT INTO episodes (guid,key,title,pub_date,published,created_at) VALUES (?,?,?,?,1,?)").run(guid, key, key, pub, now);
+  const guids = ["smk-first-a", "smk-first-b", "smk-first-c"];
+  db.prepare(`DELETE FROM episodes WHERE guid IN (${guids.map(() => "?").join(",")})`).run(...guids);
+  try {
+    mk(guids[0], "smk-first-a", ""); /* 解析失敗留下的空字串，字典序最小 */
+    mk(guids[1], "smk-first-b", "1999-03-05T00:00:00.000Z"); /* 早於任何真實集數，確保是這筆勝出 */
+    mk(guids[2], "smk-first-c", "2025-01-01T00:00:00.000Z");
+    eq("有空字串混進來，還是抓到最早那集，不是空字串", firstPublishedDate(), "1999-03-05T00:00:00.000Z");
+  } finally {
+    db.prepare(`DELETE FROM episodes WHERE guid IN (${guids.map(() => "?").join(",")})`).run(...guids);
+  }
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);

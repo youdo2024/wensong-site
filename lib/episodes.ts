@@ -314,6 +314,17 @@ export function guestsOfEpisode(episodeId: number): { id: number; slug: string; 
     .all(episodeId) as { id: number; slug: string; name: string; title: string; photo: string }[];
 }
 
+/*
+ * 最早一集的發布日期（about 頁「從 X 年 Y 月開始」用）。
+ * pub_date 解析失敗時存空字串，空字串在字典序排序下比任何非空日期字串都小，
+ * MIN(pub_date) 只要有任何一集是空字串，結果就是那個空字串而不是真正最早的日期，
+ * 沒有這道過濾的話 about 頁那段文案會整段消失（空字串是 falsy）。
+ */
+export function firstPublishedDate(): string {
+  const row = db.prepare("SELECT MIN(pub_date) AS d FROM episodes WHERE published=1 AND pub_date<>''").get() as { d: string | null };
+  return row.d || "";
+}
+
 export function episodesOfGuest(guestId: number): EpisodeRow[] {
   return db
     .prepare("SELECT e.* FROM episodes e JOIN episode_guests eg ON eg.episode_id=e.id WHERE eg.guest_id=? AND e.published=1 ORDER BY e.pub_date DESC")

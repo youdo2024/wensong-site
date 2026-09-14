@@ -11,6 +11,7 @@ import { t } from "@/lib/copy";
 import { BRAND } from "@/lib/brand";
 import { hosts, platformLinks } from "@/lib/site-config";
 import { supportEnabled } from "@/lib/shop";
+import { firstPublishedDate } from "@/lib/episodes";
 
 export const metadata: Metadata = buildMetadata({
   title: "關於問爽的",
@@ -28,7 +29,7 @@ export default function AboutPage() {
   const hostList = hosts();
   const platforms = platformLinks();
   const count = (db.prepare("SELECT COUNT(*) AS n FROM episodes WHERE published=1").get() as { n: number }).n;
-  const first = (db.prepare("SELECT MIN(pub_date) AS d FROM episodes WHERE published=1").get() as { d: string | null }).d;
+  const first = firstPublishedDate();
   const sec = { fontSize: 18, fontWeight: 900 as const, letterSpacing: ".1em", margin: "30px 0 10px" };
   const p = { fontSize: 15, lineHeight: 2.1, color: "var(--ink)" };
 
