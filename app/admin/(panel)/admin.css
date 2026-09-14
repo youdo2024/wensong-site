@@ -1,0 +1,1148 @@
+/*
+ * 後台操作層（2026-09）。
+ *
+ * 站長回報後台「很多地方不好操作」，但 CIS 不能動：米袋色票、2px 茶墨框、直角、
+ * 硬陰影、寬字距都是品牌，這裡一條都不改。
+ * 這份檔只做「操作」：看得見的聚焦框、下拉有箭頭、收合區有箭頭、表格列滑過有提示、
+ * 勾選框夠大、手機分頁列等寬好按。只有後台版面（app/admin/(panel)/layout.tsx）會載入，
+ * 全部掛在 .adm 底下，前台一條都吃不到。
+ *
+ * 曾經試過整層換成系統風（系統字體、圓角白卡、柔陰影），站長明講風格不能變，已撤掉。
+ * 唯一的字體例外見下面「後台改黑體」那一段（站長 2026-09-05 拍板，只限後台）。
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   設計 token（2026-09-05 改版第 4 步）。
+   為什麼要有這一塊：盤點時後台散落 329 個 inline style、至少九種字級。
+   數值寫成變數之後，「間距只有三層、字級只有三種、語意色只有四個」才有辦法被檢查。
+   品牌色票留在 globals.css 的 :root，這裡只加後台自己的語意層。
+   ═══════════════════════════════════════════════════════════════ */
+.adm{
+  --adm-ui:1;
+  /* 間距三層：元素內 8、元素間與卡片間 14、區塊間 24。沒有第四種 */
+  --sp-1:8px; --sp-2:14px; --sp-3:24px;
+  /* 字級三種：標題 16、內文 14、副文 12。手機桌機一樣，不放大 */
+  --fs-h:16px; --fs-b:14px; --fs-s:12px;
+  /* 語意色四個：琥珀＝待處理、朱紅＝失敗與危險、綠＝完成、灰＝其他。靛藍已從後台拿掉 */
+  --c-pending:#B9791E;
+  --c-fail:var(--seal);
+  --c-ok:#4A6B2C;
+  --c-muted:var(--grey);
+}
+
+/* ── 後台改黑體（站長 2026-09-05）──
+   前台仍是宋體，這裡只換後台，所以每一條都掛 .adm 前綴。
+   字距不動：寬字距本身就是品牌的一部分，換掉的只有字面。 */
+.adm,
+.adm h1,.adm h2,.adm h3,
+.adm .btn,.adm label,.adm input,.adm select,.adm textarea,.adm button{
+  font-family:var(--font-sans),"Noto Sans TC","PingFang TC",system-ui,sans-serif;
+}
+
+/* ── 聚焦：鍵盤或點到哪一格看得見。原本輸入框聚焦沒有任何變化，填長表單會迷路 ── */
+.adm .adm-main input:focus-visible,.adm .adm-main select:focus-visible,.adm .adm-main textarea:focus-visible,
+.adm .adm-main .btn:focus-visible,.adm .adm-main a:focus-visible,.adm .adm-main button:focus-visible{
+  outline:3px solid rgba(184,64,44,.45);outline-offset:2px;
+}
+.adm .adm-main .field input:focus,.adm .adm-main .field textarea:focus,.adm .adm-main .field select:focus{
+  border-color:var(--seal);box-shadow:inset 0 0 0 1px var(--seal);outline:none;
+}
+
+/* ── 下拉選單：加茶墨色箭頭，看得出來可以點。框線、底色照舊 ── */
+.adm .adm-main select:not([multiple]){
+  appearance:none;-webkit-appearance:none;padding-right:36px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5l5 5 5-5' fill='none' stroke='%233A3226' stroke-width='2' stroke-linecap='square'/></svg>");
+  background-repeat:no-repeat;background-position:right 12px center;
+}
+
+/* ── 勾選框、單選：品牌紅、18px，不再靠 transform:scale 放大（縮放會讓點擊範圍跟外觀對不上） ── */
+.adm input[type=checkbox],.adm input[type=radio]{accent-color:var(--seal);width:18px;height:18px;transform:none!important;vertical-align:-3px;cursor:pointer;}
+
+/* ── 表格：滑過哪一列看得見，欄位多的表格對行不會對錯 ── */
+.adm .adm-table tbody tr:hover td{background:rgba(58,50,38,.05);}
+
+/* ── 收合區：補一個茶墨箭頭，開著關著一眼分得出來 ── */
+.adm summary{cursor:pointer;list-style:none;}
+.adm summary::-webkit-details-marker{display:none;}
+.adm summary::before{
+  content:"";display:inline-block;width:8px;height:8px;margin:0 10px 0 2px;vertical-align:2px;
+  border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);
+  transform:rotate(-45deg);transition:transform .15s;
+}
+.adm details[open] > summary::before{transform:rotate(45deg);vertical-align:5px;}
+
+/* ── 側欄連結：徽章靠右對齊，數字一眼掃到 ── */
+@media(min-width:841px){
+  .adm .adm-side .adm-links a{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+}
+
+/* ── 手機：分頁列等寬鋪滿，每一格都好按；表格字不再縮到 13.5 ── */
+@media(max-width:840px){
+  .adm .adm-tabs{display:flex;}
+  .adm .adm-tabs .t{flex:1;text-align:center;padding:11px 8px;}
+  .adm .adm-table td{font-size:14px;}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   後台統一規格（2026-09-04，站長：「一次加一點，現在很雜亂，整理清晰、直覺、手機友善」）
+   原則不變：色票、宋體、2px 茶墨框、直角、硬陰影一條不動。這裡只統一「尺寸、間距、控制項長相」。
+   頁面一律用下面這些 class，不再手寫 style。
+
+   按鈕四階：.btn（次要）／.btn.fill（主要，一頁一顆）／.btn.sm（列內小動作）／.btn.danger（做了回不來）
+   文字動作：.link-btn（藍，可逆）／.danger-link（紅，不可逆或移除）
+   開關列：.sw-row（布林設定一律用它，整列可點）
+   勾選列：.chk（多選或表單內的同意、單選 radio）
+   圖示鈕：.ibtn（↑↓✕＋ 這類，觸控 40px）
+   區塊：h3.f 間距統一、.danger-zone、.adm-search、.empty
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 按鈕階層 ── */
+.adm .adm-main .btn{font-size:var(--fs-b);letter-spacing:.14em;padding:11px 22px;}
+.adm .adm-main .btn.sm{font-size:var(--fs-s);letter-spacing:.08em;padding:7px 14px;min-height:36px;}
+.adm .adm-main .btn.danger{color:var(--seal);border-color:var(--seal);background:var(--rice);}
+.adm .adm-main .btn.danger:hover:not(:disabled){box-shadow:4px 4px 0 var(--seal);}
+.adm .adm-main .btn.line{background:#06C755;border-color:#06C755;color:#fff;}
+.adm .adm-main .btn.copied{background:var(--c-ok);border-color:var(--c-ok);color:var(--rice);}
+.adm .adm-main .danger-link,.adm .adm-main .link-btn{font-size:var(--fs-b);font-family:inherit;padding:0;}
+.adm .adm-main .adm-actions{gap:10px;margin-top:20px;}
+.adm .adm-main .adm-actions.right{justify-content:flex-end;}
+
+/* ── 開關列：布林設定一律長這樣（沿用付款方式那組 .pm-sw 的滑塊） ── */
+.adm .sw-row{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-top:1px dashed var(--kraft);cursor:pointer;user-select:none;}
+.adm .sw-row:first-of-type,.adm .sw-list .sw-row:first-child{border-top:none;}
+.adm .sw-row>span{flex:1;font-size:var(--fs-b);line-height:1.6;}
+.adm .sw-row>span small{display:block;font-size:var(--fs-s);color:var(--c-muted);line-height:1.7;margin-top:2px;}
+.adm .sw-row input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;}
+/* 開關對齊文字第一行（站長 2026-09-04：兩三行的說明要對齊第一行，不要置中） */
+.adm .sw-row .sw{flex:none;margin-top:-1px;width:42px;height:25px;border-radius:999px;background:var(--kraft);border:1.5px solid var(--ink);position:relative;transition:background .18s ease;}
+.adm .sw-row .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:999px;background:#FFFDF6;border:1.5px solid var(--ink);transition:transform .18s cubic-bezier(.34,1.4,.64,1);}
+.adm .sw-row input:checked+.sw{background:var(--seal);}
+.adm .sw-row input:checked+.sw::after{transform:translateX(17px);}
+.adm .sw-row input:focus-visible+.sw{outline:2px solid var(--ink);outline-offset:2px;}
+.adm .sw-list{border:2px solid var(--ink);background:#FFFDF6;padding:0 14px;margin:8px 0 18px;}
+@media(prefers-reduced-motion:reduce){.adm .sw-row .sw,.adm .sw-row .sw::after{transition:none;}}
+
+/* ── 勾選列（多選、同意事項、單選）：整列可點，手機 44px 高 ── */
+.adm .chk{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:var(--fs-b);cursor:pointer;user-select:none;line-height:1.6;}
+.adm .chk input{flex:none;margin:3px 0 0;}
+.adm .chk small{color:var(--c-muted);font-size:var(--fs-s);}
+.adm .chk-list{display:flex;flex-direction:column;gap:2px;margin:6px 0 14px;}
+
+/* ── 圖示鈕：↑ ↓ ✕ ＋ 一律 36px 方框，手機 40px ── */
+.adm .ibtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:2px solid var(--ink);background:var(--rice);color:var(--ink);font-size:15px;line-height:1;cursor:pointer;flex:none;font-family:inherit;padding:0;}
+.adm .ibtn:disabled{opacity:.3;cursor:default;}
+.adm .ibtn.danger{border-color:var(--seal);color:var(--seal);}
+.adm .ibtn.add{border-style:dashed;}
+.adm .ibtn.add.wide{width:auto;padding:0 16px;font-size:13.5px;letter-spacing:.08em;}
+.adm .row-tools{display:flex;gap:6px;align-items:center;flex:none;}
+
+/* ── 標題與區塊間距：h3.f 一律 30px，區塊第一個 0；h2.f 補樣式 ── */
+.adm .adm-main h3.f{margin-top:30px;}
+.adm .adm-main h3.f:first-child,.adm .adm-main h1+h3.f,.adm .adm-main .sub+h3.f{margin-top:0;}
+.adm .adm-main h2.f{font-size:18px;font-weight:900;letter-spacing:.2em;margin:26px 0 12px;}
+.adm .adm-main h2:not(.f){font-size:18px;font-weight:900;letter-spacing:.14em;margin:26px 0 12px;}
+.adm .adm-main .fine{margin-top:6px;}
+.adm .adm-main .callout{border:2px dashed var(--gold);padding:10px 14px;margin:8px 0 14px;font-size:var(--fs-s);line-height:1.9;color:var(--c-muted);}
+.adm .adm-main .divider{border:0;border-top:2px dashed var(--kraft);margin:30px 0 18px;}
+
+/* ── 文字框三種高度，不再一頁一個數字 ── */
+.adm .adm-main .field textarea{min-height:88px;}
+.adm .adm-main .field textarea.ta-s{min-height:64px;}
+.adm .adm-main .field textarea.ta-l{min-height:160px;}
+
+/* ── 搜尋列（訂單、贊助共用） ── */
+.adm .adm-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.adm .adm-search input[type=text],.adm .adm-search input[type=search]{flex:1 1 240px;min-width:0;max-width:360px;padding:9px 12px;}
+.adm .adm-search select{padding:9px 36px 9px 12px;}
+
+/* ── 危險區：清空、刪除這類放最下面、紅框、統一寬度 ── */
+.adm .danger-zone{margin-top:40px;max-width:640px;border:2px solid var(--seal);padding:18px 22px;}
+.adm .danger-zone h3.f{margin-top:0;color:var(--seal);}
+.adm .danger-zone form{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.adm .danger-zone input[type=text]{flex:1;min-width:180px;}
+
+/* ── 空狀態：表格裡沒資料也用同一句同一種灰 ── */
+.adm .adm-main .empty{padding:36px 0;}
+.adm .adm-table td.empty{text-align:center;color:var(--grey);padding:24px 12px;}
+
+/* ── 表格列內動作：文字動作之間留呼吸 ── */
+.adm .adm-table td .link-btn+.link-btn,.adm .adm-table td .link-btn+.danger-link,.adm .adm-table td .danger-link+.link-btn,.adm .adm-table td form+form{margin-left:12px;}
+.adm .adm-table td form{display:inline;}
+
+/* ── 手機：所有可點的東西至少 40px 高、開關列 48px、圖示鈕 40px ── */
+@media(max-width:840px){
+  .adm .adm-main .btn{min-height:44px;padding:11px 18px;}
+  .adm .adm-main .btn.sm{min-height:40px;padding:8px 14px;}
+  .adm .sw-row{padding:12px 0;min-height:48px;}
+  .adm .chk{min-height:44px;}
+  .adm .ibtn{width:40px;height:40px;}
+  .adm .adm-search input[type=text],.adm .adm-search input[type=search]{max-width:none;flex-basis:100%;}
+  .adm .danger-zone{padding:16px;}
+  .adm .adm-main .adm-actions .btn{flex:1 1 auto;text-align:center;}
+}
+
+/* 開關列與勾選列放在 .field 裡時，不要吃到欄位標籤的字距、粗細與下邊距 */
+.adm .field label.sw-row,.adm .field label.chk{letter-spacing:0;font-weight:400;margin:0;display:flex;font-size:var(--fs-b);}
+.adm .field .sw-list{margin-top:6px;}
+
+/* ── 表格在手機改成卡片（站長 2026-09-04：不是能看就好，要看得舒服）──
+   每一列變一張卡，每一格「欄名：值」左右對齊；欄名來自 td 的 data-label。
+   數字很多、一定要對欄的表（結算、統計）加 class "wide" 維持橫向捲動。 */
+@media(max-width:640px){
+  .adm:not(.tbl) .adm-table:not(.wide){border:none;background:transparent;}
+  .adm:not(.tbl) .adm-table:not(.wide) thead{display:none;}
+  .adm:not(.tbl) .adm-table:not(.wide) tbody,.adm:not(.tbl) .adm-table:not(.wide) tr{display:block;}
+  .adm:not(.tbl) .adm-table:not(.wide) tr{border:2px solid var(--ink);background:var(--rice-lt);margin-bottom:12px;padding:6px 14px;}
+  .adm:not(.tbl) .adm-table:not(.wide) tbody tr:hover td{background:transparent;}
+  .adm:not(.tbl) .adm-table:not(.wide) td{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:2px 14px;padding:7px 0;border-bottom:1px dashed var(--kraft);font-size:14px;line-height:1.6;text-align:right;}
+  /* 格子裡的第二行（付款方式、收件人、信箱）整行靠右排在主資訊下面，不跟主資訊擠同一行 */
+  .adm:not(.tbl) .adm-table:not(.wide) td .sub2{flex:0 0 100%;text-align:right;white-space:normal;word-break:break-all;}
+  .adm:not(.tbl) .adm-table:not(.wide) td:last-child{border-bottom:none;}
+  .adm:not(.tbl) .adm-table:not(.wide) td::before{content:attr(data-label);flex:none;min-width:5em;color:var(--grey);font-size:12.5px;letter-spacing:.06em;text-align:left;padding-top:1px;}
+  .adm:not(.tbl) .adm-table:not(.wide) td:not([data-label]),.adm:not(.tbl) .adm-table:not(.wide) td[data-label=""]{justify-content:flex-start;text-align:left;}
+  .adm:not(.tbl) .adm-table:not(.wide) td:not([data-label])::before,.adm:not(.tbl) .adm-table:not(.wide) td[data-label=""]::before{display:none;}
+  /* 動作格：按鈕排一列靠右，之間留距離 */
+  .adm:not(.tbl) .adm-table:not(.wide) td.acts{justify-content:flex-end;flex-wrap:wrap;gap:8px 14px;}
+  .adm:not(.tbl) .adm-table:not(.wide) td.acts::before{display:none;}
+  .adm:not(.tbl) .adm-table:not(.wide) td.empty{display:block;text-align:center;}
+  .adm:not(.tbl) .adm-table:not(.wide) td .adm-badge,.adm:not(.tbl) .adm-table:not(.wide) td .badge{margin-left:0;}
+  .adm:not(.tbl) .adm-table:not(.wide) td form{display:inline;}
+}
+
+/* 鍵值表（訂單詳情的發票、收件資訊那種兩欄表）：手機一張卡，左欄名右值，不需要 data-label */
+@media(max-width:640px){
+  .adm:not(.tbl) .adm-table.kv td{display:flex;justify-content:space-between;}
+  .adm:not(.tbl) .adm-table.kv td::before{display:none;}
+  .adm:not(.tbl) .adm-table.kv tr{display:flex;flex-wrap:wrap;gap:0 12px;padding:8px 14px;}
+  .adm:not(.tbl) .adm-table.kv td:first-child{flex:none;color:var(--grey);font-size:12.5px;letter-spacing:.06em;padding:4px 0 0;border:none;min-width:5em;}
+  .adm:not(.tbl) .adm-table.kv td:last-child{flex:1;min-width:0;text-align:right;border:none;padding:4px 0;}
+  /* 橫捲的寬表：外框留著，提示可以左右滑 */
+  .adm .adm-table-wrap:has(.adm-table.wide)::after,.adm.tbl .adm-table-wrap::after{content:"← 左右滑動看完整表格 →";display:block;text-align:center;font-size:11.5px;color:var(--grey);padding:6px 0 0;letter-spacing:.06em;}
+}
+@media(max-width:640px){
+  /* 三欄的鍵值表（訂單明細：品名／數量／金額）：中間那格跟在品名後面，灰字 */
+  .adm:not(.tbl) .adm-table.kv td:not(:first-child):not(:last-child){flex:none;border:none;padding:4px 0;color:var(--grey);font-size:13px;}
+}
+
+/* 手機：卡片／表格切換鈕，浮在右下、底部列上方；桌機不顯示 */
+.adm .adm-viewbar{display:none;}
+.adm .adm-viewtoggle{display:none;} /* 桌機本來就是表格，這顆只有手機需要；放在哪個容器都一樣不顯示 */
+@media(max-width:640px){
+  .adm .adm-viewbar{display:flex;justify-content:flex-end;margin:0 0 10px;}
+  .adm .adm-viewtoggle{display:inline-flex;align-items:center;border:2px solid var(--ink);background:var(--rice);color:var(--ink);padding:6px 12px;font-size:var(--fs-s);letter-spacing:.08em;font-family:inherit;cursor:pointer;min-height:36px;}
+  .adm .adm-viewtoggle[aria-pressed="true"]{background:var(--ink);color:var(--rice);}
+  /* 表格模式：表格只有內容那麼寬，不撐滿、不在格子裡留空白；比螢幕寬就左右捲 */
+  .adm.tbl .adm-table{width:max-content;min-width:0;}
+  .adm.tbl .adm-table td small,.adm.tbl .adm-table td .sub2{display:block;font-size:11.5px;color:var(--grey);line-height:1.5;white-space:nowrap;}
+  /* 頁面有自己的切換鈕（篩選列右邊）時，最上面那顆不重複出現 */
+  .adm .adm-main:has(.adm-filterbar .adm-viewtoggle) .adm-viewbar{display:none;}
+  .adm .adm-filterbar{justify-content:flex-start;gap:8px;}
+  .adm .adm-filterbar .adm-viewtoggle{margin-left:auto;}
+  /* 表格模式：欄位字小一點、不換行，靠橫捲看完整 */
+  .adm.tbl .adm-table td,.adm.tbl .adm-table th{white-space:nowrap;font-size:13px;padding:8px 10px;}
+}
+
+/* 表格裡「主資訊＋小字第二行」的格子（訂單：編號／收件人／信箱；金額／付款方式） */
+.adm .adm-table td .sub2{display:block;font-size:12px;color:var(--grey);line-height:1.6;margin-top:2px;}
+.adm .adm-table td .sub2 a{color:var(--ink);}
+/* 訂單頁工具列：一致的收合面板 */
+.adm .adm-tools{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;}
+.adm .adm-tools details.box{margin:0;}
+.adm .adm-tools details.box summary{padding:11px 14px;font-size:14px;font-family:inherit;}
+.adm .adm-tools details.box .in{padding:4px 14px 16px;}
+
+/* 統計卡手機收合：桌機一律展開，手機預設收合、點摘要展開 */
+.adm .statfold-sum{display:none;}
+@media(max-width:640px){
+  .adm .statfold-sum{display:flex;align-items:center;justify-content:space-between;gap:10px;border:2px solid var(--ink);background:var(--rice-lt);padding:11px 14px;margin:0 0 12px;font-size:13.5px;cursor:pointer;user-select:none;}
+  .adm .statfold-sum i{font-style:normal;transition:transform .2s;}
+  .adm .statfold-cb:checked ~ .statfold-sum i{transform:rotate(180deg);}
+  .adm .statfold-body{display:none;}
+  .adm .statfold-cb:checked ~ .statfold-body{display:grid;}
+}
+
+/* ── 表格字級與空白統一（站長 2026-09-04：字忽大忽小、格子裡有交疊與大空白）──
+   規則只有三種字：主資訊 13px、第二行與備註 12px、徽章 12px。inline 的 11／11.5／12.5 全部被這裡蓋掉。
+   備註類（div）一律可換行、最寬 16em，不再撐寬整欄也不會溢出到隔壁格。 */
+.adm .adm-table td,.adm .adm-table td a,.adm .adm-table td b{font-size:13px !important;}
+.adm .adm-table td div,.adm .adm-table td .sub2,.adm .adm-table td small{font-size:12px !important;line-height:1.55;}
+.adm .adm-table td .badge{font-size:12px !important;}
+.adm .adm-table td div{white-space:normal;max-width:16em;overflow:visible;}
+.adm .adm-table td .sub2{white-space:normal;max-width:16em;}
+@media(max-width:640px){
+  .adm.tbl .adm-table td{white-space:nowrap;vertical-align:top;}
+  .adm.tbl .adm-table td div,.adm.tbl .adm-table td .sub2{white-space:normal;max-width:14em;}
+  /* 來源網址太長會把整欄撐開：截到 10em 加省略號，滑過看完整 */
+  .adm.tbl .adm-table td[data-label="來源"]{max-width:10em;overflow:hidden;text-overflow:ellipsis;}
+  .adm.tbl .adm-table th{font-size:12px;}
+}
+/* 列式清單（付款連結、企業訂購）與表格同一套字級 */
+.adm .adm-table > .adm-row{font-size:13px;}
+.adm .adm-table > .adm-row div,.adm .adm-table > .adm-row small,.adm .adm-table > .adm-row .sub2{font-size:12px;line-height:1.55;}
+.adm .adm-table td p,.adm .adm-table td li{font-size:13px !important;}
+/* 贊助「給主持人的話」：一行 15 字，超過換行（站長 2026-09-04） */
+.adm .adm-table td.msg15{max-width:15em;white-space:normal;word-break:break-all;line-height:1.7;}
+.adm.tbl .adm-table td.msg15{white-space:normal;max-width:15em;}
+
+/* 手動提醒三顆鈕（提醒中心、訂單列表、贊助列表共用） */
+.adm .remind-btns{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
+.adm .rb-row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;}
+.adm .rb-form{display:inline-flex;flex-direction:column;gap:2px;align-items:flex-start;}
+.adm .rb-why{font-size:var(--fs-s);color:var(--c-muted);line-height:1.4;max-width:9em;}
+.adm .rb-cap{font-size:var(--fs-s);color:var(--c-muted);line-height:1.5;}
+.adm .smspick{position:relative;}
+.adm .smspick summary{list-style:none;display:inline-flex;}
+.adm .smspick summary::before{display:none;}
+.adm .smspick summary::-webkit-details-marker{display:none;}
+.adm .smspick[open] summary.btn{background:var(--ink);color:var(--rice);}
+.adm .smspick-in{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;margin-top:6px;padding:8px;border:2px solid var(--ink);background:var(--rice-lt);}
+.adm .adm-table td .remind-btns{justify-content:flex-start;text-align:left;}
+@media(max-width:640px){
+  .adm:not(.tbl) .adm-table:not(.wide) td .remind-btns{flex:0 0 100%;align-items:flex-end;}
+  .adm:not(.tbl) .adm-table:not(.wide) td .rb-row{justify-content:flex-end;}
+}
+
+/* ── 發送頁：手寫信表單與預覽（2026-09-05）──
+   桌機左表單右預覽、預覽跟著捲；手機上下疊，預覽矮一點，不要一張 760px 的信把送出鈕推到天邊 */
+.adm .mailgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start;}
+.adm .mailprev{position:sticky;top:20px;}
+.adm .mailprev iframe{height:760px;}
+@media(max-width:840px){
+  .adm .mailgrid{grid-template-columns:minmax(0,1fr);}
+  .adm .mailprev{position:static;}
+  .adm .mailprev iframe{height:460px;}
+}
+/* 寄件紀錄：主旨欄桌機限寬換行、表格模式也換行；結果只把那個詞上色，卡片模式的欄名不跟著變粗；
+   沒有動作的列不留一條空白 */
+@media(min-width:641px){.adm .maillog td.subj{max-width:22em;overflow-wrap:anywhere;}}
+.adm.tbl .adm-table td.subj{white-space:normal;max-width:16em;}
+.adm .maillog .ok{color:var(--c-ok);}
+.adm .maillog .bad{color:var(--c-fail);}
+.adm .maillog .skip{color:var(--c-muted);font-weight:400;}
+.adm .adm-table td .link-btn+form{margin-left:12px;}
+@media(max-width:640px){
+  .adm:not(.tbl) .adm-table:not(.wide) td.acts:empty{display:none;}
+}
+.adm .mailprev{scroll-margin-top:80px;}
+
+/* ═══════════════════════════════════════════════════════════════
+   改版元件（2026-09-05，第 4 步）。畫布 docs/admin-redesign/canvas/ 是視覺依據。
+   一律用 token：間距 var(--sp-*)、字級 var(--fs-*)、語意色 var(--c-*)。
+   手機與桌機共用同一份 DOM，差異只用媒體查詢調，不複製第二套表單。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 線條圖示：擺在 flex 列裡不要被壓扁 */
+.adm .ico{flex:none;}
+
+/* ── PageHead：返回連結、標題、一句副標，右邊選配一顆主動作 ── */
+.adm .ad-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--sp-2);margin-bottom:var(--sp-2);}
+.adm .ad-head > div{min-width:0;}
+.adm .ad-head .back{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-s);color:var(--c-muted);text-decoration:none;margin-bottom:6px;}
+.adm .ad-head .back:hover{color:var(--seal);}
+.adm .adm-main .ad-head h1{font-size:var(--fs-h);font-weight:900;letter-spacing:.2em;line-height:1.4;margin:0;}
+.adm .adm-main .ad-head .sub{font-size:var(--fs-s);color:var(--c-muted);margin:2px 0 0;line-height:1.7;}
+
+/* ── 區塊標題：一行字加一條細線，取代原本靠間距分段（盤點時「沒有標題層級」的解法） ── */
+.adm .ad-sect{display:flex;align-items:center;gap:10px;margin:var(--sp-3) 0 var(--sp-2);}
+.adm .adm-main .ad-sect h2{font-size:var(--fs-h);font-weight:900;letter-spacing:.25em;white-space:nowrap;margin:0;}
+.adm .ad-sect .rule{flex:1;border-top:1px solid var(--kraft);}
+
+/* ── Card：2px 茶墨框、米袋淺底，硬陰影只給要被看見的那一張 ── */
+.adm .ad-card{border:2px solid var(--ink);background:var(--rice-lt);}
+.adm .ad-card.pad{padding:var(--sp-2) 16px;}
+.adm .ad-card.lift{box-shadow:8px 8px 0 rgba(58,50,38,.14);}
+.adm .ad-card + .ad-card{margin-top:var(--sp-2);}
+
+/* ── StatusBar：狀態、金額、付款方式與時間、下一步一句話 ── */
+.adm .ad-status{border:2px solid var(--ink);background:var(--rice-lt);box-shadow:8px 8px 0 rgba(58,50,38,.14);padding:var(--sp-2) 16px;}
+.adm .ad-status .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.adm .ad-status .word{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-b);font-weight:700;}
+.adm .ad-status .dot{width:8px;height:8px;display:inline-block;background:currentColor;}
+.adm .ad-status .ad-amt{font-size:var(--fs-h);font-weight:700;}
+.adm .ad-status .meta{font-size:var(--fs-s);color:var(--c-muted);margin-top:2px;}
+.adm .ad-status .next{margin-top:10px;padding-top:10px;border-top:1px dashed var(--kraft);font-size:var(--fs-b);line-height:1.7;}
+.adm .ad-status .next b{display:block;font-size:var(--fs-s);font-weight:400;letter-spacing:.1em;}
+/* 語意色由 data-tone 決定，元件不寫 inline style */
+.adm .ad-status[data-tone="pending"] .word,.adm .ad-status[data-tone="pending"] .next b{color:var(--c-pending);}
+.adm .ad-status[data-tone="ok"] .word,.adm .ad-status[data-tone="ok"] .next b{color:var(--c-ok);}
+.adm .ad-status[data-tone="fail"] .word,.adm .ad-status[data-tone="fail"] .next b{color:var(--c-fail);}
+.adm .ad-status[data-tone="muted"] .word,.adm .ad-status[data-tone="muted"] .next b{color:var(--c-muted);}
+
+/* ── ActionRow：手機一列一個動作（56px），桌機四顆並排（64px）。同時只展開一個 ── */
+.adm .ad-act{margin-top:var(--sp-2);}
+.adm .ad-act-list{border:2px solid var(--ink);background:var(--rice-lt);box-shadow:8px 8px 0 rgba(58,50,38,.14);}
+.adm .ad-act-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;padding:0 var(--sp-2);
+  background:transparent;border:none;color:var(--ink);font-size:var(--fs-b);text-align:left;cursor:pointer;letter-spacing:.06em;}
+.adm .ad-act-btn + .ad-act-btn{border-top:1px dashed var(--kraft);}
+.adm .ad-act-btn .nm{display:inline-flex;align-items:center;gap:10px;min-width:0;}
+.adm .ad-act-btn .mt{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs-s);color:var(--c-muted);white-space:nowrap;}
+.adm .ad-act-btn[aria-expanded="true"]{background:var(--ink);color:var(--rice);}
+.adm .ad-act-btn[aria-expanded="true"] .mt{color:var(--rice);}
+.adm .ad-act-panel{border:2px solid var(--ink);border-top:none;background:var(--rice-lt);padding:var(--sp-2) 16px;}
+.adm .ad-act-panel > :first-child{margin-top:0;}
+.adm .ad-act-panel .adm-form{max-width:none;}
+
+/* ── 訂單詳情：手機三個分頁籤（動作／資料／紀錄），桌機隱藏、左右兩欄 ── */
+.adm .ad-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:2px solid var(--ink);margin-top:var(--sp-2);}
+.adm .ad-seg button{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:var(--fs-b);letter-spacing:.15em;
+  background:var(--rice-lt);color:var(--ink);border:none;cursor:pointer;}
+.adm .ad-seg button + button{border-left:2px solid var(--ink);}
+.adm .ad-seg button[aria-selected="true"]{background:var(--ink);color:var(--rice);}
+.adm .ad-cols{margin-top:var(--sp-2);}
+.adm .ad-cols > .col + .col{margin-top:var(--sp-3);}
+.adm .ad-cols .col > [data-panel] + [data-panel]{margin-top:var(--sp-3);}
+
+@media(max-width:840px){
+  /* 一次只看一塊：沒選到的面板整塊不渲染在畫面上 */
+  .adm .ad-cols[data-tab="act"] [data-panel="data"],
+  .adm .ad-cols[data-tab="act"] [data-panel="log"],
+  .adm .ad-cols[data-tab="data"] [data-panel="act"],
+  .adm .ad-cols[data-tab="data"] [data-panel="log"],
+  .adm .ad-cols[data-tab="log"] [data-panel="act"],
+  .adm .ad-cols[data-tab="log"] [data-panel="data"]{display:none;}
+  .adm .ad-cols > .col + .col{margin-top:0;}
+}
+@media(min-width:841px){
+  /* 桌機 A 方向：左欄狀態與動作、右欄資料與紀錄，危險區橫跨整列在最下面 */
+  .adm .ad-seg{display:none;}
+  .adm .ad-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:36px;align-items:start;}
+  .adm .ad-cols > .col + .col{margin-top:0;}
+  .adm .ad-cols > .full{grid-column:1 / -1;}
+  /* 動作列在桌機是四顆並排的方塊鈕 */
+  /* 動作有幾個就幾欄（訂單狀態不同，能做的事也不同），不寫死 4 欄免得少一個就缺一角 */
+  .adm .ad-act-list{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:var(--sp-1);border:none;background:transparent;box-shadow:none;}
+  .adm .ad-act-btn{flex-direction:column;justify-content:center;gap:6px;min-height:64px;padding:8px 6px;border:2px solid var(--ink);background:var(--rice-lt);text-align:center;}
+  .adm .ad-act-btn + .ad-act-btn{border-top:2px solid var(--ink);}
+  .adm .ad-act-btn .mt{display:none;}
+  .adm .ad-act-panel{border-top:2px solid var(--ink);margin-top:var(--sp-1);}
+}
+
+/* ── KV：鍵值表，左欄 5.5em 固定，值換行不撐版 ── */
+.adm .ad-kv{display:grid;grid-template-columns:5.5em minmax(0,1fr);border:2px solid var(--ink);background:var(--rice-lt);}
+.adm .ad-kv .k{padding:10px 12px;font-size:var(--fs-s);color:var(--c-muted);}
+.adm .ad-kv .v{padding:10px 12px;font-size:var(--fs-b);line-height:1.6;overflow-wrap:anywhere;}
+/* 每一列包一層 .row（display:contents）好讓 React 有 key，格線還是走外層 grid */
+.adm .ad-kv .row{display:contents;}
+.adm .ad-kv .row:not(:first-child) .k,.adm .ad-kv .row:not(:first-child) .v{border-top:1px dashed var(--kraft);}
+
+/* ── 明細與紀錄那種「左標右值」的列 ── */
+.adm .ad-line{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;font-size:var(--fs-b);}
+.adm .ad-line + .ad-line{border-top:1px dashed var(--kraft);}
+.adm .ad-line.sum{font-weight:700;border-top:2px solid var(--ink);}
+.adm .ad-line.small{font-size:var(--fs-s);}
+.adm .ad-line .grow{flex:1;min-width:0;}
+.adm .ad-line .t{color:var(--c-muted);white-space:nowrap;}
+.adm .ad-line .ok{color:var(--c-ok);font-weight:700;}
+.adm .ad-line .bad{color:var(--c-fail);font-weight:700;}
+.adm .ad-line .skip{color:var(--c-muted);}
+
+/* ── FilterBar：狀態膠囊一列（手機可橫滑）＋搜尋框＋視圖切換 ── */
+.adm .ad-filter{margin-bottom:var(--sp-2);}
+.adm .ad-filter .chips{display:flex;gap:var(--sp-1);overflow-x:auto;padding-bottom:4px;}
+.adm .ad-filter .chip{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--sp-2);border:2px solid var(--ink);
+  background:var(--rice);color:var(--ink);font-size:var(--fs-b);text-decoration:none;white-space:nowrap;}
+.adm .ad-filter .chip.on{background:var(--ink);color:var(--rice);}
+.adm .ad-filter .row2{display:flex;gap:var(--sp-1);align-items:center;margin-top:10px;}
+.adm .ad-filter .row2 form{display:flex;gap:var(--sp-1);align-items:center;flex:1;min-width:0;}
+.adm .ad-filter .row2 input[type=search],.adm .ad-filter .row2 input[type=text]{flex:1;min-width:0;min-height:44px;}
+
+/* ── StickySave：有沒存的改動就亮琥珀。手機浮在底部快捷列上面 ── */
+.adm .ad-save{position:sticky;bottom:0;z-index:5;border-top:2px solid var(--ink);background:var(--rice-lt);padding:10px var(--sp-2);margin-top:var(--sp-3);}
+.adm .ad-save .in{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.adm .ad-save .note{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs-s);color:var(--c-muted);}
+.adm .ad-save.dirty .note{color:var(--c-pending);}
+@media(max-width:840px){.adm .ad-save{bottom:calc(56px + env(safe-area-inset-bottom));}}
+
+/* ── Empty：空狀態一句話，不留白 ── */
+.adm .ad-empty{border:2px dashed var(--kraft);padding:var(--sp-3) var(--sp-2);text-align:center;font-size:var(--fs-b);color:var(--c-muted);}
+
+/* ── DangerZone：紅框、說明、動作。沿用 .danger-zone 的規則再補標題樣式 ── */
+.adm .danger-zone .dz-t{font-size:var(--fs-s);color:var(--c-fail);letter-spacing:.1em;}
+.adm .danger-zone .dz-w{font-size:var(--fs-s);color:var(--c-muted);margin:4px 0 10px;line-height:1.8;}
+
+/* ── 手機頂列與全螢幕抽屜選單 ── */
+.adm .ad-top{display:none;}
+.adm .ad-drawer{position:fixed;inset:0;z-index:80;background:var(--rice);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 var(--sp-2) 40px;}
+.adm .ad-drawer .dh{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 0;background:var(--rice);border-bottom:2px solid var(--ink);margin-bottom:var(--sp-2);}
+.adm .ad-drawer .dh .bd{font-size:var(--fs-b);font-weight:900;letter-spacing:.3em;}
+.adm .ad-drawer .dh .mn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;
+  background:transparent;border:none;color:var(--ink);font-size:var(--fs-s);cursor:pointer;}
+.adm .ad-drawer .dg{margin-bottom:var(--sp-3);}
+.adm .ad-drawer .dg > .t{font-size:11px;letter-spacing:.24em;color:var(--c-muted);margin-bottom:var(--sp-1);}
+.adm .ad-drawer .dg .links{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-1);}
+.adm .ad-drawer .dg .links a{display:flex;align-items:center;gap:8px;min-height:50px;padding:8px 10px;
+  border:2px solid var(--ink);background:var(--rice-lt);text-decoration:none;font-size:var(--fs-b);
+  justify-content:flex-start;text-align:left;}
+.adm .ad-drawer .dg .links a.on{background:var(--ink);color:var(--rice);}
+.adm .ad-drawer .dg .links a.on svg{stroke:var(--rice);}
+.adm .ad-drawer .dz-out{margin-top:var(--sp-3);}
+
+@media(max-width:840px){
+  /* 手機頂列：品牌字＋「選單」。原本的漢堡鈕與側欄格狀選單由抽屜取代 */
+  /* 下緣那條線由 .adm-side 自己畫（globals.css），這裡再畫一次會變成兩條 */
+  .adm .ad-top{display:flex;align-items:center;justify-content:space-between;padding:12px var(--sp-2);background:var(--rice);}
+  .adm .ad-top .bd{font-size:var(--fs-b);font-weight:900;letter-spacing:.3em;}
+  .adm .ad-top .mn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;
+    background:transparent;border:none;color:var(--ink);font-size:var(--fs-s);cursor:pointer;}
+  .adm .adm-side .logo,.adm .adm-side .adm-links{display:none;}
+  .adm .adm-side{padding:0;}
+  /* 底部快捷列：五顆，56px，選到的用 2px 朱紅上緣標示 */
+  .adm .adm-side .adm-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+    border-top:2px solid var(--ink);background:var(--rice-lt);padding-bottom:env(safe-area-inset-bottom);}
+  .adm .adm-side .adm-bottom a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    min-height:56px;padding:0;font-size:11px;color:var(--ink);background:transparent;border:none;
+    border-top:2px solid transparent;position:relative;letter-spacing:.06em;}
+  .adm .adm-side .adm-bottom a.on{color:var(--seal);border-top-color:var(--seal);background:transparent;font-weight:700;}
+  .adm .adm-side .adm-bottom a.on svg{stroke:var(--seal);}
+  .adm .adm-side .adm-bottom .adm-badge{position:absolute;top:4px;right:22%;margin:0;}
+  .adm .adm-main{padding-bottom:88px;}
+}
+
+/* ── 語意色的文字版：狀態字、警語、註記統一用這三個 class，不要再寫 inline color ── */
+.adm .tone-ok{color:var(--c-ok);}
+.adm .tone-fail{color:var(--c-fail);}
+.adm .tone-muted{color:var(--c-muted);}
+.adm .ad-line small.sub2{display:block;font-size:var(--fs-s);color:var(--c-muted);line-height:1.6;margin-top:2px;}
+/* 卡片裡的空狀態不用再框一次，外面那張卡就是框 */
+.adm .ad-card > .ad-empty{border:none;}
+
+/* ── 三個間距工具：只允許用 token 值，不要再出現 marginTop:18 這種數字 ── */
+.adm .ad-mt{margin-top:var(--sp-2);}
+.adm .ad-mb{margin-bottom:var(--sp-2);}
+.adm .ad-ml{margin-left:var(--sp-2);}
+
+/* ── 訂單詳情自己的幾塊 ── */
+/* 補入帳救援口：例外處理，收起來放在動作最上面 */
+.adm .ad-rescue{margin-bottom:var(--sp-2);}
+.adm .ad-rescue > summary{padding:12px 16px;font-size:var(--fs-b);}
+.adm .ad-rescue .in{padding:0 16px 16px;}
+/* 收件資訊的「修改」收合：卡片內的一列 */
+.adm .ad-edit{border-top:2px solid var(--ink);}
+.adm .ad-edit > summary{padding:12px var(--sp-2);font-size:var(--fs-b);}
+.adm .ad-edit .adm-form{max-width:none;padding:0 var(--sp-2) var(--sp-2);}
+/* 改數量：一個品項一組，出貨週與數量各一列 */
+.adm .ad-itemedit + .ad-itemedit{margin-top:var(--sp-2);padding-top:var(--sp-2);border-top:1px dashed var(--kraft);}
+.adm .ad-itemedit > b{display:block;font-size:var(--fs-b);margin-bottom:var(--sp-1);}
+.adm .ad-inline{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+/* 前台有一個同名的 .qty 數量器（globals.css），這裡用 ad-qty 避開 */
+.adm .ad-inline .ad-qty{width:80px;flex:none;}
+.adm .ad-inline .grow{flex:1 1 200px;min-width:0;}
+
+/* 改數量面板裡的出貨週下拉：選項文字很長，不能讓它把卡片撐爆 */
+.adm .ad-inline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0;}
+.adm .ad-inline select{max-width:100%;min-width:0;}
+
+/* ═══════════════════════════════════════════════════════════════
+   訂單列表與總覽（改版第 5 步第二批，2026-09-05）。
+   視覺依據：docs/admin-redesign/canvas/Orders*.dc.html、Overview*.dc.html。
+   數值照抄畫布，只是換成 token 表示。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 訂單列表・手機一行一單（站長 2026-09-05 選甲）──
+   為什麼不用卡片：一張卡最少 100px，一屏只看得到三四筆；
+   站長早上要做的是「掃過去看有沒有新的待付款」，那要一屏八筆。
+   整行是連結，列上不放動作鈕：手指在 56px 的列上按到鈕的機率不高，
+   誤觸的又是催款這種寄得出去收不回來的事，所以動作一律在詳情頁做。 */
+.adm .ad-rows{border:2px solid var(--ink);background:var(--rice-lt);padding:0 var(--sp-2);margin-top:var(--sp-2);}
+.adm .ad-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 0;
+  text-decoration:none;color:var(--ink);border-bottom:1px dashed var(--kraft);}
+.adm .ad-row:last-child{border-bottom:none;}
+.adm .ad-row .ad-l{min-width:0;}
+.adm .ad-row .ad-nm{display:block;font-size:var(--fs-b);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* 編號末四碼跟在姓名後面，用全形空格隔開（畫布就是這樣排的），弱化成灰色不搶姓名 */
+.adm .ad-row .ad-nm .no{font-weight:400;color:var(--c-muted);}
+.adm .ad-row .ad-tm{display:block;font-size:var(--fs-s);color:var(--c-muted);}
+.adm .ad-row .ad-r{text-align:right;white-space:nowrap;}
+.adm .ad-row .ad-amt{display:block;font-size:var(--fs-b);font-weight:700;}
+.adm .ad-row .ad-st2{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-s);}
+.adm .ad-row .ad-st2 i{width:7px;height:7px;background:currentColor;display:inline-block;}
+/* 色由 data-tone 決定，頁面不寫 inline color */
+.adm .ad-row[data-tone="pending"] .ad-st2{color:var(--c-pending);}
+.adm .ad-row[data-tone="ok"] .ad-st2{color:var(--c-ok);}
+.adm .ad-row[data-tone="fail"] .ad-st2{color:var(--c-fail);}
+.adm .ad-row[data-tone="muted"] .ad-st2{color:var(--c-muted);}
+.adm .ad-listnote{margin-top:10px;font-size:var(--fs-s);color:var(--c-muted);line-height:1.7;}
+
+/* ── 訂單列表・桌機表格：沿用 .adm-table 的骨架，只換成 token 的框與虛線 ── */
+.adm .ad-tablebox{border:2px solid var(--ink);background:var(--rice-lt);margin-top:var(--sp-2);}
+.adm .ad-tablebox .adm-table{border:none;background:transparent;}
+.adm .ad-tablebox .adm-table th{border-bottom:2px solid var(--ink);color:var(--c-muted);font-weight:500;font-size:var(--fs-s);}
+.adm .ad-tablebox .adm-table td{border-bottom:1px dashed var(--kraft);}
+.adm .ad-tablebox .adm-table tbody tr:last-child td{border-bottom:none;}
+/* 狀態欄的色點與狀態字：跟手機那一行同一套語意色 */
+.adm .ad-st{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-b);font-weight:700;}
+.adm .ad-st i{width:8px;height:8px;background:currentColor;display:inline-block;}
+.adm [data-tone="pending"] > .ad-st,.adm .ad-st[data-tone="pending"]{color:var(--c-pending);}
+.adm [data-tone="ok"] > .ad-st,.adm .ad-st[data-tone="ok"]{color:var(--c-ok);}
+.adm [data-tone="fail"] > .ad-st,.adm .ad-st[data-tone="fail"]{color:var(--c-fail);}
+.adm [data-tone="muted"] > .ad-st,.adm .ad-st[data-tone="muted"]{color:var(--c-muted);}
+
+/* 手機看一行一單、桌機看表格。中間那顆「看表格」（ViewToggle）會把 .adm 加上 tbl，
+   要看統計式的時候才切過去，切換記在這支手機上。 */
+@media(max-width:640px){
+  .adm.tbl .ad-rows,.adm.tbl .ad-listnote{display:none;}
+  .adm:not(.tbl) .ad-tablebox{display:none;}
+}
+@media(min-width:641px){
+  .adm .ad-rows,.adm .ad-listnote{display:none;}
+}
+
+/* ── 「顯示更多」那一列：名單頁一次只顯示 10 筆，剩下的用連結一批批展開 ── */
+.adm .ad-morerow{margin-top:var(--sp-2);}
+.adm .ad-morerow .btn{min-height:44px;display:inline-flex;align-items:center;}
+
+/* ── 頁尾工具區：匯出、贈品訂單這種低頻的東西收起來 ── */
+.adm .ad-tools{margin-top:var(--sp-3);border:1px dashed var(--kraft);padding:10px var(--sp-2);}
+.adm .ad-tools > summary{cursor:pointer;font-size:var(--fs-s);color:var(--c-muted);letter-spacing:.1em;}
+.adm .ad-tools > .in{margin-top:12px;}
+.adm .ad-tools > .in > :first-child{margin-top:0;}
+
+/* ── 總覽・本月四格：手機兩欄、桌機四欄 ── */
+.adm .ad-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2);}
+.adm .ad-tile{border:2px solid var(--ink);background:var(--rice-lt);box-shadow:8px 8px 0 rgba(58,50,38,.14);padding:var(--sp-2) 16px;}
+.adm .ad-tile .k{font-size:var(--fs-s);color:var(--c-muted);}
+/* 數字 16px 粗體：整個後台只有這裡跟標題一樣大，因為它是站長第一眼要看的 */
+.adm .ad-tile .v{font-size:var(--fs-h);font-weight:700;margin-top:4px;letter-spacing:.02em;}
+@media(min-width:841px){
+  .adm .ad-tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-3);}
+}
+
+/* ── 總覽・今天要處理：手機是一個框裡的列，桌機攤成一排卡 ── */
+.adm .ad-todo{border:2px solid var(--ink);background:var(--rice-lt);box-shadow:8px 8px 0 rgba(58,50,38,.14);}
+.adm .ad-todo a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 var(--sp-2);
+  text-decoration:none;color:var(--ink);border-bottom:1px dashed var(--kraft);}
+.adm .ad-todo a:last-child{border-bottom:none;}
+.adm .ad-todo .t{font-size:var(--fs-b);}
+.adm .ad-todo .n{display:inline-flex;align-items:center;gap:10px;font-size:var(--fs-b);font-weight:700;color:var(--c-pending);}
+/* 零就不是待辦，灰掉；可疑款項與逾期未出是例外狀況，用朱紅 */
+.adm .ad-todo a[data-tone="muted"] .n{color:var(--c-muted);}
+.adm .ad-todo a[data-tone="fail"] .n{color:var(--c-fail);}
+.adm .ad-todo .n svg{stroke:var(--c-muted);}
+@media(min-width:841px){
+  .adm .ad-todo{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-3);
+    border:none;background:transparent;box-shadow:none;}
+  .adm .ad-todo a{border:2px solid var(--ink);background:var(--rice-lt);box-shadow:8px 8px 0 rgba(58,50,38,.14);
+    padding:16px 18px;min-height:0;}
+  .adm .ad-todo a .n{font-size:var(--fs-h);gap:8px;}
+}
+
+/* 贈品名單一次列出每一條錯誤：要有項目符號跟縮排，站長是照著這張清單一條一條改 */
+.adm .ad-errlist{margin:var(--sp-1) 0 4px;padding-left:20px;line-height:1.9;}
+
+/* 桌機本來就是表格，篩選列裡的「看表格」鈕只給手機；待辦磁貼的字不換行 */
+@media(min-width:641px){
+  .adm .adm-filterbar .adm-viewtoggle{display:none;}
+  .adm .ad-todo .t{white-space:nowrap;}
+}
+
+/* 篩選列自己有「看表格」時，版頭那一顆不要再出現（用 .adm 當根，版頭那顆不在 .adm-main 裡） */
+.adm:has(.adm-filterbar .adm-viewtoggle) .adm-viewbar{display:none !important;}
+
+/* 篩選列（.ad-filter）自帶切換鈕時，版頭那一顆不重複 */
+.adm:has(.ad-filter .adm-viewtoggle) .adm-viewbar{display:none !important;}
+
+/* ═══════════════════════════════════════════════════════════════
+   設定拆六頁（改版第 5 步第三批，2026-09-05）。
+   視覺依據：docs/admin-redesign/canvas/Settings{Phone,Desktop}.dc.html。
+   只加 class，不動既有規則；設定頁一律不寫 inline style。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 麵包屑：頁首標題上面那一行「設定 › 通知」。桌機側欄看得到位置，手機看不到，所以要寫出來 ── */
+.adm .ad-crumb{font-size:var(--fs-s);color:var(--c-muted);letter-spacing:.1em;margin-bottom:4px;}
+.adm .ad-crumb a{color:var(--c-muted);text-decoration:none;}
+.adm .ad-crumb a:hover{color:var(--seal);}
+
+/* ── 目錄頁：六張卡，一張一句話。不是「更多」清單，所以卡要有份量 ── */
+.adm .ad-menu{display:grid;grid-template-columns:1fr;gap:var(--sp-2);margin-top:var(--sp-2);}
+.adm .ad-menu a{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+  border:2px solid var(--ink);background:var(--rice-lt);padding:var(--sp-2) 16px;text-decoration:none;color:var(--ink);}
+.adm .ad-menu a:hover{box-shadow:8px 8px 0 rgba(58,50,38,.14);}
+.adm .ad-menu .nm{font-size:var(--fs-h);font-weight:900;letter-spacing:.2em;}
+.adm .ad-menu .ds{display:block;font-size:var(--fs-s);color:var(--c-muted);font-weight:400;letter-spacing:.04em;margin-top:4px;line-height:1.7;}
+@media(min-width:841px){.adm .ad-menu{grid-template-columns:1fr 1fr;gap:var(--sp-3);}}
+
+/* ── 設定頁本體：欄位一律 44px 高（手指按得到），說明字不要跟輸入框擠在一起 ── */
+.adm .ad-set .field input:not([type=checkbox]):not([type=radio]),
+.adm .ad-set .field select{min-height:44px;}
+.adm .ad-set .field{margin-bottom:var(--sp-2);}
+.adm .ad-set .ad-sect:first-child{margin-top:0;}
+/* 段落之間 24，跟 token 的第三層一致 */
+.adm .ad-set .ad-part + .ad-part{margin-top:var(--sp-3);}
+
+/* ── 桌機兩欄：四段以上的頁才分（1、2 左，3、4 右）。三段以下單欄，硬分只會左右不等高 ── */
+.adm .ad-2col{display:block;}
+@media(min-width:1000px){
+  .adm .ad-2col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-3) 32px;align-items:start;}
+  .adm .ad-2col > .col > .ad-part:first-child .ad-sect{margin-top:0;}
+}
+
+/* ── 未儲存要問：三選一的對話框。不用 window.confirm，它塞不下第三顆按鈕 ── */
+.adm .ad-ask{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  background:rgba(58,50,38,.45);padding:var(--sp-2);}
+.adm .ad-ask > .in{border:2px solid var(--ink);background:var(--rice);box-shadow:8px 8px 0 rgba(58,50,38,.3);
+  padding:20px 22px;max-width:420px;width:100%;}
+.adm .ad-ask b{display:block;font-size:var(--fs-h);letter-spacing:.14em;color:var(--c-pending);white-space:nowrap;}
+.adm .ad-ask p{margin:8px 0 0;font-size:var(--fs-b);line-height:1.8;}
+.adm .ad-ask .acts{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-top:var(--sp-2);}
+.adm .ad-ask .acts .btn{flex:1 1 auto;text-align:center;}
+/* 兩欄的頁不吃 .adm-form 的 820 上限，不然右欄會被擠掉 */
+.adm .adm-main .adm-form.ad-set.wide{max-width:none;}
+
+/* ── 設定頁用得到的幾個小工具 class：原本這些都是 inline style，拆頁時一併收乾淨 ── */
+/* 四階金額：數字置中加粗，四格一樣寬 */
+.adm .ad-set .adm-4num input{text-align:center;font-weight:700;}
+/* 運費費率表：一格一個數字，欄寬固定才對得齊 */
+.adm .ad-rate input{width:84px;border:2px solid var(--ink);background:#FFFDF6;padding:6px 8px;font-size:var(--fs-b);}
+/* 金流環境總覽那張表：名稱粗體、狀態用語意色、說明灰字 */
+.adm .ad-envtable td:first-child{font-weight:700;white-space:nowrap;}
+.adm .ad-envtable td.st{font-weight:700;white-space:nowrap;}
+/* 說明文字統一寬度，長行不要橫跨整個桌機寬度（超過 40 字一行就不好讀） */
+.adm .ad-set .fine,.adm .ad-set .sub{max-width:760px;}
+/* 給觀眾的信：行距放寬，站長是在這裡讀自己寫的文案 */
+.adm .ad-set textarea.ta-lead{line-height:1.9;}
+/* 卡片式說明區塊（原本是 inline border 的那幾塊） */
+.adm .ad-note{border:2px solid var(--ink);background:var(--rice-lt);padding:var(--sp-2) 16px;margin-bottom:var(--sp-2);}
+.adm .ad-note.warn{border-color:var(--seal);}
+.adm .ad-note > b{display:block;font-size:var(--fs-b);}
+.adm .ad-note.warn > b{color:var(--seal);}
+.adm .ad-note > .fine,.adm .ad-note > p{margin:6px 0 0;}
+.adm .ad-note .adm-actions{margin-top:var(--sp-1);}
+/* 贊助方案那格外部網址的縮排：跟在單選圓點的文字下面 */
+.adm .ad-set .ad-sub-field{margin:2px 0 0 34px;max-width:460px;}
+
+/* ═══════════════════════════════════════════════════════════════
+   贊助列表與提醒中心（改版第 5 步第四批，2026-09-06）。
+   規格 docs/admin-redesign/ia.md §4；一律 token，兩頁都不寫 inline style。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 贊助・手機一行一筆，點開就地展開 ──
+   贊助沒有獨立的詳情頁（ia.md §5 最後一句還沒決定要不要開），
+   所以整行連到 ?open=<id>，展開的卡就長在那一行底下，同時只開一張。
+   為什麼不用 <details>：伺服器渲染的清單一展開就會被下一次導覽重設，
+   狀態放在網址上才留得住，站長按了返回也還在同一筆。 */
+.adm .ad-rowwrap{border-bottom:1px dashed var(--kraft);}
+.adm .ad-rowwrap:last-child{border-bottom:none;}
+.adm .ad-rowwrap > .ad-row{border-bottom:none;}
+.adm .ad-rowwrap.on > .ad-row{background:var(--rice);}
+.adm .ad-open{padding:0 0 var(--sp-2);}
+.adm .ad-open .acts{display:flex;flex-direction:column;gap:var(--sp-1);margin-top:var(--sp-1);}
+.adm .ad-open .acts form{display:block;}
+/* 展開卡裡的每一顆動作都是整行、44px：手指在 56px 的列底下按，鈕小一點就會按錯 */
+.adm .ad-open .acts > form > .btn,.adm .ad-open .acts > form > button,
+.adm .ad-open .acts > .btn,.adm .ad-open .acts > a{
+  display:flex;align-items:center;width:100%;min-height:44px;padding:0 12px;
+  border:2px solid var(--ink);background:var(--rice-lt);color:var(--ink);
+  font-size:var(--fs-b);letter-spacing:.08em;text-decoration:none;cursor:pointer;}
+.adm .ad-open .acts > form > .danger-link,.adm .ad-open .acts > form > button.danger-link{
+  border-color:var(--c-fail);color:var(--c-fail);}
+.adm .ad-open .acts .remind-btns{width:100%;}
+.adm .ad-open .acts .rb-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-1);width:100%;}
+.adm .ad-open .acts .rb-form,.adm .ad-open .acts .smspick{min-width:0;}
+.adm .ad-open .acts .rb-form .btn,.adm .ad-open .acts .smspick > summary{width:100%;min-height:44px;justify-content:center;}
+/* 留言一行 15 字換行（站長 2026-09-04 指定），手機展開卡與桌機表格同一把尺 */
+.adm .ad-msg15{max-width:15em;white-space:normal;word-break:break-all;line-height:1.7;}
+
+/* ── 提醒中心・一筆一列 ──
+   左邊誰欠多少、右邊下一次什麼時候，三顆管道鈕在手機是列底下的三等分格子、
+   桌機挪到右邊。不做成表格是因為表格在 402 寬會橫向捲，催款是站長走路時在做的事。 */
+.adm .ad-rlist{border:2px solid var(--ink);background:var(--rice-lt);padding:0 var(--sp-2);margin-top:var(--sp-2);}
+.adm .ad-rrow{padding:var(--sp-2) 0;border-bottom:1px dashed var(--kraft);}
+.adm .ad-rrow:last-child{border-bottom:none;}
+.adm .ad-rrow > .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-height:44px;}
+.adm .ad-rrow .ad-l{min-width:0;}
+.adm .ad-rrow .ad-nm{display:block;font-size:var(--fs-b);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adm .ad-rrow .ad-nm .no{font-weight:400;color:var(--c-muted);}
+.adm .ad-rrow .ad-nm a{color:var(--ink);}
+.adm .ad-rrow .ad-tm{display:block;font-size:var(--fs-s);color:var(--c-muted);line-height:1.7;}
+.adm .ad-rrow .ad-r{text-align:right;white-space:nowrap;}
+.adm .ad-rrow .ad-amt{display:block;font-size:var(--fs-b);font-weight:700;}
+.adm .ad-rrow .ad-st2{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-s);}
+.adm .ad-rrow .ad-st2 i{width:7px;height:7px;background:currentColor;display:inline-block;}
+.adm .ad-rrow[data-tone="pending"] .ad-st2{color:var(--c-pending);}
+.adm .ad-rrow[data-tone="ok"] .ad-st2{color:var(--c-ok);}
+.adm .ad-rrow[data-tone="fail"] .ad-st2{color:var(--c-fail);}
+.adm .ad-rrow[data-tone="muted"] .ad-st2{color:var(--c-muted);}
+.adm .ad-rrow .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.adm .ad-rrow > .acts{margin-top:var(--sp-1);}
+.adm .ad-rrow .rb-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-1);}
+.adm .ad-rrow .rb-form,.adm .ad-rrow .smspick{min-width:0;}
+.adm .ad-rrow .rb-form .btn,.adm .ad-rrow .smspick > summary{width:100%;min-height:44px;justify-content:center;}
+/* 停止提醒／已聯絡是可逆的小開關，跟三顆管道鈕分開一列，才不會誤按 */
+.adm .ad-rrow .switches{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);margin-top:var(--sp-1);}
+.adm .ad-rrow .switches .link-btn,.adm .ad-rrow .switches .danger-link{min-height:44px;}
+.adm .ad-rrow > .more{margin-top:var(--sp-1);}
+.adm .ad-rrow > .more > details{margin-top:6px;}
+.adm .ad-rrow > .more summary{font-size:var(--fs-s);color:var(--c-muted);cursor:pointer;min-height:32px;}
+.adm .ad-rrow .loglist{margin:6px 0 0;padding-left:18px;font-size:var(--fs-s);color:var(--c-muted);line-height:1.9;}
+@media(min-width:841px){
+  /* 桌機一屏放得下，動作挪到右邊，眼睛不用上下跳 */
+  .adm .ad-rrow{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--sp-3);align-items:start;}
+  .adm .ad-rrow > .top{grid-column:1;grid-row:1;}
+  .adm .ad-rrow > .acts{grid-column:2;grid-row:1;margin-top:0;}
+  .adm .ad-rrow > .more{grid-column:1 / -1;grid-row:2;}
+  .adm .ad-rrow .rb-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .adm .ad-rrow .rb-form .btn,.adm .ad-rrow .smspick > summary{width:auto;min-height:36px;}
+}
+
+/* ── 贊助桌機表格用的幾個小 class：原本這幾格都是 inline style ── */
+/* 動作欄一格一顆往下疊，靠左對齊，寬度不被 flex 撐開 */
+.adm .ad-actcol{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
+/* 「補開發票」要跟在發票號碼那一行後面，所以表單得是行內元素 */
+.adm .ad-inlineform{display:inline;}
+/* 跟在前一段字後面的警告字（未綁卡、發票開立失敗），只要一點間隔 */
+.adm .ad-gapl{margin-left:6px;}
+/* 一行一個的診斷值（贊助用過的每一組金流單號）。單號很長，手機要斷得掉 */
+.adm .ad-block{display:block;word-break:break-all;}
+/* 統計表的年度列與總計列：一條實線分開年份，兩條線收尾 */
+.adm .adm-table tr.yr td{border-top:2px solid var(--ink);}
+.adm .adm-table tr.total td{border-top:3px double var(--ink);}
+
+/* 手機：全站 .link-btn 有負 margin（globals 為了貼齊卡片邊），在提醒列的兩顆開關連結上會把間距吃掉 */
+@media(max-width:640px){
+  .adm .ad-rrow .switches .link-btn,.adm .ad-rrow .switches .danger-link{margin:0;padding:0 8px;}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   發送與名單頁（改版第五批，2026-09-06）。
+   規格 docs/admin-redesign/ia.md §4、docs/admin-ui-spec.md 第三節；
+   一律 token，這幾頁一條 inline style 都不寫。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 分頁籤（發送頁的 信／簡訊／LINE／紀錄）──
+   長相跟訂單詳情的 .ad-seg 同一套（44px、選到的反白），差別只有兩點：
+   四格不是三格，而且桌機不隱藏。訂單詳情的分頁在桌機會攤成左右兩欄，
+   但發送的四件事是四個獨立表單，攤開等於四個送出鈕同時在畫面上，
+   站長會分不出按哪一顆才是他要的那一件事。 */
+.adm .ad-tabseg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:2px solid var(--ink);margin-bottom:var(--sp-2);}
+.adm .ad-tabseg button{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:var(--fs-b);letter-spacing:.15em;
+  border:none;background:var(--rice-lt);color:var(--ink);cursor:pointer;}
+.adm .ad-tabseg button + button{border-left:2px solid var(--ink);}
+.adm .ad-tabseg button[aria-selected="true"]{background:var(--ink);color:var(--rice);}
+.adm .ad-tabpanel > :first-child{margin-top:0;}
+/* 分頁裡的表單不再需要自己撐寬度限制，外層已經是一塊獨立的區 */
+.adm .ad-tabpanel .adm-form{max-width:820px;}
+/* 手寫信是兩欄版面，表單要填滿左欄，不能再套 .adm-form 的固定寬 */
+.adm .adm-main .mailgrid .adm-form{max-width:none;}
+
+/* ── 手寫信的預覽在手機收起來 ──
+   原本預覽固定長在表單下面，402 寬要往下捲過一整封信才碰得到寄出鈕。
+   收成 <details> 之後手機預設收合、桌機自動展開（開合狀態由 AdminMailForm
+   用 matchMedia 決定，不是 CSS，因為關著的 details 內容藏不藏由瀏覽器決定，CSS 蓋不掉）。 */
+.adm .ad-prevbox > summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;
+  border:2px solid var(--ink);background:var(--rice-lt);font-size:var(--fs-b);letter-spacing:.1em;cursor:pointer;}
+.adm .ad-prevbox[open] > summary{margin-bottom:var(--sp-1);}
+@media(min-width:841px){
+  .adm .ad-prevbox > summary{display:none;}
+  .adm .ad-prevbox{position:sticky;top:20px;}
+  .adm .ad-prevbox .mailprev{position:static;}
+}
+/* 預覽那一列的標頭（「預覽」與複製原始碼），原本是 inline flex */
+.adm .mailprev .pv-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:var(--sp-1);}
+.adm .mailprev .pv-top b{font-size:var(--fs-b);}
+.adm .mailprev iframe{width:100%;border:2px solid var(--ink);background:#EFE3C4;}
+/* 寄出那一列：送出鈕與「先看預覽」並排，手機也放得下 */
+.adm .ad-sendrow{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap;margin-top:18px;}
+/* 收件人超過上限時的紅字提示 */
+.adm .adm-main .fine.over{color:var(--c-fail);}
+
+/* ── 一行一個人（名單總覽、會員名單、投稿列表）──
+   訂單的 .ad-row 右邊是金額（短、不換行），人的右邊是信箱（長、一定要換行），
+   所以另開一個 .person 修飾詞，而不是把 .ad-row 的 nowrap 拔掉害訂單跟著壞。 */
+.adm .ad-row.person{align-items:flex-start;}
+.adm .ad-row.person .ad-l{flex:1 1 55%;}
+.adm .ad-row.person .ad-r{flex:0 1 45%;min-width:0;white-space:normal;}
+.adm .ad-row.person .ad-em{display:block;font-size:var(--fs-s);line-height:1.6;overflow-wrap:anywhere;}
+.adm .ad-row.person .ad-tag{display:block;font-size:var(--fs-s);color:var(--c-muted);line-height:1.6;margin-top:2px;}
+.adm .ad-row.person .ad-tm{line-height:1.6;}
+/* 整行可點的（投稿）維持連結色不變，這裡只確保沒有底線 */
+.adm a.ad-row{text-decoration:none;color:var(--ink);}
+
+/* ── 待聯絡的一筆一列 ──
+   動作在列底下、每一顆都整行 44px：站長是站在店裡拿手機處理這一頁的，
+   小連結按不到就等於這一頁不能用。桌機才把動作排成一列。 */
+.adm .ad-crow{padding:var(--sp-2) 0;border-bottom:1px dashed var(--kraft);}
+.adm .ad-crow:last-child{border-bottom:none;}
+.adm .ad-crow > .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-height:44px;}
+.adm .ad-crow .ad-l{min-width:0;}
+.adm .ad-crow .ad-nm{display:block;font-size:var(--fs-b);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adm .ad-crow .ad-nm a{color:var(--ink);}
+.adm .ad-crow .ad-tm{display:block;font-size:var(--fs-s);color:var(--c-muted);line-height:1.7;overflow-wrap:anywhere;}
+.adm .ad-crow .ad-r{text-align:right;white-space:nowrap;}
+.adm .ad-crow .ad-amt{display:block;font-size:var(--fs-b);font-weight:700;}
+.adm .ad-crow .ad-st2{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-s);}
+.adm .ad-crow .ad-st2 i{width:7px;height:7px;background:currentColor;display:inline-block;}
+.adm .ad-crow[data-tone="pending"] .ad-st2{color:var(--c-pending);}
+.adm .ad-crow[data-tone="fail"] .ad-st2{color:var(--c-fail);}
+.adm .ad-crow[data-tone="ok"] .ad-st2{color:var(--c-ok);}
+.adm .ad-crow[data-tone="muted"] .ad-st2{color:var(--c-muted);}
+.adm .ad-crow .why{margin:var(--sp-1) 0 0;font-size:var(--fs-b);line-height:1.8;}
+.adm .ad-crow .why + .why{font-size:var(--fs-s);color:var(--c-muted);}
+/* 同一個人的其他紀錄：有一筆已經付款成功時整塊變紅框，這是催錯人前唯一的煞車 */
+.adm .ad-crow .rel{margin-top:var(--sp-1);border:1px dashed var(--kraft);padding:var(--sp-1) 12px;}
+.adm .ad-crow .rel.warn{border:2px solid var(--c-fail);}
+.adm .ad-crow .rel > b{display:block;font-size:var(--fs-b);color:var(--c-fail);line-height:1.7;}
+.adm .ad-crow .rel > .t{font-size:var(--fs-s);color:var(--c-muted);margin-bottom:4px;}
+.adm .ad-crow .rel .r{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:var(--fs-s);line-height:1.9;}
+.adm .ad-crow > .draft{margin-top:var(--sp-1);}
+.adm .ad-crow > .acts{display:flex;flex-direction:column;gap:var(--sp-1);margin-top:var(--sp-1);}
+.adm .ad-crow > .acts form{display:block;}
+.adm .ad-crow > .acts > form > button,.adm .ad-crow > .acts > a{
+  display:flex;align-items:center;width:100%;min-height:44px;padding:0 12px;margin:0;
+  border:2px solid var(--ink);background:var(--rice-lt);color:var(--ink);
+  font-size:var(--fs-b);letter-spacing:.08em;text-decoration:none;cursor:pointer;}
+.adm .ad-crow > .acts > form > button.danger-link{border-color:var(--c-fail);color:var(--c-fail);}
+@media(min-width:841px){
+  /* 桌機不必整行：一列排得下三顆，畫面也不會被鈕塞滿 */
+  .adm .ad-crow > .acts{flex-direction:row;flex-wrap:wrap;gap:var(--sp-1) var(--sp-2);}
+  .adm .ad-crow > .acts > form > button,.adm .ad-crow > .acts > a{width:auto;min-height:36px;}
+}
+
+/* ── 投稿詳情：全文那一塊 ──
+   行距放寬到 2：站長是真的在這裡讀完一整篇稿再決定要不要採用。 */
+.adm .ad-body{border:2px solid var(--ink);background:var(--rice-lt);padding:var(--sp-3) 26px;
+  max-width:760px;white-space:pre-wrap;font-size:15.5px;line-height:2;margin-top:var(--sp-2);}
+.adm .ad-photos{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:var(--sp-2);}
+.adm .ad-photos img{width:clamp(120px,42vw,200px);aspect-ratio:1 / 1;height:auto;object-fit:cover;
+  border:2px solid var(--ink);display:block;}
+
+/* ── 工具區裡的匯出鈕排一列 ── */
+.adm .ad-tools .btnrow{display:flex;gap:var(--sp-1) var(--sp-2);flex-wrap:wrap;align-items:center;}
+.adm .ad-tools .btnrow .btn{min-height:44px;display:inline-flex;align-items:center;}
+
+/* ── 寄件紀錄的長字串（信箱）在手機不要把版面撐出橫向捲軸 ── */
+.adm .adm-table td.brk{overflow-wrap:anywhere;word-break:break-all;}
+
+/* 手機：分頁列六格塞不下就把字擠成兩行，改成一列橫向滑動，每格不換行 */
+@media(max-width:840px){
+  .adm .adm-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:4px;scrollbar-width:none;}
+  .adm .adm-tabs::-webkit-scrollbar{display:none;}
+  .adm .adm-tabs .t{flex:0 0 auto;white-space:nowrap;min-height:44px;display:inline-flex;align-items:center;padding:0 14px;}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   內容與銷售頁（改版第六批，2026-09-06）。
+   商品、文章、廚師、影片、付款連結、企業訂購、夥伴、折扣碼、
+   結算報表、電子報、簡訊、LINE 十三頁共用。
+   規格 docs/admin-redesign/ia.md §4、docs/admin-ui-spec.md 第三節；
+   這一批把剩下的 inline style 收乾淨，新樣式一律寫在這裡。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 一行一筆的右邊放一顆開關 ──
+   訂單列表上不放動作鈕（誤觸的是催款，寄得出去收不回來）。
+   內容頁不一樣：上架／下架按錯只要再按一次就回來，而站長最常在這幾頁做的
+   就是「這篇先下架」。所以這裡允許一顆，而且只有一顆，44px 撐滿右欄下緣。 */
+.adm .ad-rowbtn{display:block;margin-top:4px;}
+.adm .ad-rowbtn .btn,.adm .ad-rowbtn button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
+.adm .ad-row .ad-nm a{color:var(--ink);text-decoration:none;}
+.adm .ad-row .ad-nm a:hover{color:var(--seal);}
+/* 名稱那一行要能被點，整列就不再是連結：右邊有鈕時 flex 對齊改成上緣 */
+.adm .ad-row.withbtn{align-items:flex-start;}
+
+/* ── 表格裡的數字欄：靠右、粗體。原本每一格都寫 style={{textAlign:"right"}} ── */
+.adm .adm-table td.num,.adm .adm-table th.num{text-align:right;font-weight:700;}
+.adm .adm-table td.l,.adm .adm-table th.l{text-align:left;}
+/* 內容欄要保留換行（簡訊、LINE 的訊息全文） */
+.adm .adm-table td.pre{white-space:pre-wrap;}
+
+/* ── 規格庫存的小字列（商品列表「S 剩 3、M 已滿」）── */
+.adm .ad-stocks{display:flex;gap:10px;flex-wrap:wrap;color:var(--c-muted);margin-top:4px;}
+.adm .ad-stocks b{color:var(--c-fail);}
+
+/* ── 欄位底下的灰色說明 ──
+   原本 sms、LINE、商品三頁各寫各的 inline color/lineHeight，值還都不一樣。
+   .pre 是給「實際寄出會長這樣」那種要保留換行的預覽。 */
+.adm .adm-main .ad-hint{color:var(--c-muted);font-size:var(--fs-s);line-height:1.9;margin:6px 0 0;}
+.adm .adm-main .ad-hint.pre{white-space:pre-wrap;}
+
+/* ── 框起來的表單區塊（影片、折扣碼、夥伴的新增表單）──
+   跟 .ad-card 同一套框，差別是它裝的是表單，內距大一點好填。 */
+.adm .adm-main .ad-formbox{border:2px solid var(--ink);background:var(--rice-lt);padding:18px 20px;max-width:none;}
+.adm .adm-main .ad-formbox.dash{border-style:dashed;background:transparent;}
+.adm .ad-formbox + .ad-formbox{margin-top:var(--sp-2);}
+
+/* ── 頁首那顆「新增」打開的收合區 ──
+   為什麼用網址參數（?new=1）而不是 <details open>：
+   伺服器渲染的頁面按下儲存會整頁重畫，瀏覽器自己記的開合狀態留不住，
+   站長填錯一格退回來會發現表單又關上了。狀態放網址上才留得住。 */
+.adm .adm-main .ad-newbox{border:2px dashed var(--ink);padding:0 18px;margin-bottom:var(--sp-3);}
+.adm .ad-newbox > summary{min-height:44px;display:flex;align-items:center;font-size:var(--fs-b);letter-spacing:.1em;}
+.adm .ad-newbox[open] > summary{border-bottom:1px dashed var(--kraft);}
+.adm .ad-newbox > .in{padding:var(--sp-2) 0;}
+.adm .ad-newbox > .in > :first-child{margin-top:0;}
+.adm .ad-newbox .adm-form{max-width:none;}
+
+/* ── 一列多格的表單（夥伴、結算的日期區間）：欄位底端對齊，手機自動換行 ── */
+.adm .ad-frow{display:flex;gap:10px var(--sp-2);flex-wrap:wrap;align-items:flex-end;}
+.adm .ad-frow > .field{margin:0;flex:1 1 200px;min-width:0;}
+.adm .ad-frow > .field.f-sm{flex:0 0 110px;}
+.adm .ad-frow > .field.f-md{flex:0 0 140px;}
+.adm .ad-frow > .field.f-lg{flex:2 1 240px;}
+.adm .ad-frow > .btn,.adm .ad-frow > button,.adm .ad-frow > a.btn{flex:none;}
+.adm .ad-frow + .ad-frow{margin-top:var(--sp-2);}
+/* 折扣碼一律大寫：小寫打進去看起來像另一個碼，實際比對又不分大小寫 */
+.adm .ad-uc{text-transform:uppercase;}
+
+/* ── 夥伴卡：預設收合，點開才操作 ──
+   卡裡有「重新產生連結」與「停用」兩顆會出事的按鈕，攤開在畫面上很容易誤觸。
+   停用中的卡整張退成灰底，掃一眼就知道這個人現在是關著的。 */
+.adm .ad-ptn{border:2px solid var(--ink);background:var(--rice-lt);padding:0 18px;margin-bottom:var(--sp-2);max-width:760px;}
+.adm .ad-ptn[data-off="1"]{border-color:var(--c-muted);background:#EEE9DA;}
+.adm .ad-ptn > summary{display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:52px;font-size:var(--fs-b);font-weight:700;}
+.adm .ad-ptn > summary .mt{font-weight:400;color:var(--c-muted);font-size:var(--fs-s);}
+.adm .ad-ptn > summary .mt b{color:var(--c-fail);}
+.adm .ad-ptn > .in{padding:0 0 var(--sp-2);}
+
+/* ── 電子報詳情的內容預覽：讀得下去的行距，跟投稿全文同一套 ── */
+.adm .ad-preview{border:2px solid var(--ink);background:var(--rice-lt);padding:var(--sp-2) 16px;white-space:pre-wrap;line-height:1.95;font-size:var(--fs-b);}
+
+/* ── 結算報表的寬表：數字要對齊，所以維持 wide，只換外框與顏色 ── */
+.adm .ad-tablebox .adm-table.wide td,.adm .ad-tablebox .adm-table.wide th{white-space:nowrap;}
+/* 運費損益是正的就用茶墨（靛藍已從後台拿掉），負的用 .tone-fail */
+.adm .ad-pos{font-weight:700;color:var(--ink);}
+
+/* ── LINE 那三張統計卡：額度分母與時間戳不要跟主數字一樣大 ── */
+.adm .adm-card .v small{font-size:var(--fs-b);color:var(--c-muted);font-weight:400;}
+.adm .adm-card .v.sm{font-size:var(--fs-h);}
+
+/* ── 頁面內的一段（區塊標題＋內容），跟設定頁的 .ad-part 同一個間距 ── */
+.adm .adm-main .ad-part + .ad-part{margin-top:var(--sp-3);}
+.adm .adm-main .ad-part > .ad-sect:first-child{margin-top:0;}
+
+/* ── 一行一筆、點開就地編輯（精選影片）──
+   為什麼不用 .ad-rows：那個容器在 641 以上是隱藏的（桌機看表格）。
+   影片沒有表格可切，所以另開一個在所有寬度都顯示的容器。 */
+.adm .ad-foldlist{border:2px solid var(--ink);background:var(--rice-lt);padding:0 var(--sp-2);margin-top:var(--sp-2);}
+.adm .ad-rowfold{border-bottom:1px dashed var(--kraft);}
+.adm .ad-rowfold:last-child{border-bottom:none;}
+.adm .ad-rowfold > summary{cursor:pointer;list-style:none;}
+.adm .ad-rowfold > summary::before{display:none;}
+.adm .ad-rowfold > summary::-webkit-details-marker{display:none;}
+.adm .ad-rowfold > summary.ad-row{border-bottom:none;}
+.adm .ad-rowfold[open] > summary.ad-row{background:var(--rice);}
+/* 收合箭頭放在最右邊，不要擠進狀態字前面 */
+.adm .ad-rowfold > summary .ad-r::after{content:"▾";display:block;font-size:var(--fs-s);color:var(--c-muted);line-height:1.6;}
+.adm .ad-rowfold[open] > summary .ad-r::after{content:"▴";}
+.adm .ad-rowfold > .in{padding:0 0 var(--sp-2);}
+.adm .ad-rowfold > .in > .adm-form{max-width:none;}
+
+/* ── 沒有「一行一筆」可切的表格：手機也要看得到 ──
+   .ad-tablebox 預設在手機是藏起來的（手機看 .ad-rows，按「看表格」才切過去）。
+   結算報表、簡訊紀錄、LINE 紀錄這幾張沒有一行一筆的版本可切：
+   數字要橫著對齊、訊息全文要一次讀完，拆成一行一筆反而讀不出來。
+   這些加 .always，手機直接顯示（.wide 自己會給橫向捲軸與「左右滑動」提示）。 */
+@media(max-width:640px){
+  .adm:not(.tbl) .ad-tablebox.always{display:block;}
+}
+/* 這種頁面沒有東西可切，版頭那顆「看表格」就不要出現 */
+.adm:has(.ad-tablebox.always):not(:has(.ad-rows)) .adm-viewbar{display:none !important;}
+
+/* 待聯絡型的列（企業訂購沿用）：名字後面那段灰色副標 */
+.adm .ad-crow .ad-nm .no{font-weight:400;color:var(--c-muted);}
+
+/* 版面層的長警告（layout.tsx 的預設密碼與 LINE 測試模式）：一行不超過 40 字才讀得下去 */
+.adm .adm-main .msg-err.narrow,.adm .adm-main .msg-ok.narrow{max-width:760px;}
+/* .ad-note 裡標題後面接的東西（複製欄、按鈕列）要跟標題留一口氣 */
+.adm .ad-note > b + *{margin-top:var(--sp-1);}
+
+/* ── 廚師自助更新的待處理區（2026-09-06）──
+   放在「地圖廚師」列表最上面。這一區的重點只有一個：
+   讓「哪裡不一樣」自己跳出來，一樣的欄位要安靜下去，站長才不會逐字比對。 */
+.adm .ad-cu{border:2px solid var(--ink);background:var(--rice-lt);padding:var(--sp-2) 16px;margin-top:var(--sp-2);max-width:900px;}
+.adm .ad-cu-hd{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between;
+  border-bottom:2px dashed var(--kraft);padding-bottom:var(--sp-1);}
+.adm .ad-cu-hd .nm{font-size:var(--fs-h);font-weight:700;}
+.adm .ad-cu-hd .nm .no{font-weight:400;color:var(--c-muted);font-size:var(--fs-b);}
+/* 「新的人」是琥珀（要動手做一件事），「已有卡片」是灰（只是比對），跟全站語意色同一套 */
+.adm .ad-cu-kind{font-size:var(--fs-s);border:1.5px solid currentColor;padding:2px 8px;white-space:nowrap;}
+.adm .ad-cu-kind[data-kind="new"]{color:var(--c-pending);}
+.adm .ad-cu-kind[data-kind="edit"]{color:var(--c-muted);}
+
+/* 聯絡方式：虛線琥珀框加一句話。長得跟旁邊不一樣是刻意的，
+   要讓人一眼知道「這塊不會出現在前台」，不然站長會怕自己把電話貼到地圖上 */
+.adm .ad-priv{border:2px dashed var(--c-pending);background:#F7F0DE;padding:10px 14px;margin-top:var(--sp-2);}
+.adm .ad-priv-t{display:block;font-size:var(--fs-s);color:var(--c-pending);margin-bottom:6px;font-weight:700;}
+.adm .ad-priv .ad-kv .row{border-bottom-color:#E3D3AC;}
+
+/* 逐欄比對。手機是一欄一段（標題、目前、送來、按鈕），桌機才排成四直行 */
+.adm .ad-diff{margin-top:var(--sp-2);border-top:2px solid var(--ink);}
+.adm .ad-diff-hd{display:none;}
+.adm .ad-diffrow{display:grid;grid-template-columns:1fr;gap:4px;padding:10px 0;border-bottom:1px dashed var(--kraft);}
+.adm .ad-diffrow:last-child{border-bottom:none;}
+.adm .ad-diffrow .lb{font-size:var(--fs-s);color:var(--c-muted);font-weight:700;}
+.adm .ad-diffrow .vv{font-size:var(--fs-b);line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;}
+/* 手機沒有表頭，所以每一格自己說自己是哪一邊 */
+.adm .ad-diffrow .vv[data-side="cur"]::before{content:"目前　";color:var(--c-muted);font-size:var(--fs-s);}
+.adm .ad-diffrow .vv[data-side="sub"]::before{content:"送來　";color:var(--c-muted);font-size:var(--fs-s);}
+/* 真的不一樣的那一格才上朱紅。一樣的整列淡掉，讓差異自己浮出來 */
+.adm .ad-diffrow[data-same="0"][data-blank="0"] .vv[data-side="sub"]{color:var(--c-fail);font-weight:700;}
+.adm .ad-diffrow[data-same="1"]{opacity:.55;}
+.adm .ad-diff-note{font-size:var(--fs-s);}
+.adm .ad-cu-ph{display:block;width:72px;height:72px;object-fit:cover;border:2px solid var(--ink);}
+/* 手指按得到：列內小鈕在手機仍要 44 高（規格 §三.4） */
+.adm .ad-diffrow .bt .btn{min-height:44px;}
+
+.adm .ad-cu-new{margin-top:var(--sp-2);}
+.adm .ad-cu-new > .ad-inlineform{display:block;margin-top:var(--sp-2);}
+.adm .ad-cu-acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  margin-top:var(--sp-2);padding-top:var(--sp-1);border-top:2px dashed var(--kraft);}
+.adm .ad-cu-acts .btn{min-height:44px;}
+.adm .ad-cu-sent{font-size:var(--fs-s);}
+
+@media(min-width:641px){
+  .adm .ad-diff-hd{display:grid;grid-template-columns:5.5em 1fr 1fr 6.5em;gap:12px;
+    font-size:var(--fs-s);color:var(--c-muted);padding:6px 0;border-bottom:1px dashed var(--kraft);}
+  .adm .ad-diffrow{grid-template-columns:5.5em 1fr 1fr 6.5em;gap:12px;align-items:start;}
+  .adm .ad-diffrow .vv::before{display:none;}
+  .adm .ad-diffrow .bt{text-align:right;}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   廚師審核區修正（2026-09-06）。
+   一、「他送來的」那一格可以直接改，改完再按「用這個」。
+   二、編輯頁也能把卡片寄給本人確認。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 可編輯的那一格。外層 .vv 是 pre-wrap（給純文字用的），輸入框要退回一般排版 */
+.adm .ad-diff-edit{display:block;white-space:normal;}
+.adm .ad-diff-edit input[type=text],.adm .ad-diff-edit textarea{
+  width:100%;min-width:0;min-height:44px;font-size:var(--fs-b);}
+.adm .ad-diff-edit textarea{line-height:1.8;resize:vertical;}
+/* 這一格既然可以打字，就不要再把整段字染成朱紅（紅字輸入框看起來像壞掉了） */
+.adm .ad-diffrow[data-same="0"][data-blank="0"] .vv[data-side="sub"] .ad-diff-edit{color:var(--ink);font-weight:400;}
+
+/* 編輯頁的寄信列：信箱一格、按鈕一顆，手機直排 */
+.adm .ad-mailrow{display:flex;flex-wrap:wrap;gap:var(--sp-1);align-items:center;max-width:560px;}
+.adm .ad-mailrow input[type=email]{flex:1;min-width:200px;min-height:44px;}
+.adm .ad-mailrow .btn{min-height:44px;}
+
+/* ═══════════════════════════════════════════════════════════════
+   大頭照裁切（2026-09-06）。
+   卡片上的圓圈是 object-fit:cover 取正中央，直拍照片的正中央是胸口不是臉，
+   所以站長要能自己把那個正方形拖到臉上。方框的 left/top/width 由
+   components/admin/PhotoCropField.tsx 直接寫進 DOM（那三個值每拖一次就變，
+   class 表達不了），長相全部在這裡。
+   ═══════════════════════════════════════════════════════════════ */
+.adm .ad-crop{display:block;white-space:normal;max-width:320px;}
+/* 照片本體。touch-action:none 是必要的：不關掉的話手機上拖方框會變成捲頁面 */
+.adm .ad-crop-stage{position:relative;display:block;line-height:0;border:2px solid var(--ink);
+  background:var(--rice);touch-action:none;user-select:none;}
+.adm .ad-crop-stage img{display:block;width:100%;height:auto;}
+/* 選取框：白邊加外圈暗影，照片是亮是暗都看得見它 */
+.adm .ad-crop-box{position:absolute;aspect-ratio:1;border:2px solid #FFF;
+  box-shadow:0 0 0 2px rgba(58,50,38,.75),0 0 0 9999px rgba(58,50,38,.42);
+  cursor:move;touch-action:none;}
+/* 右下角的把手。44px 是手指按得到的最小尺寸（規格 §三.4），
+   用負的 margin 讓它壓在角上，而不是把方框撐大 */
+.adm .ad-crop-grip{position:absolute;right:0;bottom:0;width:44px;height:44px;
+  margin:0 -22px -22px 0;cursor:nwse-resize;touch-action:none;
+  background:radial-gradient(circle at 50% 50%,#FFF 0 8px,transparent 8px);
+  border:0;display:block;}
+/* 還沒進裁切模式時蓋在照片上的那顆透明按鈕。整張照片都按得到，
+   字只在右下角壓一小塊底，不要遮住臉 */
+.adm .ad-crop-open{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;
+  background:transparent;cursor:zoom-in;display:flex;align-items:flex-end;justify-content:flex-end;}
+.adm .ad-crop-open span{margin:8px;padding:6px 10px;font-size:var(--fs-s);line-height:1.4;
+  background:rgba(58,50,38,.82);color:var(--rice);}
+.adm .ad-crop-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:var(--sp-1);}
+.adm .ad-crop-acts .btn{min-height:44px;}

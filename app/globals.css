@@ -1,0 +1,1543 @@
+/*
+ * 問爽的 色票（BRAND.md）。
+ * 舊變數名（--rice 等）是佑在幹嘛留下的，整份 CSS 三千多行都在用，
+ * 所以保留名字、只換值；新寫的樣式一律用下面的新名字，兩套指向同一組顏色。
+ */
+:root{
+  --paper:#FFF7EC;      /* 奶油白 底色 */
+  --paper-lt:#FFFDF8;   /* 卡片底 */
+  --sand:#F3E3C8;       /* 淺沙 分隔／花紋 */
+  --orange:#EA962E;     /* Logo 橘 主色 */
+  --orange-dk:#C97A1B;  /* 橘 hover */
+  --teal:#2A7F7A;       /* 湖水綠 對比色（連結、標籤） */
+  --ink:#2B2622;        /* 深可可 文字 */
+  --grey:#7A6F66;       /* 註記 */
+  /* 舊名 → 新色 */
+  --rice:var(--paper);
+  --rice-lt:var(--paper-lt);
+  --kraft:var(--sand);
+  --indigo:var(--teal);
+  --seal:var(--orange);
+  --gold:var(--orange-dk);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+h1,h2,h3{text-wrap:balance;}
+p{text-wrap:pretty;}
+html{scroll-behavior:smooth;}
+/* overflow-x:clip（不是 hidden）：擋掉任何元素造成的水平溢出與手機整頁截圖右側空白，
+   同時不建立捲動容器、不影響 position:sticky */
+body{background:var(--rice);color:var(--ink);font-family:var(--font-sans),"Noto Sans TC","PingFang TC",sans-serif;line-height:1.9;overflow-x:clip;}
+/* 標題與按鈕也走黑體：聊天節目不用襯線的正經感。--font-serif 仍然定義著，之後想在某處用襯線可以直接用 */
+h1,h2,h3,.btn,.custom label{font-family:var(--font-sans),"Noto Sans TC","PingFang TC",sans-serif;}
+.sans{font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+a{color:inherit;}
+button{font:inherit;color:inherit;}
+input,select,textarea{font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+
+.frame{max-width:1060px;margin:0 auto;padding:0 20px;}
+.band{height:14px;background:repeating-linear-gradient(90deg,var(--seal) 0 44px,var(--rice) 44px 55px,var(--indigo) 55px 99px,var(--rice) 99px 110px);}
+/* 按鈕文字不在詞中間折行（手機斷句）；長標籤靠縮 padding 而不是折行 */
+.btn{display:inline-block;text-decoration:none;font-size:15.5px;letter-spacing:.22em;padding:13px 28px;border:2px solid var(--ink);color:var(--ink);font-weight:600;background:var(--rice);cursor:pointer;font-family:var(--font-sans),"Noto Sans TC",sans-serif;transition:transform .15s,box-shadow .15s;white-space:nowrap;max-width:100%;}
+@media(max-width:420px){.btn{padding:12px 18px;letter-spacing:.14em;}}
+.btn:hover:not(:disabled){transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.btn.fill{background:var(--seal);border-color:var(--seal);color:var(--rice);}
+.btn.fill:hover{background:var(--orange-dk);}
+/* 墨綠：首頁「哪裡有生態廚師」主按鈕 */
+.btn.pine{background:#2F4A38;border-color:#2F4A38;color:var(--rice);}
+.btn.pine:hover{background:#243B2C;}
+.btn.blue{background:var(--indigo);border-color:var(--indigo);color:var(--rice);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.sec-head{text-align:center;margin-bottom:34px;}
+.sec-head .tag,.page-head .tag{display:inline-block;border:1.5px solid var(--indigo);color:var(--indigo);font-size:12px;letter-spacing:.4em;padding:4px 16px;}
+.sec-head h2{font-size:clamp(24px,3.6vw,32px);font-weight:900;letter-spacing:.14em;margin-top:12px;}
+.sec-head p{font-size:14px;color:var(--grey);letter-spacing:.1em;margin-top:4px;}
+section{padding:72px 0;}
+.page-head{text-align:center;margin-bottom:36px;}
+.page-head h1{font-size:clamp(26px,4vw,34px);font-weight:900;letter-spacing:.14em;margin-top:12px;}
+.page-head p{font-size:14px;color:var(--grey);margin-top:4px;}
+.ph{border:2px solid var(--ink);background:repeating-linear-gradient(-45deg,var(--kraft),var(--kraft) 8px,var(--rice-lt) 8px,var(--rice-lt) 16px);display:flex;align-items:center;justify-content:center;color:var(--grey);font-size:12.5px;letter-spacing:.22em;}
+.center{text-align:center;}
+.fine{font-size:12.5px;color:var(--grey);line-height:1.8;}
+.crumb{font-size:13px;color:var(--grey);letter-spacing:.1em;margin-bottom:24px;}
+.crumb a{text-decoration:underline;text-underline-offset:4px;cursor:pointer;}
+.empty{text-align:center;color:var(--grey);padding:60px 0;grid-column:1/-1;}
+
+/* ── 導覽列 ── */
+.site-nav{border-bottom:2px solid var(--ink);background:var(--rice);position:sticky;top:0;z-index:50;}
+.site-nav .inner{max-width:1060px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;}
+.brand .mark{width:38px;height:38px;border:2.5px solid var(--seal);border-radius:50%;color:var(--seal);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;letter-spacing:0;transform:rotate(6deg);flex:none;}
+.brand b{font-size:19px;font-weight:900;letter-spacing:.15em;white-space:nowrap;}
+.brand-logo{height:46px;width:auto;display:block;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+/* 跳到主要內容：平常收在畫面外，Tab 聚焦時才滑進來。
+   不用 display:none，那樣鍵盤根本聚焦不到，等於沒做。 */
+.skip-link{position:fixed;top:-100px;left:12px;z-index:9999;background:var(--ink);color:var(--rice);
+  font-size:14px;letter-spacing:.16em;padding:12px 20px;text-decoration:none;border:2px solid var(--ink);
+  transition:top .18s ease;}
+.skip-link:focus{top:12px;outline:3px solid var(--indigo);outline-offset:2px;}
+@media(prefers-reduced-motion:reduce){.skip-link{transition:none;}}
+/* 落點本身不該佔位，也不該在被聚焦時畫出一個框 */
+#main{outline:none;}
+.hero-banner{display:block;width:100%;border-bottom:2px solid var(--ink);}
+.hero-banner img{display:block;width:100%;height:auto;}
+.site-nav ul{display:none;list-style:none;align-items:center;gap:9px;}
+@media(min-width:960px){.site-nav ul{display:flex;}}
+.site-nav ul a{text-decoration:none;font-size:13.5px;letter-spacing:.1em;white-space:nowrap;}
+/* 選單連結做成按鈕：墨色框＋米色底，跟站內其他按鈕同一套語言 */
+.site-nav ul a:not(.cta){display:inline-block;border:2px solid var(--ink);background:var(--rice-lt);padding:7px 13px;font-weight:600;}
+.site-nav ul a.cta{background:var(--seal);color:var(--rice);padding:8px 18px;border:2px solid var(--seal);font-weight:700;}
+.cart-link{cursor:pointer;user-select:none;}
+.cart-link b{color:var(--seal);}
+.menu-x{display:block;background:none;border:none;font-size:13px;letter-spacing:.3em;color:var(--grey);cursor:pointer;padding:14px 12px;margin-right:-12px;}
+@media(min-width:960px){.menu-x{display:none;}}
+.m-menu{display:grid;grid-template-columns:1fr 1fr;gap:9px;border-top:2px dashed var(--kraft);padding:14px 16px 18px;}
+@media(min-width:960px){.m-menu{display:none!important;}}
+.m-menu a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:56px;padding:10px 8px;text-decoration:none;font-size:14.5px;letter-spacing:.12em;border:2px solid var(--ink);background:var(--rice-lt);font-weight:600;line-height:1.5;}
+.m-menu a.cta{grid-column:1 / -1;background:var(--seal);color:var(--rice);font-weight:700;border-color:var(--seal);min-height:52px;letter-spacing:.18em;}
+
+/* ── Footer ── */
+.site-footer{border-top:2px solid var(--ink);background:var(--ink);color:var(--rice);}
+.site-footer .inner{max-width:1060px;margin:0 auto;padding:44px 20px 36px;}
+.site-footer .cols{display:flex;flex-wrap:wrap;gap:32px;justify-content:space-between;align-items:flex-start;}
+.site-footer .brandline b{font-size:20px;font-weight:900;letter-spacing:.2em;}
+.site-footer .brandline p{font-size:13px;color:#C7BDA5;margin-top:6px;letter-spacing:.1em;}
+.site-footer ul{list-style:none;display:flex;gap:20px;flex-wrap:wrap;font-size:13.5px;letter-spacing:.15em;}
+/* 頁尾連結的點擊區。
+   實測 320px 手機上，這些連結高度只有 18 到 20px，
+   WCAG 2.2 的 2.5.8 最低要求是 24×24——手指按不準，會誤觸旁邊那條。
+   用 inline-block ＋ 上下 padding 把可點範圍撐到 30px 以上，
+   而不是改字級：字放大會擠壞頁尾三欄的排版。
+   負的 margin 抵銷 padding，所以行距與視覺位置一模一樣，沒有跑版。 */
+.site-footer a{text-decoration:none;display:inline-block;padding:6px 2px;margin:-6px 0;}
+/* 營業人資訊：商號、統編、地址（法規要求明文揭露） */
+.site-footer .biz-info{margin-top:26px;font-style:normal;font-size:12.5px;color:#A89C82;letter-spacing:.08em;line-height:2;display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline;}
+.site-footer .biz-info b{color:var(--rice);font-weight:700;letter-spacing:.16em;}
+.site-footer .fine-row{margin-top:18px;padding-top:18px;border-top:1px solid #5A5142;font-size:12px;color:#A89C82;letter-spacing:.1em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+
+/* ── 首頁 HERO ── */
+.hero{padding:0;border-bottom:2px solid var(--ink);}
+.hero .inner{max-width:1060px;margin:0 auto;padding:56px 20px 60px;position:relative;}
+@media(min-width:820px){.hero .inner{display:flex;gap:48px;align-items:center;padding:72px 20px 76px;}}
+.hero .vtitle{writing-mode:vertical-rl;font-size:clamp(42px,6.4vw,72px);font-weight:900;letter-spacing:.2em;line-height:1.28;flex:none;}
+.hero .vtitle small{font-size:15px;letter-spacing:.42em;color:var(--seal);font-weight:600;}
+.hero .mid{flex:1;margin-top:26px;}
+@media(min-width:820px){.hero .mid{margin-top:0;}}
+.origin{display:inline-block;border:1.5px solid var(--indigo);color:var(--indigo);font-size:12px;letter-spacing:.38em;padding:5px 15px;margin-bottom:18px;}
+.hero h1{font-size:clamp(23px,3.4vw,31px);font-weight:900;letter-spacing:.1em;line-height:1.85;}
+.hero h1 em{font-style:normal;color:var(--seal);}
+.hero .dek{font-size:15.5px;margin:16px 0 30px;max-width:460px;}
+.seal-badge{flex:none;width:128px;height:128px;border:3px solid var(--seal);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--seal);gap:2px;margin:32px auto 0;transform:rotate(6deg);}
+@media(min-width:820px){.hero .seal-badge{margin:0;}}
+.seal-badge b{font-size:26px;letter-spacing:.1em;}
+.seal-badge span{font-size:10px;letter-spacing:.32em;}
+.seal-badge .gold{color:var(--gold);font-size:11px;letter-spacing:.22em;}
+.hero .net{position:absolute;bottom:16px;right:24px;font-size:11px;letter-spacing:.26em;color:var(--grey);display:none;}
+@media(min-width:820px){.hero .net{display:block;}}
+
+/* ── 周邊 / 商店卡片 ── */
+.shop-sec{background:var(--rice-lt);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);}
+/* minmax(0,1fr)：裸 1fr 的最小尺寸是內容寬度，商品標題一長就把軌道撐開，窄螢幕會跑版 */
+.prod-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+@media(min-width:820px){.prod-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;}}
+.prod-grid.home{grid-template-columns:1fr;}
+@media(min-width:640px){.prod-grid.home{grid-template-columns:repeat(3,minmax(0,1fr));}}
+.prod{border:2px solid var(--ink);background:var(--rice-lt);cursor:pointer;position:relative;transition:transform .15s;text-decoration:none;display:block;}
+.prod:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.prod .img{height:170px;border:none;border-bottom:2px solid var(--ink);}
+.prod.big .img{height:210px;}
+.prod .cat-tag{position:absolute;top:10px;left:10px;background:var(--indigo);color:var(--rice);font-size:11px;letter-spacing:.22em;padding:2px 9px;z-index:1;}
+.prod .oos{position:absolute;top:10px;right:10px;background:var(--grey);color:var(--rice);font-size:11px;letter-spacing:.15em;padding:2px 9px;z-index:1;}
+.prod .body{padding:12px 14px 14px;}
+.prod b{display:block;font-size:15px;font-weight:700;line-height:1.6;}
+.prod .price{font-family:var(--font-sans),"Noto Sans TC";font-weight:700;color:var(--seal);margin-top:4px;}
+
+/* ── 贊助 ── */
+.support-sec{border-top:2px solid var(--ink);}
+.box{border:2px solid var(--ink);background:var(--rice-lt);box-shadow:8px 8px 0 rgba(58,50,38,.14);}
+.box .inner{padding:36px 22px;}
+@media(min-width:640px){.box .inner{padding:44px 48px;}}
+.support-box{max-width:640px;margin:0 auto;}
+.support-box h2{font-size:clamp(26px,4vw,32px);font-weight:900;letter-spacing:.14em;text-align:center;}
+.support-box .lead{text-align:center;font-size:14.5px;color:var(--grey);margin:10px 0 30px;letter-spacing:.06em;}
+/* 給觀眾的信：贊助引言的排版（首頁贊助區＋贊助頁共用），手機優先、字級略小 */
+.lead-letter{max-width:33em;margin:18px auto 30px;text-align:left;}
+.lead-letter p{font-size:13px;line-height:1.8;letter-spacing:.01em;color:var(--ink);margin:0 0 .9em;}
+@media(min-width:640px){.lead-letter p{font-size:14px;line-height:1.9;letter-spacing:.02em;}}
+.lead-letter p:last-of-type{margin-bottom:0;}
+.lead-letter .closing{text-align:center;color:var(--seal);font-weight:700;letter-spacing:.12em;margin-top:1.6em;}
+.lead-letter .sig{text-align:right;color:var(--grey);font-size:12.5px;letter-spacing:.2em;margin-top:12px;}
+.lead-letter.single{text-align:center;}
+.lead-letter.single p{color:var(--grey);}
+/* 版本二：復古信箋卡片 */
+.lead-letter.v2{border:1.5px solid var(--ink);background:var(--rice);padding:24px 18px 20px;box-shadow:5px 5px 0 rgba(58,50,38,.12);}
+@media(min-width:640px){.lead-letter.v2{padding:32px 34px 26px;}}
+.lead-letter.v2 .poem{border-left:3px solid var(--seal);padding-left:14px;}
+.lead-letter.v2 .closing{margin-top:1.4em;}
+.seal-sig{margin:14px 0 0 auto;width:52px;height:52px;border:2.5px solid var(--seal);border-radius:50%;color:var(--seal);display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(6deg);line-height:1.25;}
+.seal-sig b{font-size:13.5px;font-weight:900;letter-spacing:.08em;}
+.seal-sig span{font-size:9px;letter-spacing:.3em;padding-left:.3em;}
+/* 版本三：手機精簡（中段收合） */
+.lead-letter.v3 details{margin:0 0 1.1em;}
+.lead-letter.v3 summary{cursor:pointer;list-style:none;text-align:center;color:var(--indigo);font-size:12.5px;letter-spacing:.14em;text-decoration:underline;text-underline-offset:4px;padding:2px 0 6px;}
+.lead-letter.v3 summary::-webkit-details-marker{display:none;}
+.lead-letter.v3 details[open] summary{color:var(--grey);}
+.lead-letter.v3 details p:first-of-type{margin-top:.6em;}
+.lead-letter.v3 .poem{border-left:3px solid var(--seal);padding-left:14px;}
+.mode-note{text-align:center;font-size:13px;color:var(--grey);margin-bottom:22px;}
+.mode-note a{text-decoration:underline;text-underline-offset:4px;cursor:pointer;color:var(--indigo);}
+.amounts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+@media(min-width:560px){.amounts{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.amt{border:2px solid var(--ink);background:var(--rice);padding:16px 6px;text-align:center;cursor:pointer;user-select:none;transition:transform .15s,box-shadow .15s;}
+.amt:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.amt .sans{font-size:20px;font-weight:700;display:block;}
+.amt.on{background:var(--seal);border-color:var(--seal);color:var(--rice);box-shadow:3px 3px 0 var(--ink);}
+.custom{margin-top:12px;display:flex;gap:10px;align-items:center;}
+.custom label{font-size:14px;letter-spacing:.1em;white-space:nowrap;font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+.custom input{flex:1;border:2px solid var(--ink);background:var(--rice);padding:10px 14px;font-size:16px;min-width:0;}
+.per-month{text-align:center;margin-top:20px;font-size:17px;font-weight:900;letter-spacing:.14em;}
+.per-month small{display:block;font-weight:400;font-family:var(--font-sans),"Noto Sans TC";font-size:12.5px;color:var(--grey);letter-spacing:.08em;margin-top:4px;}
+.divider{border:none;border-top:2px dashed var(--kraft);margin:32px 0;}
+/* ── 內建瀏覽器警示（FB／IG／LINE）：付款前提醒改用外部瀏覽器 ── */
+.wv-warn{border:2px solid var(--seal);background:var(--rice-lt);padding:14px 16px;margin:0 0 20px;}
+.wv-warn b{display:block;color:var(--seal);font-size:14.5px;letter-spacing:.06em;margin-bottom:8px;}
+.wv-warn p{font-size:13.5px;color:var(--ink);line-height:1.9;margin:0 0 8px;}
+.wv-copy{width:100%;border:2px solid var(--ink);background:var(--rice);color:var(--ink);
+  padding:10px 14px;font-size:14px;letter-spacing:.08em;cursor:pointer;font-family:inherit;}
+@media(hover:hover){.wv-copy:hover{background:var(--ink);color:var(--rice);}}
+/* 兩種複製 API 都被擋掉時的退路：網址直接秀出來讓人長按選取 */
+.wv-url{font-size:12.5px;color:var(--grey);line-height:1.8;margin:10px 0 0;}
+.wv-url span{display:block;margin-top:6px;padding:8px 10px;background:var(--rice);border:1.5px dashed var(--kraft);
+  font-size:12.5px;color:var(--ink);word-break:break-all;user-select:all;-webkit-user-select:all;}
+h3.f{font-size:16px;font-weight:900;letter-spacing:.25em;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+h3.f::after{content:"";flex:1;border-top:1px solid var(--kraft);}
+.pays{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+@media(min-width:560px){.pays{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.pay{border:2px solid var(--ink);background:var(--rice);padding:12px 6px;text-align:center;font-size:14px;letter-spacing:.08em;cursor:pointer;user-select:none;font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+.pay.on{background:var(--indigo);border-color:var(--indigo);color:var(--rice);}
+.pay.dis{opacity:.42;cursor:not-allowed;background:var(--rice);color:var(--ink);border-color:var(--grey);}
+/* 多元支付長條：占滿整排，支援錢包直接列在格子內 */
+/*
+ * 二選一分頁鈕（長期／單次）。
+ *
+ * 顏色一定要跟著「選中」走，不能跟著按鈕的身分走。
+ * 舊寫法把紅色寫死在 .long 上、選中只加一層內陰影，結果是不管選哪一個，
+ * 長期支持永遠是紅的、單次永遠是米色——客人點了單次，畫面看起來還是長期被選中，
+ * 他會以為自己要被每月扣款。這是會直接造成客訴與退刷的誤解，不是美感問題。
+ *
+ * 預設仍然是紅色的長期支持：進站時 monthly 為真，那顆本來就帶 .on。
+ */
+.mode-tab{border:2px solid var(--seal);background:var(--rice-lt);color:var(--ink);padding:13px 6px;text-align:center;font-size:15px;letter-spacing:.14em;font-weight:600;cursor:pointer;user-select:none;font-family:var(--font-sans),"Noto Sans TC",sans-serif;transition:background .15s,color .15s,transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s ease;}
+.mode-tab:hover{background:var(--kraft);}
+/* 選中：米袋紅實心，色票與全站主按鈕同一顆 var(--seal) */
+.mode-tab.on{background:var(--seal);border-color:var(--seal);color:var(--rice);box-shadow:inset 0 2px 6px rgba(0,0,0,.28);}
+.mode-tab.on:hover{background:#9C3423;}
+/* hover 跳動：與全站 .btn 同一套（浮起＋硬陰影＋彈跳曲線） */
+.mode-tab:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.mode-tab:active{transform:translate(1px,1px) scale(.97);box-shadow:none;}
+.mode-tab.on:hover{transform:translate(-3px,-3px);box-shadow:inset 0 2px 6px rgba(0,0,0,.28),4px 4px 0 var(--ink);}
+.pay.multi{display:block;margin-top:10px;padding:11px 8px;}
+.pay.multi b{display:block;font-weight:700;letter-spacing:.08em;}
+.pay.multi small{display:block;margin-top:3px;font-size:11.5px;letter-spacing:.03em;color:var(--grey);}
+.pay.multi.on small{color:var(--rice);opacity:.85;}
+/* 自訂金額：隱藏原生上下調節鈕（步進改由旁邊的 ±500 按鈕與方向鍵接手） */
+.no-spin::-webkit-outer-spin-button,.no-spin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.no-spin{-moz-appearance:textfield;appearance:textfield;}
+/* ±500 步進鈕：跟輸入框同列同高，窄螢幕也不換行 */
+.custom .amt-step{flex:none;width:44px;align-self:stretch;border:2px solid var(--ink);background:var(--rice-lt);font-size:18px;cursor:pointer;padding:0;}
+.custom .amt-step:active{background:var(--kraft);}
+.pay small{display:block;font-size:11px;letter-spacing:.05em;opacity:.75;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:14px;letter-spacing:.12em;margin-bottom:6px;font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+.field label em{font-style:normal;color:var(--seal);}
+.field input,.field textarea,.field select{width:100%;border:2px solid var(--ink);background:var(--rice);padding:11px 14px;font-size:15px;color:var(--ink);}
+/* 欄位提示：灰字，讓人一眼分辨是範例不是已填內容 */
+.field input::placeholder,.field textarea::placeholder{color:var(--grey);opacity:.75;}
+.field textarea{min-height:88px;resize:vertical;}
+.radio-row{display:flex;gap:10px;flex-wrap:wrap;}
+.radio-row .r{border:2px solid var(--ink);background:var(--rice);padding:9px 20px;font-size:14px;cursor:pointer;user-select:none;letter-spacing:.1em;font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+.radio-row .r.on{background:var(--ink);color:var(--rice);}
+/* 發票四選項：桌機照舊一排；手機兩欄兩列。
+   橫向捲的話「打統編」會被捲出畫面，而企業客戶找不到統編欄位是會直接關掉的。
+   直式四列又會把結帳按鈕推得太遠。 */
+@media(max-width:560px){
+  /* 站長 2026-09-03：手機四格一排，不要兩排 */
+  .radio-row.inv-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+  .radio-row.inv-row .r{padding:11px 2px;text-align:center;letter-spacing:0;font-size:13.5px;white-space:nowrap;}
+}
+/* 付款方式一排（贊助頁 .pays、購物車 .pay-row）：有幾個就平分幾格，手機也不換行 */
+.radio-row.pay-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;}
+.radio-row.pay-row .r{display:inline-flex;align-items:center;justify-content:center;padding:11px 6px;text-align:center;white-space:nowrap;}
+@media(max-width:560px){
+  .radio-row.pay-row{gap:6px;}
+  .radio-row.pay-row .r{padding:12px 2px;font-size:13px;letter-spacing:.02em;}
+  .pays{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;}
+  .pay{font-size:13px;letter-spacing:.02em;padding:12px 2px;}
+}
+/* 付款格直排：圖示在上、名稱在下（贊助頁 .pay 與購物車 .pay-row .r 共用） */
+.pay-stack{display:flex !important;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 4px;min-height:92px;}
+.pay-stack .pay-lab{font-size:13.5px;letter-spacing:.06em;white-space:nowrap;line-height:1.2;}
+/* 多元支付的五個錢包：一排五格，圖示在上名稱在下，手機也不換行 */
+.wallets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:8px;}
+.wallets .wallet{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;letter-spacing:0;line-height:1.2;white-space:nowrap;}
+/* 取貨方式：一排，超商在前；名稱與運費分兩行，手機才擠得下 */
+.radio-row.ship-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;}
+.radio-row.ship-row .r{padding:10px 6px;text-align:center;letter-spacing:.04em;line-height:1.35;}
+.radio-row.ship-row .r small{display:block;font-size:12px;opacity:.8;margin-top:2px;letter-spacing:0;}
+@media(max-width:560px){
+  .radio-row.ship-row{gap:6px;}
+  .radio-row.ship-row .r{padding:10px 4px;font-size:13px;}
+}
+.sub-f{display:none;border-left:3px solid var(--gold);padding:14px 0 2px 16px;margin-top:14px;}
+.sub-f.show{display:block;}
+.submit-row{text-align:center;margin-top:30px;}
+.support-links{text-align:center;margin-top:22px;font-size:13.5px;color:var(--grey);display:flex;justify-content:center;gap:26px;flex-wrap:wrap;}
+.support-links a{text-decoration:underline;text-underline-offset:4px;cursor:pointer;}
+.thanks-box h2{font-size:26px;font-weight:900;letter-spacing:.14em;margin-bottom:12px;}
+.thanks-box p{font-size:15px;max-width:420px;margin:0 auto 10px;color:var(--grey);}
+.thanks-box .seal-badge{margin:0 auto 26px;}
+
+/* ── 商店 ── */
+.filters{display:flex;gap:10px;justify-content:center;margin-bottom:32px;flex-wrap:wrap;align-items:center;}
+.filters .f{border:2px solid var(--ink);background:var(--rice);padding:8px 22px;font-size:14px;letter-spacing:.2em;cursor:pointer;user-select:none;font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+.filters .f.on{background:var(--ink);color:var(--rice);}
+.filters select{border:2px solid var(--ink);background:var(--rice);padding:9px 16px;font-family:var(--font-sans),"Noto Sans TC",sans-serif;font-size:14.5px;color:var(--ink);letter-spacing:.1em;}
+.filters .t{border:1.5px solid var(--indigo);color:var(--indigo);background:var(--rice);padding:5px 15px;font-size:13px;letter-spacing:.15em;cursor:pointer;user-select:none;font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+.filters .t.on{background:var(--indigo);color:var(--rice);}
+/* minmax(0,1fr) 不能省，單欄也一樣：圖組是橫向捲動容器，裡面六張投影片各佔 100% 寬。
+   1fr 的最小尺寸是 auto，會被那些投影片撐開，整個商品頁在手機橫向溢出——
+   品名的「無添加」被切掉、「立即購買」整顆跑到畫面外。
+   前一次批次修正只處理了 repeat(N,1fr)，漏掉這種單欄寫法。 */
+.detail{display:grid;grid-template-columns:minmax(0,1fr);gap:36px;}
+.detail > *{min-width:0;}
+/* align-items:start：格線項目預設會被拉成等高，圖片欄因此被右邊的文字長度撐高。
+   桌機文字多、手機文字少，同一張照片兩邊裁切範圍就不一樣。改成不拉伸。 */
+@media(min-width:820px){.detail{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start;}}
+.gallery .main{height:380px;margin-bottom:10px;}
+.gallery .thumbs{display:flex;gap:8px;}
+.gallery .thumbs .ph{height:72px;flex:1;cursor:pointer;}
+/* ── 商品圖組（可滑動）──
+   捲動容器本身就是輪播，沒有 JS 動畫；JS 只負責「現在第幾張」與點縮圖跳圖。
+
+   高度一律用 aspect-ratio 決定，不寫死 px：
+   高度只跟著寬度走，與旁邊欄位的內容長度無關，桌機與手機的裁切範圍才會一致。
+   選 1:1 的理由是商品照直式橫式都有（實際素材從 0.75:1 到 1.76:1），
+   正方形對兩種都最公允，也是電商列表最常見的規格。
+
+   .gallery 前綴是必要的：.gal-single 掛在 <img> 上，而 .img-fill 的 height:100%
+   定義在後面，特異性相同就由後者勝出，固定高度會被吃掉（原本就是這樣壞的）。 */
+.gallery .gal-single{aspect-ratio:1/1;height:auto;border:2px solid var(--ink);margin-bottom:10px;}
+.gal-box{position:relative;display:flex;aspect-ratio:1/1;border:2px solid var(--ink);margin-bottom:10px;
+  overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  /* contain：滑到最後一張再滑，不要把手勢傳給瀏覽器變成上一頁 */
+  overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;scroll-behavior:smooth;}
+@media(prefers-reduced-motion:reduce){.gal-box{scroll-behavior:auto;}}
+.gal-box::-webkit-scrollbar{display:none;}
+.gal-box:focus-visible{outline:3px solid var(--indigo);outline-offset:2px;}
+/* flex-basis 用 100%，再加 min-width 兜底：舊版 iOS Safari 對百分比寬的 snap 子元素會失效 */
+.gal-slide{flex:0 0 100%;min-width:100%;height:100%;scroll-snap-align:start;
+  /* 一甩到底是 WebKit 的預設行為，這行強迫它每一張都停 */
+  scroll-snap-stop:always;}
+.gal-count{position:absolute;right:10px;bottom:10px;background:rgba(58,50,38,.82);color:var(--rice);
+  font-size:12px;letter-spacing:.12em;padding:3px 10px;pointer-events:none;}
+.gal-thumbs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.gal-thumbs::-webkit-scrollbar{display:none;}
+.gal-thumbs button{flex:0 0 auto;width:72px;height:72px;padding:0;cursor:pointer;
+  border:2px solid var(--kraft);background:var(--rice);overflow:hidden;opacity:.55;transition:opacity .15s,border-color .15s;}
+.gal-thumbs button.on{border-color:var(--ink);opacity:1;}
+@media(hover:hover){.gal-thumbs button:hover{opacity:1;}}
+@media(max-width:640px){
+  /* 比例交給 aspect-ratio，這裡不再覆寫高度，手機與桌機才會是同一個裁切範圍 */
+  .gal-thumbs button{width:60px;height:60px;}
+}
+.d-info .cat-tag{display:inline-block;background:var(--indigo);color:var(--rice);font-size:11.5px;letter-spacing:.25em;padding:3px 12px;}
+.d-info h1{font-size:clamp(24px,3.4vw,30px);font-weight:900;letter-spacing:.08em;margin:12px 0 6px;line-height:1.7;}
+.d-info .price{font-family:var(--font-sans),"Noto Sans TC";font-size:26px;font-weight:700;color:var(--seal);}
+.d-info .price s{color:var(--grey);font-size:16px;font-weight:400;margin-left:10px;}
+.d-info .price em{font-style:normal;font-size:12.5px;color:var(--gold);letter-spacing:.15em;margin-left:8px;}
+.d-info .stock{font-size:13px;color:var(--grey);letter-spacing:.1em;margin:6px 0 20px;}
+.d-info .desc{font-size:15px;border-top:2px dashed var(--kraft);padding-top:18px;margin-bottom:22px;}
+.opt{margin-bottom:16px;}
+.opt label{display:block;font-size:14px;letter-spacing:.15em;margin-bottom:8px;}
+.opt .choices{display:flex;gap:8px;flex-wrap:wrap;}
+.opt .c{border:2px solid var(--ink);padding:8px 18px;font-size:14px;cursor:pointer;user-select:none;background:var(--rice);font-family:var(--font-sans),"Noto Sans TC",sans-serif;}
+.opt .c.on{background:var(--ink);color:var(--rice);}
+.opt .c.dis{opacity:.45;cursor:not-allowed;background:var(--rice-lt);border-color:var(--grey);}
+/* 額滿的規格收合。summary 的預設三角形拿掉自己畫，才跟站上其他元件同一個調性 */
+.opt .fold{margin-top:12px;}
+.opt .fold summary{display:inline-block;cursor:pointer;font-size:13px;color:var(--grey);letter-spacing:.08em;border-bottom:1px dashed var(--grey);padding-bottom:2px;list-style:none;}
+.opt .fold summary::-webkit-details-marker{display:none;}
+.opt .fold summary::after{content:" ▾";}
+.opt .fold[open] summary::after{content:" ▴";}
+.opt .fold .choices{margin-top:12px;}
+.opt .allfull{margin-top:12px;font-size:13.5px;color:var(--seal);line-height:1.9;}
+.qty{display:flex;align-items:center;gap:0;border:2px solid var(--ink);width:fit-content;}
+.qty button{width:42px;height:42px;border:none;background:var(--rice);font-size:20px;cursor:pointer;color:var(--ink);}
+.qty span{width:52px;text-align:center;font-family:var(--font-sans),"Noto Sans TC";font-weight:700;font-size:16px;}
+.d-actions{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;}
+.d-lower{max-width:760px;margin:64px auto 0;}
+.d-lower .sec-tt{text-align:center;margin-bottom:28px;}
+.d-lower .sec-tt span{display:inline-block;border:1.5px solid var(--indigo);color:var(--indigo);font-size:12px;letter-spacing:.4em;padding:4px 16px;}
+.story-block{margin-bottom:44px;}
+.story-block .ph{height:340px;margin-bottom:14px;}
+.story-block h2{font-size:19px;font-weight:900;letter-spacing:.1em;margin-bottom:8px;}
+/* pre-line：後台編輯時打的換行在前台也保留，問答式的段落才排得開 */
+.story-block p{font-size:15px;color:var(--ink);max-width:620px;white-space:pre-line;}
+.spec-table{border:2px solid var(--ink);background:var(--rice-lt);}
+.spec-table .row{display:flex;border-bottom:2px dashed var(--kraft);}
+.spec-table .row:last-child{border-bottom:none;}
+.spec-table .k{flex:0 0 120px;padding:12px 16px;font-size:13.5px;letter-spacing:.2em;color:var(--indigo);border-right:2px dashed var(--kraft);}
+.spec-table .v{flex:1;padding:12px 18px;font-size:14.5px;}
+.notice{margin-top:20px;border-left:3px solid var(--gold);padding:4px 0 4px 16px;font-size:13px;color:var(--grey);line-height:1.9;}
+.cart-table{border:2px solid var(--ink);background:var(--rice-lt);}
+.cart-row{display:flex;gap:14px;align-items:center;padding:16px 18px;border-bottom:2px dashed var(--kraft);flex-wrap:wrap;}
+.cart-row:last-child{border-bottom:none;}
+.cart-row .thumb{width:70px;height:70px;flex:none;border:2px solid var(--ink);object-fit:cover;}
+/* ── 免運進度（湊單誘因） ── */
+.freeship{border:2px dashed var(--gold);background:var(--rice);padding:14px 18px;margin-top:18px;}
+.freeship .fs-text{font-size:13.5px;letter-spacing:.04em;margin-bottom:9px;}
+.freeship .fs-text b{color:var(--seal);}
+.freeship .fs-text a{color:var(--indigo);text-decoration:underline;text-underline-offset:3px;}
+.freeship .fs-track{height:9px;border:1.5px solid var(--ink);background:var(--rice-lt);overflow:hidden;}
+.freeship .fs-track span{display:block;height:100%;background:repeating-linear-gradient(-45deg,var(--gold),var(--gold) 6px,#c69a45 6px 12px);transition:width .6s cubic-bezier(.22,1,.36,1);}
+.freeship.ok{border-style:solid;border-color:var(--seal);}
+.freeship.ok .fs-track span{background:repeating-linear-gradient(-45deg,var(--seal),var(--seal) 6px,#a03824 6px 12px);}
+/* ── 結帳信任列與湊單推薦 ── */
+.cart-trust{text-align:center;font-size:12px;color:var(--grey);line-height:1.9;margin-top:12px;letter-spacing:.03em;}
+.cart-trust a{color:var(--grey);text-decoration:underline;text-underline-offset:3px;}
+.cart-recs{margin-top:34px;}
+.cart-recs .h{font-size:13px;letter-spacing:.35em;color:var(--indigo);border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:14px;}
+.rec-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.rec{border:2px solid var(--ink);background:var(--rice-lt);text-decoration:none;color:inherit;padding-bottom:10px;transition:transform .15s,box-shadow .15s;}
+.rec:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.rec img{width:100%;height:90px;object-fit:cover;display:block;border-bottom:2px solid var(--ink);}
+.rec b{display:block;font-size:13px;line-height:1.6;padding:8px 10px 2px;}
+.rec .sans{display:block;padding:0 10px;font-size:13.5px;font-weight:700;color:var(--seal);}
+/* ── 手機 sticky 結帳列 ── */
+.cart-sticky{display:none;}
+@media(max-width:640px){
+  .rec-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .cart-sticky{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--rice-lt);border-top:2px solid var(--ink);padding:10px 14px;gap:12px;align-items:center;justify-content:space-between;box-shadow:0 -4px 12px rgba(58,50,38,.12);}
+  .cart-sticky .cs-total small{display:block;font-size:11px;color:var(--grey);letter-spacing:.08em;}
+  .cart-sticky .cs-total b{font-size:19px;color:var(--seal);}
+  .cart-sticky .btn{padding:11px 22px;}
+  body:has(.cart-sticky){padding-bottom:74px;}
+}
+/* 手機：商品頁購買按鈕滿版大目標、規格選項加高好點 */
+@media(max-width:640px){
+  .d-actions{position:sticky;bottom:10px;z-index:20;}
+  .d-actions .btn{flex:1;text-align:center;padding:15px 10px;box-shadow:0 4px 14px rgba(58,50,38,.18);}
+  .opt .c{padding:11px 16px;}
+  .pay{padding:14px 6px;}
+  .amt{padding:18px 6px;}
+}
+.cart-row .n{flex:1;min-width:140px;}
+.cart-row .n b{font-size:15px;}
+.cart-row .n small{display:block;color:var(--grey);font-size:12.5px;}
+.cart-row .rm{color:var(--seal);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;background:none;border:none;}
+.cart-row .sub-p{font-family:var(--font-sans),"Noto Sans TC";font-weight:700;white-space:nowrap;}
+.cart-row .qty{transform:scale(.85);}
+.totals{max-width:360px;margin:24px 0 0 auto;font-size:15px;}
+.totals .row{display:flex;justify-content:space-between;padding:6px 0;}
+.totals .row.grand{border-top:2px solid var(--ink);margin-top:8px;padding-top:12px;font-size:18px;font-weight:900;}
+.totals .sans{font-weight:700;}
+.form-grid{display:grid;grid-template-columns:1fr;gap:0 24px;}
+@media(min-width:640px){.form-grid{grid-template-columns:1fr 1fr;}}
+.field.full{grid-column:1/-1;}
+.status-track{display:flex;gap:0;margin:26px 0;border:2px solid var(--ink);}
+.status-track span{flex:1;text-align:center;padding:12px 4px;font-size:13px;letter-spacing:.1em;border-right:2px dashed var(--kraft);color:var(--grey);}
+.status-track span:last-child{border-right:none;}
+.status-track span.on{background:var(--indigo);color:var(--rice);font-weight:700;}
+
+/* ── 文章列表 ── */
+.cats{display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;}
+.cats .c{border:2px solid var(--ink);background:var(--rice);padding:8px 22px;font-size:14.5px;letter-spacing:.25em;cursor:pointer;user-select:none;text-decoration:none;}
+.cats .c.on{background:var(--ink);color:var(--rice);}
+.tags-row{display:flex;gap:8px;justify-content:center;margin-bottom:36px;flex-wrap:wrap;}
+.tags-row .t{border:1.5px solid var(--indigo);color:var(--indigo);background:var(--rice);padding:3px 14px;font-size:12.5px;letter-spacing:.15em;cursor:pointer;user-select:none;text-decoration:none;}
+.tags-row .t.on{background:var(--indigo);color:var(--rice);}
+.art-grid{display:grid;grid-template-columns:1fr;gap:20px;}
+@media(min-width:640px){.art-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(min-width:960px){.art-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+.card{border:2px solid var(--ink);background:var(--rice-lt);text-decoration:none;display:flex;flex-direction:column;transition:transform .15s;position:relative;}
+.card:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.card .cover{height:180px;border:none;border-bottom:2px solid var(--ink);}
+.card .cat-tag{position:absolute;top:12px;left:12px;background:var(--seal);color:var(--rice);font-size:11.5px;letter-spacing:.25em;padding:3px 11px;font-weight:700;z-index:1;}
+.card .body{padding:16px 18px 18px;flex:1;display:flex;flex-direction:column;}
+.card h2{font-size:18px;font-weight:900;letter-spacing:.04em;line-height:1.7;}
+.card p{font-size:13.5px;color:var(--grey);margin-top:8px;flex:1;}
+.card .meta{margin-top:14px;padding-top:12px;border-top:2px dashed var(--kraft);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--grey);letter-spacing:.08em;}
+.card .meta .tt{display:flex;gap:6px;flex-wrap:wrap;}
+.card .meta .tt span{border:1px solid var(--indigo);color:var(--indigo);padding:1px 8px;font-size:11px;}
+
+/* ── 文章頁 ── */
+#progress{position:fixed;top:0;left:0;height:5px;background:var(--seal);width:0;z-index:100;}
+.art-layout{max-width:1020px;margin:0 auto;padding:52px 20px 160px;display:grid;grid-template-columns:1fr;gap:48px;}
+/* 桌機：目錄欄＋固定寬內文整組置中（justify-content:center），
+   內文欄寬 = article.post 的 max-width，右側不再多出一條沒人用的空白（站長回報「歪一邊」） */
+@media(min-width:920px){.art-layout{grid-template-columns:220px 640px;justify-content:center;}}
+.toc{display:none;}
+@media(min-width:920px){
+  .toc{display:block;position:sticky;top:96px;align-self:start;border:2px solid var(--ink);background:var(--rice-lt);padding:20px 20px;}
+  .toc .h{font-size:13px;letter-spacing:.35em;color:var(--indigo);border-bottom:2px dashed var(--kraft);padding-bottom:10px;margin-bottom:12px;}
+  .toc a{display:block;font-size:13.5px;text-decoration:none;padding:5px 0;color:var(--grey);line-height:1.6;}
+  .toc a.on{color:var(--seal);font-weight:700;}
+}
+/* 內文行高收緊、字距放寬：長篇故事讀起來比較不會鬆散，
+   字距與 h2 的 .1em 呼應，維持活版印刷的疏朗感 */
+article.post{max-width:640px;line-height:1.6;letter-spacing:.08em;min-width:0;overflow-wrap:break-word;}
+/* 只在標點處換行：短句在 lib/markdown.ts 被包成 .nb（見那裡的說明）。
+   360px 以下的極窄螢幕解除，寧可斷得醜也不要撐出水平捲軸。 */
+.nb{white-space:nowrap;}
+@media(max-width:359px){.nb{white-space:normal;}}
+article.post .cat-tag{display:inline-block;background:var(--seal);color:var(--rice);font-size:12px;letter-spacing:.3em;padding:4px 14px;font-weight:700;}
+article.post h1{font-size:clamp(27px,4.6vw,38px);font-weight:900;letter-spacing:.06em;line-height:1.7;margin:16px 0 8px;}
+article.post .meta{font-size:13px;color:var(--grey);letter-spacing:.12em;margin-bottom:32px;padding-bottom:16px;border-bottom:3px double var(--ink);display:flex;gap:18px;flex-wrap:wrap;}
+/* 標題不能用 flex：文字會變成匿名 flex item，不會縮到可用寬度以下就換行，
+   標題一長就整條溢出撐出水平捲軸。改成 block ＋ 絕對定位的方塊。 */
+article.post h2{font-size:23px;font-weight:900;letter-spacing:.1em;margin:2.2em 0 .8em;position:relative;padding-left:26px;scroll-margin-top:96px;}
+article.post h2::before{content:"";position:absolute;left:0;top:.62em;width:14px;height:14px;background:var(--indigo);}
+article.post h3{font-size:19px;font-weight:900;letter-spacing:.08em;margin:1.8em 0 .6em;}
+article.post p{font-size:16.5px;margin-bottom:1.5em;}
+article.post ul,article.post ol{margin:0 0 1.5em 1.4em;font-size:16.5px;}
+article.post img{max-width:100%;border:2px solid var(--ink);}
+article.post blockquote{margin:2.4em 0;border:2px solid var(--indigo);padding:22px 26px;position:relative;}
+article.post blockquote::before{content:"物產小標";position:absolute;top:-12px;left:18px;background:var(--rice);padding:0 8px;font-size:11px;letter-spacing:.3em;color:var(--indigo);}
+article.post blockquote p{color:var(--indigo);font-size:18px;font-weight:600;margin:0;line-height:1.7;}
+.related{margin-top:4em;border-top:2px solid var(--ink);padding-top:2em;}
+.related .h{font-size:15px;font-weight:900;letter-spacing:.3em;margin-bottom:18px;}
+.rel-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:640px){.rel-grid{grid-template-columns:1fr 1fr;}}
+.rel{border:2px solid var(--ink);background:var(--rice-lt);text-decoration:none;padding:16px 18px;display:block;}
+.rel small{font-size:11.5px;letter-spacing:.25em;color:var(--seal);font-weight:700;}
+.rel b{display:block;font-size:15.5px;line-height:1.7;margin-top:4px;}
+.sticky-cta{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:var(--rice);z-index:60;border-top:3px solid var(--seal);padding-bottom:env(safe-area-inset-bottom);}
+.sticky-cta .inner{max-width:1020px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right));}
+.sticky-cta span{font-size:14px;letter-spacing:.06em;}
+.sticky-cta a{background:var(--seal);color:var(--rice);text-decoration:none;font-weight:700;letter-spacing:.2em;padding:11px 26px;font-size:14.5px;white-space:nowrap;}
+/* ── 貼條的雙鈕：長期支持離站、單次支持原地展開 ── */
+.sticky-btns{display:flex;gap:10px;flex:none;}
+.sticky-btns a,.sticky-btns button{padding:11px 20px;font-size:14.5px;letter-spacing:.16em;white-space:nowrap;
+  font-family:inherit;font-weight:700;cursor:pointer;}
+.sticky-btns a{background:var(--seal);color:var(--rice);text-decoration:none;}
+.sticky-btns button.once{background:transparent;color:var(--rice);border:2px solid var(--rice);}
+@media(hover:hover){.sticky-btns button.once:hover{background:var(--rice);color:var(--ink);}}
+@media(max-width:520px){
+  /* 窄螢幕讓文字獨佔一行，兩顆鈕各半，不要擠成三欄 */
+  .sticky-cta .inner{gap:10px;}
+  .sticky-cta span{flex:1 0 100%;font-size:13px;}
+  .sticky-btns{flex:1 0 100%;}
+  .sticky-btns a,.sticky-btns button{flex:1;text-align:center;padding:11px 8px;letter-spacing:.1em;}
+}
+/* ── 單次支持的展開面板 ── */
+.sticky-sheet-wrap{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;}
+.sticky-sheet-bg{position:absolute;inset:0;background:rgba(58,50,38,.55);}
+.sticky-sheet{position:relative;width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;
+  background:var(--rice);border:2px solid var(--ink);border-bottom:none;}
+.sticky-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+  border-bottom:2px dashed var(--kraft);background:var(--rice-lt);flex:none;}
+.sticky-sheet-head b{font-size:15px;letter-spacing:.16em;}
+.sticky-sheet-head button{border:none;background:transparent;font-size:18px;cursor:pointer;color:var(--grey);
+  padding:0 4px;line-height:1;font-family:inherit;}
+.sticky-sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom));}
+
+/* ── 後台 ── */
+.adm{display:flex;min-height:100vh;background:var(--rice);}
+.adm-side{width:210px;flex:none;border-right:2px solid var(--ink);background:var(--rice-lt);padding:16px 0 12px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+.adm-side .logo{padding:0 22px 12px;border-bottom:2px dashed var(--kraft);margin-bottom:10px;}
+.adm-side .logo img{display:block;width:108px;margin-bottom:4px;}
+.adm-side .logo b{font-size:17px;font-weight:900;letter-spacing:.12em;}
+.adm-side .logo small{display:block;font-size:11px;color:var(--grey);letter-spacing:.2em;margin-top:2px;}
+/* 可捲動是保險：選單項目再增加也不會有人看不到最下面那幾個。
+   原本沒有這一條，超過螢幕高度的項目會直接被切掉而且捲不到。 */
+.adm-links{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
+.adm-group{display:flex;flex-direction:column;}
+.adm-group + .adm-group{margin-top:7px;padding-top:6px;border-top:1px dashed var(--kraft);}
+.adm-group-t{font-size:10px;letter-spacing:.24em;color:var(--grey);padding:2px 22px 2px;}
+.adm-burger{display:none;border:2px solid var(--ink);background:var(--rice);font-size:20px;line-height:1;padding:6px 11px;cursor:pointer;}
+.adm-side a{display:block;padding:6px 22px;text-decoration:none;font-size:13.5px;letter-spacing:.1em;line-height:1.5;}
+.adm-side a.on{background:var(--ink);color:var(--rice);font-weight:700;}
+.adm-side .out{margin-top:auto;padding:10px 22px 0;border-top:2px dashed var(--kraft);}
+.adm-main{flex:1;padding:36px 32px 80px;min-width:0;}
+.adm-main h1{font-size:24px;font-weight:900;letter-spacing:.12em;margin-bottom:6px;}
+.adm-main .sub{font-size:13px;color:var(--grey);margin-bottom:26px;}
+.adm-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;}
+.adm-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+/* 用 div 排的列式清單（付款連結、企業訂購）：一列一條虛線，跟表格同一套邊框 */
+.adm-table > .adm-row{border-bottom:1px dashed var(--kraft);}
+.adm-table > .adm-row:last-child{border-bottom:none;}
+/* 長表單的儲存列黏在底部（網站設定、文案信件）：捲到哪都按得到，不用拉到最下面 */
+.adm-form .sticky-save,.sticky-save{position:sticky;bottom:0;z-index:5;background:var(--rice);padding:14px 0;border-top:2px dashed var(--kraft);margin-top:22px;}
+@media(min-width:720px){.adm-3col .field.span2{grid-column:span 2;}}
+/* 夥伴管理卡片：預設收合，避免誤觸「重新產生連結」「停用」 */
+.ptn-card summary::-webkit-details-marker{display:none;}
+.ptn-card[open] summary{border-bottom:1px dashed var(--kraft);padding-bottom:10px;}
+
+/* 側欄徽章與手機底部快捷列 */
+.adm-badge{display:inline-block;min-width:20px;text-align:center;margin-left:8px;padding:1px 6px;
+  font-size:11.5px;font-weight:700;border-radius:10px;background:var(--seal);color:var(--rice);vertical-align:1px;}
+.adm-bottom{display:none;}
+@media(max-width:840px){
+  /*
+   * 手機底部快捷列。選擇器一律加 .adm-side 前綴：這條列掛在側欄 <aside> 裡面，
+   * 而 `.adm-side a`（兩個 class 的 .adm-side a.on 更強）會蓋掉這裡的 flex 與字色，
+   * 結果是三顆連結變成淺色字配淺色底、整個看不見，只有帶 .on 的那顆因為
+   * 被染成深底淺字才看得到。實測踩過，不要把前綴拿掉。
+   */
+  .adm-side .adm-bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+    background:var(--ink);border-top:2px solid var(--ink);}
+  .adm-side .adm-bottom a{display:flex;align-items:center;justify-content:center;
+    flex:1;text-align:center;padding:14px 4px calc(14px + env(safe-area-inset-bottom));
+    color:var(--rice);background:transparent;text-decoration:none;
+    font-size:13.5px;letter-spacing:.1em;line-height:1;position:relative;}
+  .adm-side .adm-bottom a.on{background:var(--seal);color:var(--rice);font-weight:700;}
+  .adm-side .adm-bottom .adm-badge{position:absolute;top:5px;right:14%;margin:0;}
+  /* 選單展開時把快捷列收掉。實測：選單捲到底，「看前台」「登出」剛好被這條
+     固定在底部的列蓋住（列高 52px 加 iPhone 的 34px 安全區，選單底部留白只有 44px）。
+     選單裡本來就有這四顆，展開時不需要兩份，收掉比硬墊留白乾淨。 */
+  .adm-side.open .adm-bottom{display:none;}
+  /* 內容底部讓位，不被快捷列蓋住 */
+  .adm-main{padding-bottom:88px;}
+}
+
+/* 後台頁首分頁列：相關頁面合併後的互切入口 */
+.adm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2px solid var(--ink);padding-bottom:0;}
+.adm-tabs .t{display:inline-block;padding:8px 18px;font-size:13.5px;letter-spacing:.08em;border:2px solid var(--ink);border-bottom:none;background:var(--rice);color:var(--ink);text-decoration:none;}
+.adm-tabs .t.on{background:var(--ink);color:var(--rice);font-weight:700;}
+.adm-tabs .t:hover{background:var(--rice-lt);}
+.adm-tabs .t.on:hover{background:var(--ink);}
+.adm-table{width:100%;border:2px solid var(--ink);background:var(--rice-lt);border-collapse:collapse;}
+.adm-table th{background:var(--ink);color:var(--rice);font-size:12.5px;letter-spacing:.2em;padding:10px 14px;text-align:left;font-weight:700;white-space:nowrap;}
+.adm-table td{padding:10px 14px;border-bottom:1px dashed var(--kraft);font-size:14px;vertical-align:middle;}
+.adm-table tr:last-child td{border-bottom:none;}
+.adm-table a{color:var(--indigo);}
+.badge{display:inline-block;font-size:11.5px;letter-spacing:.12em;padding:2px 10px;border:1.5px solid var(--ink);white-space:nowrap;}
+.badge.green{border-color:#4A6B2C;color:#4A6B2C;}
+.badge.red{border-color:var(--seal);color:var(--seal);}
+.badge.blue{border-color:var(--indigo);color:var(--indigo);}
+.badge.grey{border-color:var(--grey);color:var(--grey);}
+.badge.gold{border-color:var(--gold);color:var(--gold);}
+/* 後台置頂名單的 ▲▼ */
+.sort-btn{font-size:11px;line-height:1;padding:3px 6px;border:1.5px solid var(--ink);background:transparent;cursor:pointer;}
+.sort-btn:disabled{opacity:.3;cursor:default;}
+.adm-form{max-width:820px;}
+/*
+ * 付款方式：商店與贊助兩張卡並排，每一列是「名稱＋右側開關」。
+ * 為什麼不用原本那排小勾選框：六個方式擠成一行時，勾了哪些要一個一個看；
+ * 而且改成兩組之後會變十二個，一定看不出哪個屬於哪邊。
+ * 整列可點（label 包住 input），手機上不必瞄準小方框。
+ */
+.pm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.pm-card{border:2px solid var(--ink);background:#FFFDF6;}
+.pm-head{padding:11px 14px;border-bottom:2px solid var(--ink);background:var(--rice-lt);}
+.pm-head b{font-size:15px;letter-spacing:.08em;}
+.pm-head span{display:block;font-size:12px;color:var(--grey);margin-top:2px;letter-spacing:.04em;}
+.pm-row{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-top:1px solid var(--kraft);user-select:none;}
+.pm-card .pm-row:first-of-type{border-top:none;}
+.pm-row:hover{background:var(--rice-lt);}
+.pm-row>span{flex:1;font-size:14.5px;}
+/* 真正的 checkbox 藏起來但仍在無障礙樹裡（鍵盤 Tab 得到、螢幕閱讀器讀得到） */
+.pm-row input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;}
+.pm-sw{flex:none;width:42px;height:25px;border-radius:999px;background:var(--kraft);border:1.5px solid var(--ink);position:relative;transition:background .18s ease;}
+.pm-sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:999px;background:#FFFDF6;border:1.5px solid var(--ink);transition:transform .18s cubic-bezier(.34,1.4,.64,1);}
+.pm-row input:checked+.pm-sw{background:var(--seal);}
+.pm-row input:checked+.pm-sw::after{transform:translateX(17px);}
+/* 鍵盤聚焦看得見（滑鼠點不會出現） */
+.pm-row input:focus-visible+.pm-sw{outline:2px solid var(--indigo);outline-offset:2px;}
+@media(max-width:560px){.pm-grid{grid-template-columns:1fr;}}
+@media(prefers-reduced-motion:reduce){.pm-sw,.pm-sw::after{transition:none;}}
+.adm-form .field input,.adm-form .field textarea,.adm-form .field select{background:#FFFDF6;}
+.adm-form textarea.code{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;line-height:1.8;min-height:320px;}
+.adm-2col{display:grid;grid-template-columns:1fr;gap:0 20px;}
+@media(min-width:720px){.adm-2col{grid-template-columns:1fr 1fr;}}
+.adm-3col{display:grid;grid-template-columns:1fr;gap:0 20px;}
+@media(min-width:720px){.adm-3col{grid-template-columns:1fr 1fr 1fr;}}
+.adm-actions{display:flex;gap:12px;margin-top:22px;align-items:center;flex-wrap:wrap;}
+.adm-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:32px;}
+@media(min-width:900px){.adm-cards{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));}}
+.adm-card{border:2px solid var(--ink);background:var(--rice-lt);padding:18px 20px;text-decoration:none;display:block;}
+.adm-card .k{font-size:12px;letter-spacing:.25em;color:var(--grey);}
+.adm-card .v{font-size:26px;font-weight:900;margin-top:4px;font-family:var(--font-sans),"Noto Sans TC";}
+.adm-card .note{font-size:11.5px;color:var(--grey);margin-top:5px;letter-spacing:.06em;line-height:1.7;}
+.adm-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.danger-link{color:var(--seal);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-size:13px;}
+.link-btn{color:var(--indigo);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-size:13px;padding:0;font-family:inherit;}
+
+/* 待聯絡清單。一張卡＝一個人，草稿直接放在卡片裡，不用點進去 */
+.contact-list{display:grid;gap:16px;}
+.contact-card{border:2px solid var(--ink);background:var(--rice-lt);padding:16px 18px 18px;box-shadow:5px 5px 0 rgba(58,50,38,.14);border-left-width:8px;}
+.contact-card.seal{border-left-color:var(--seal);}
+.contact-card.gold{border-left-color:var(--gold);}
+.contact-card.indigo{border-left-color:var(--indigo);}
+.cc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+.cc-name{font-size:17px;font-weight:900;letter-spacing:.06em;}
+.cc-phone{font-size:15px;margin-left:12px;color:var(--indigo);text-decoration:none;border-bottom:1px dashed var(--indigo);letter-spacing:.04em;}
+.cc-tag{font-size:11.5px;letter-spacing:.14em;padding:3px 10px;border:1.5px solid var(--ink);background:var(--rice);white-space:nowrap;}
+.cc-why{font-size:14.5px;margin-top:10px;font-weight:700;}
+.cc-detail{font-size:13px;color:var(--grey);margin-top:4px;line-height:1.8;}
+.cc-meta{font-size:12px;color:var(--grey);margin-top:6px;letter-spacing:.03em;word-break:break-all;}
+.cc-done{margin-top:10px;}
+
+/* 文章列表的置頂卡：橫跨整排，地圖在左、簡介在右，手機時上下疊 */
+/* 文章列表置頂那一格「哪裡有生態廚師？」（2026-09-09 縮成一般預覽卡）。
+   站長：他跟其他文章的預覽都一樣。原本 grid-column:1/-1 橫跨整排三格，
+   裡面塞了三項任務、引文、統計與頁腳標籤，等於在文章列表最上面放了一篇文章。
+   現在只留地圖當封面、標題、一段摘要與底部標籤，尺寸與其他卡片完全相同，
+   內容本體交給 /chefs 那一頁講。 */
+.card-pin .pin-map{display:flex;align-items:center;justify-content:center;background:var(--rice);padding:10px 8px;}
+.card-pin .pin-map svg{height:100%;width:auto;max-height:160px;}
+
+
+/* 首頁的內部連結區塊：低調但錨點文字要清楚 */
+.hublinks{padding:34px 0 44px;border-top:2px dashed var(--kraft);}
+.hublinks h2{font-size:14px;letter-spacing:.24em;color:var(--grey);font-weight:700;margin-bottom:14px;}
+.hublinks ul{list-style:none;display:grid;gap:9px;}
+.hublinks li{font-size:14px;line-height:1.9;color:var(--grey);}
+.hublinks a{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--kraft);}
+.hublinks a:hover{text-decoration-color:var(--seal);}
+
+/* 數據頁：第一屏就是那個數字，記者要截圖引用的就是這一塊 */
+.data-grid{display:grid;gap:16px;grid-template-columns:1fr;}
+@media(min-width:640px){.data-grid{grid-template-columns:1fr 1fr;}}
+.data-card{border:2px solid var(--ink);background:var(--rice-lt);padding:20px 22px;text-decoration:none;color:inherit;box-shadow:5px 5px 0 rgba(58,50,38,.14);transition:transform .15s,box-shadow .15s;}
+.data-card:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 rgba(58,50,38,.2);}
+.data-card .dv b{font-size:40px;font-weight:900;font-family:var(--font-sans),"Noto Sans TC";line-height:1;}
+.data-card .dv small{font-size:15px;margin-left:6px;color:var(--grey);}
+.data-card .dt{font-size:15px;font-weight:700;margin-top:10px;line-height:1.7;}
+.data-card .du{font-size:12px;color:var(--grey);margin-top:6px;}
+
+.data-hero{border:2px solid var(--ink);background:var(--rice-lt);padding:28px 26px 22px;box-shadow:6px 6px 0 rgba(58,50,38,.16);margin-bottom:34px;}
+.dh-num b{font-size:64px;font-weight:900;font-family:var(--font-sans),"Noto Sans TC";line-height:1;letter-spacing:-.02em;}
+.dh-num small{font-size:20px;margin-left:8px;color:var(--grey);}
+.dh-h{font-size:19px;font-weight:900;margin-top:14px;line-height:1.6;}
+.dh-d{font-size:15.5px;line-height:2;margin-top:10px;}
+.dh-meta{font-size:12.5px;color:var(--grey);margin-top:14px;padding-top:12px;border-top:1px dashed var(--kraft);line-height:1.9;}
+@media(max-width:520px){.dh-num b{font-size:48px;}.data-hero{padding:20px 18px 16px;}}
+
+.data-h2{font-size:17px;font-weight:900;letter-spacing:.06em;margin:32px 0 8px;}
+.data-method{font-size:15px;line-height:2.1;color:var(--ink);}
+.data-bars{display:grid;gap:8px;margin-top:6px;}
+.db-row{display:grid;grid-template-columns:5.5em 1fr 2.5em;align-items:center;gap:10px;font-size:14px;}
+.db-l{white-space:nowrap;}
+.db-bar{background:var(--rice);border:1.5px solid var(--ink);height:18px;position:relative;overflow:hidden;}
+.db-bar i{position:absolute;inset:0 auto 0 0;background:var(--indigo);display:block;}
+.db-n{text-align:right;font-weight:700;}
+.data-more{margin-top:38px;padding-top:16px;border-top:2px dashed var(--kraft);font-size:14px;color:var(--grey);}
+.data-more a{margin-left:10px;color:var(--indigo);}
+
+/* 精選摘要餌：定義段落要一眼看完，所以字級比內文大一點、行距鬆一點 */
+.snip{border:2px solid var(--ink);background:var(--rice-lt);padding:22px 24px 18px;margin-bottom:30px;box-shadow:5px 5px 0 rgba(58,50,38,.14);}
+/* 有照片時分兩欄：左邊直向滑動的照片欄、右邊內容。
+   照片欄高度鎖定跟著內容走（絕對定位撐滿），才不會被一疊照片把整個區塊拉到無限長 */
+@media(min-width:860px){
+  .snip.has-photos{display:grid;grid-template-columns:300px 1fr;gap:0 26px;}
+  .snip.has-photos .snip-photos{position:relative;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px;padding-right:4px;scrollbar-width:thin;max-height:640px;}
+  .snip.has-photos .snip-photos img{width:100%;height:auto;border:2px solid var(--ink);display:block;}
+}
+/* 手機：照片變成內容上方的橫向滑動列，帶 scroll-snap 一張一張停 */
+@media(max-width:859.98px){
+  .snip-photos{display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;margin-bottom:18px;padding-bottom:6px;}
+  .snip-photos img{height:180px;width:auto;border:2px solid var(--ink);scroll-snap-align:start;flex:none;}
+}
+.snip h2{font-size:20px;font-weight:900;letter-spacing:.06em;margin-bottom:12px;}
+.snip-def{font-size:17px;line-height:2;margin-bottom:20px;}
+.snip-src{font-size:13.5px;line-height:2;color:var(--grey);margin:-8px 0 18px;padding-bottom:14px;border-bottom:1px dashed var(--kraft);}
+.snip-src a{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--kraft);}
+.snip-sub{font-size:13px;letter-spacing:.2em;color:var(--grey);margin-bottom:10px;font-weight:700;}
+.snip-list{list-style:none;counter-reset:snip;display:grid;gap:16px;}
+/* 圓圈數字與標題用 grid 排在同一列，說明文字落在第二欄，
+   三個項目的縮排永遠一致（原本用絕對定位，行高一變就歪） */
+.snip-list li{counter-increment:snip;display:grid;grid-template-columns:26px 1fr;gap:2px 12px;align-items:start;}
+.snip-list li::before{grid-row:1/span 2;margin-top:1px;}
+.snip-list li::before{content:counter(snip);width:24px;height:24px;border:2px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;font-family:var(--font-sans),"Noto Sans TC";}
+.snip-quote{margin-top:20px;padding:14px 18px;border-left:4px solid var(--seal);background:var(--rice);}
+.snip-quote p{font-size:15px;line-height:2;margin:0;}
+.snip-quote cite{display:block;font-style:normal;font-size:12.5px;color:var(--grey);margin-top:8px;letter-spacing:.08em;}
+.snip-list h3{grid-column:2;font-size:15.5px;font-weight:800;line-height:24px;}
+.snip-list p{grid-column:2;font-size:14.5px;line-height:1.95;color:var(--grey);}
+@media(max-width:520px){.snip{padding:18px 16px 14px;}.snip h2{font-size:18px;}.snip-def{font-size:16px;}}
+
+/* 贈品訂單表單：一位一組格子，視覺上要分得開，不然填到第四位會看錯行 */
+.gift-row{border:2px solid var(--kraft);background:#FFFDF6;padding:12px 14px 2px;margin-bottom:14px;}
+.gift-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.gift-row-head b{font-size:13px;letter-spacing:.16em;}
+/* 這一列有問題：邊框轉紅並在標題下方直接寫缺什麼。
+   只在站長按過送出、或伺服器退回來之後才標，
+   還沒填完就滿江紅會讓人以為自己一直在做錯事。 */
+.gift-row.bad{border-color:#B8402C;background:#FFF7F5;}
+.gift-row-msg{margin:0 0 10px;font-size:13px;line-height:1.8;color:#B8402C;}
+.gift-paste{border:1px dashed var(--kraft);padding:10px 14px;margin-bottom:16px;}
+.gift-paste textarea{border:1px solid var(--kraft);background:#FFFDF6;color:inherit;}
+@media(max-width:560px){
+  .gift-paste{padding:8px 10px;}
+  .gift-row-head b{letter-spacing:.08em;}
+}
+
+/* 待聯絡卡片裡的「同一個人的其他紀錄」 */
+.cc-rel{margin-top:12px;border:1.5px solid var(--kraft);background:#FFFDF6;padding:10px 12px;}
+.cc-rel.warn{border-color:var(--seal);background:#FDF3F0;}
+.cc-rel-warn{display:block;color:var(--seal);font-size:13px;line-height:1.8;margin-bottom:8px;}
+.cc-rel-t{font-size:11px;letter-spacing:.2em;color:var(--grey);margin-bottom:6px;}
+.cc-rel-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px;padding:3px 0;}
+.cc-rel-by{color:var(--grey);}
+.cc-rel-at{color:var(--grey);margin-left:auto;}
+
+.sms-draft{margin-top:12px;border:2px dashed var(--kraft);background:#FFFDF6;padding:10px 12px;}
+.sms-draft textarea{width:100%;min-width:0;border:none;background:transparent;resize:vertical;font-size:14px;line-height:1.9;color:var(--ink);padding:0;}
+.sms-draft textarea:focus{outline:none;}
+.sms-acts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--kraft);}
+.sms-acts .btn{font-size:13px;padding:8px 16px;letter-spacing:.1em;}
+.sms-acts .btn.ghost{background:transparent;color:var(--grey);border-color:var(--kraft);}
+.sms-len{font-size:11.5px;color:var(--grey);margin-left:auto;}
+.sms-warn{font-size:12px;color:var(--seal);margin-top:8px;}
+.msg-err{border:2px solid var(--seal);color:var(--seal);background:var(--rice);padding:10px 16px;font-size:14px;margin-bottom:16px;}
+.msg-ok{border:2px solid #4A6B2C;color:#4A6B2C;background:var(--rice);padding:10px 16px;font-size:14px;margin-bottom:16px;}
+/* 後台四格數字輸入（贊助方案／加購金額） */
+.adm-4num{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+/* ── 後台手機版：側欄變頂部列＋漢堡選單 ── */
+@media(max-width:840px){
+  .adm{display:block;}
+  .adm-side{position:sticky;top:0;z-index:60;width:100%;height:auto;padding:0;border-right:none;border-bottom:2px solid var(--ink);}
+  .adm-side .logo{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:none;margin:0;}
+  .adm-side .logo img{width:92px;margin:0;}
+  .adm-side .logo small{margin:0;}
+  .adm-burger{display:block;margin-left:auto;}
+  /* 底部留白：最後一項（登出）不會貼齊螢幕邊緣，手機捲到底也好按 */
+  /* 手機後台選單：比照前台選單改兩欄格狀，一屏看得到全部 */
+  /* 高度用 dvh：iOS Safari 的 100vh 是「工具列收起後」的大視窗，選單最下面一排會躲在
+     工具列後面捲不出來。100dvh 跟著實際可見高度走；舊瀏覽器吃前一行的 vh 後備。
+     底部留白墊到安全區之外，最後一顆（登出）不會貼齊螢幕邊，也不會被瀏海機的 home 條擋到。 */
+  .adm-links{display:none;border-top:2px dashed var(--kraft);max-height:calc(100vh - 66px);max-height:calc(100dvh - 66px);overflow-y:auto;background:var(--rice-lt);padding:12px 12px calc(28px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+  .adm-side.open .adm-links{display:block;}
+  .adm-group{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .adm-group + .adm-group{margin-top:12px;padding-top:10px;}
+  .adm-group-t{grid-column:1 / -1;padding:0 2px 2px;font-size:11px;}
+  .adm-side a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:50px;padding:8px 6px;font-size:14.5px;border:2px solid var(--ink);background:var(--rice);}
+  .adm-side a.on{background:var(--ink);color:var(--rice);}
+  /* 「看前台」不屬於任何分組，跟上一組拉開一點距離，登出再隔一段 */
+  .adm-side .adm-links > a{margin-top:12px;}
+  .adm-side .out{grid-column:1 / -1;margin:10px 0 0;padding:0;}
+  .adm-side .out form{margin:0;}
+  .adm-side .out .danger-link{display:flex;align-items:center;justify-content:center;width:100%;min-height:46px;border:2px solid var(--seal);}
+  .adm-side .out .danger-link{font-size:15px;}
+  .adm-main{padding:20px 14px 70px;}
+  .adm-main h1{font-size:21px;}
+  .adm-main img{max-width:100%;}
+  .adm-table th{padding:9px 10px;}
+  .adm-table td{padding:9px 10px;font-size:13.5px;}
+  .adm-4num{grid-template-columns:1fr 1fr;}
+  /* 可按的東西至少 40px 高：底線式連結按鈕（刪除、取消訂閱…）原本 13px 零內距，
+     贊助頁一格裡疊三四顆，拇指分不出來按到哪一顆 */
+  .adm-main .danger-link,.adm-main .link-btn{display:inline-flex;align-items:center;min-height:40px;padding:6px 8px;margin:-6px -8px;font-size:14px;white-space:nowrap;}
+  .adm-main .sort-btn{min-width:36px;min-height:36px;font-size:13px;}
+  .adm-main .btn{min-height:44px;}
+  /* 統計卡兩欄並排時數字縮一號，NT$128,400 這種長度才不會頂到邊。
+     .stat .v 的原規則寫在這個區塊後面，要靠 .adm-main 前綴的權重才蓋得過 */
+  .adm-main .stat .v,.adm-main .adm-card .v{font-size:22px;}
+  .adm-main .stat .k{letter-spacing:.16em;}
+  /* 黏底儲存列要浮在快捷列上面（上面 .adm-form .sticky-save 那條的 bottom:0 權重相同，靠順序蓋過） */
+  .adm-main .sticky-save,.adm-main .adm-form .sticky-save{bottom:calc(52px + env(safe-area-inset-bottom));}
+  /* 輸入框滿 16px，iOS 才不會點下去自動放大畫面 */
+  input,textarea,select{font-size:16px;} /* 含搜尋、結帳、投稿、後台——漏一個就會聚焦時整頁被放大 */
+  .adm-form textarea.code{font-size:14.5px;}
+}
+
+/* ── 全站 hover 陰影動畫（統一互動語言） ──
+   注意：transform 對行內元素無效，所有標籤需 display:inline-block */
+.pillar,.prod,.card{transition:transform .15s,box-shadow .15s;}
+/* 導覽列文字標籤：浮起＋文字陰影 */
+.site-nav ul a:not(.cta){transition:transform .15s,box-shadow .15s,background .15s;}
+.site-nav ul a:not(.cta):hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink);background:var(--rice);}
+/* 導覽列填色按鈕與購物袋 */
+.site-nav ul a.cta,.cart-link{display:inline-block;transition:transform .15s,box-shadow .15s;}
+.site-nav ul a.cta:hover,.cart-link:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+/* 手機選單 */
+.m-menu a{transition:transform .15s;}
+.m-menu a:active{transform:scale(.96);}
+/* 各頁的框型標籤：分類、tag、付款方式、發票選項、商品規格 */
+.filters .f,.filters .t,.cats .c,.tags-row .t,.radio-row .r,.opt .c,.support-links a,.switch-once a,.mode-note a{display:inline-block;}
+.filters .f,.filters .t,.cats .c,.tags-row .t,.radio-row .r,.opt .c,.pay,.gmap-btn,.rel,.chef,.chef-item,.filters select,.amounts .amt{transition:transform .15s,box-shadow .15s;}
+.filters .f:hover,.filters .t:hover,.cats .c:hover,.tags-row .t:hover,.radio-row .r:hover,.opt .c:hover,.pay:not(.dis):hover,.gmap-btn:hover,.rel:hover,.filters select:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.gmap-btn{display:inline-block;}
+/* 地圖頁廚師卡（展開中已有固定陰影，不重複） */
+.chef:not(.open):hover{transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--ink);}
+/* 後台側欄與統計卡 */
+.adm-side a:not(.on){transition:transform .15s,text-shadow .15s;}
+.adm-side a:not(.on):hover{transform:translate(-2px,-2px);text-shadow:3px 3px 0 rgba(58,50,38,.22);}
+a.adm-card{transition:transform .15s,box-shadow .15s;}
+a.adm-card:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+/* 後台訂單/贊助的狀態籤（連結型） */
+a.badge{display:inline-block;transition:transform .15s,box-shadow .15s;}
+a.badge:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink);}
+
+/* ── 右側懸浮社群按鈕 ── */
+.social-float{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:55;display:flex;flex-direction:column;gap:10px;}
+.social-float a{width:44px;height:44px;border:2px solid var(--ink);background:var(--rice-lt);color:var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:3px 3px 0 rgba(58,50,38,.18);transition:transform .15s,box-shadow .15s,background .15s;}
+.social-float a:hover{transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--ink);background:var(--rice);}
+/* 手機上浮動鈕會壓到內文（頁尾已有社群連結），窄螢幕直接隱藏 */
+@media(max-width:840px){.social-float{display:none;}}
+
+/* ── 結帳加購贊助 ── */
+.addon-box{border:2px solid var(--seal);background:var(--rice);padding:18px 20px;margin-top:8px;}
+.addon-box .lead{font-size:14.5px;line-height:1.9;margin-bottom:12px;}
+.addon-box .lead b{color:var(--seal);}
+/* 加購六顆：手機三欄兩排（站長 2026-09-03），桌機一排六顆不留孤兒 */
+.addon-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+@media(min-width:560px){.addon-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;}}
+.addon-grid .a{border:2px solid var(--ink);background:var(--rice-lt);padding:10px 4px;text-align:center;cursor:pointer;user-select:none;font-family:var(--font-sans),"Noto Sans TC";font-weight:700;font-size:15px;transition:transform .15s,box-shadow .15s;}
+.addon-grid .a:hover{transform:translate(-3px,-3px);box-shadow:4px 4px 0 var(--ink);}
+.addon-grid .a.on{background:var(--seal);border-color:var(--seal);color:var(--rice);box-shadow:3px 3px 0 var(--ink);}
+
+/* ── 折扣碼 ── */
+.discount-row{display:flex;gap:10px;margin-top:8px;}
+.discount-row input{flex:1;border:2px solid var(--ink);background:var(--rice);padding:10px 14px;font-size:15px;text-transform:uppercase;min-width:0;}
+.discount-row button{border:2px solid var(--indigo);background:var(--indigo);color:var(--rice);padding:0 22px;cursor:pointer;font-family:var(--font-sans),"Noto Sans TC",sans-serif;letter-spacing:.15em;}
+.discount-ok{font-size:13px;color:#4A6B2C;margin-top:6px;}
+.discount-err{font-size:13px;color:var(--seal);margin-top:6px;}
+
+/* ── 文章文末 CTA ── */
+.article-cta{margin-top:3em;border:2px solid var(--seal);background:var(--rice-lt);padding:26px 24px;text-align:center;}
+/* 只管 CTA 自己那段導語；不再滲進裡面的贊助表單（站長 2026-09-04：文內表單字體與對齊要跟贊助頁一樣） */
+.article-cta > p{font-size:16.5px;font-weight:600;margin:0 0 16px;line-height:1.9;}
+.article-cta form{text-align:left;font-weight:400;}
+.article-cta form p{font-size:inherit;font-weight:inherit;margin:0;line-height:inherit;}
+
+/* ── 投稿頁 ── */
+.legal-box{border-left:3px solid var(--gold);padding:10px 0 10px 16px;font-size:12.5px;color:var(--grey);line-height:1.9;margin-top:20px;}
+/* ── 首頁「大家都在看」：瀏覽數前三名 ── */
+.top-reads{padding:64px 0 8px;}
+.top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:26px 22px;margin-top:8px;}
+.top-read{position:relative;display:block;border:2px solid var(--ink);background:var(--rice-lt);text-decoration:none;transition:transform .15s,box-shadow .15s;}
+.top-read:hover{transform:translate(-3px,-3px);box-shadow:5px 5px 0 var(--ink);}
+.top-read .rank{position:absolute;top:-13px;left:-13px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--seal);color:var(--rice-lt);border:2px solid var(--ink);font-weight:900;font-size:20px;transform:rotate(-6deg);z-index:2;box-shadow:3px 3px 0 rgba(58,50,38,.25);}
+.top-read .cover{width:100%;height:168px;object-fit:cover;display:block;border-bottom:2px solid var(--ink);}
+.top-read .cover.ph{display:flex;height:168px;}
+.top-read .body{padding:14px 16px 16px;}
+.top-read .body small{display:inline-block;border:1.5px solid var(--indigo);color:var(--indigo);font-size:11px;letter-spacing:.24em;padding:2px 10px;margin-bottom:8px;}
+.top-read .body b{display:block;font-size:16.5px;font-weight:900;letter-spacing:.05em;line-height:1.75;color:var(--ink);}
+
+/* ── 相關推薦 ── */
+.also-like{margin-top:56px;}
+
+/* ── 後台儀表板：一格一格的米袋標籤卡 ── */
+.stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:10px;}
+@media(min-width:900px){.stat-grid{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.stat{border:2px solid var(--ink);background:var(--rice-lt);box-shadow:5px 5px 0 rgba(58,50,38,.16);transition:transform .15s,box-shadow .15s;overflow:hidden;}
+.stat:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 rgba(58,50,38,.22);}
+.stat .stat-band{height:8px;background:repeating-linear-gradient(90deg,var(--seal) 0 28px,var(--rice) 28px 35px,var(--indigo) 35px 63px,var(--rice) 63px 70px);border-bottom:2px solid var(--ink);}
+.stat .stat-inner{padding:16px 18px 18px;}
+.stat .k{font-size:11.5px;letter-spacing:.28em;color:var(--grey);}
+.stat .v{font-size:27px;font-weight:900;font-family:var(--font-sans),"Noto Sans TC";margin-top:6px;line-height:1.2;}
+.stat .v small{font-size:14px;font-weight:700;color:var(--grey);}
+.stat.seal{background:var(--seal);}
+.stat.seal .k{color:#F4D9CF;}
+.stat.seal .v{color:var(--rice);}
+.stat.seal .v small{color:#EBC0B3;}
+.stat.indigo{background:var(--indigo);}
+.stat.indigo .k{color:#BFCFDF;}
+.stat.indigo .v{color:var(--rice);}
+.stat.indigo .v small{color:#A5BACE;}
+/* 待付款那格：要盯的事情用金色跟業績區隔開，一眼看得出哪些要動手 */
+.stat.gold{background:var(--gold);}
+.stat.gold .k{color:#F0E2C2;}
+.stat.gold .v{color:var(--rice);}
+.stat.gold .v small{color:#E4D2AC;}
+.stat.wide{grid-column:span 2;}
+/* 匯出格 */
+a.stat-export{border:2px solid var(--ink);background:var(--rice);box-shadow:5px 5px 0 rgba(58,50,38,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-decoration:none;padding:16px 12px;transition:transform .15s,box-shadow .15s;}
+a.stat-export:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink);}
+a.stat-export .dl{width:38px;height:38px;border:2px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;background:var(--rice-lt);}
+a.stat-export b{font-size:13.5px;letter-spacing:.14em;text-align:center;line-height:1.6;}
+a.stat-export small{font-size:11px;color:var(--grey);letter-spacing:.1em;}
+.stat-note{font-size:12px;color:var(--grey);letter-spacing:.08em;margin:0 0 26px;}
+
+/* ── 內容圖片填滿容器 ── */
+.img-fill{width:100%;height:100%;object-fit:cover;display:block;}
+img.img,img.cover,img.ava,img.main{object-fit:cover;}
+
+/* ── 捲動浮現動畫 ── */
+.js-fx [data-reveal]{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease;transition-delay:var(--rv-delay,0s);}
+.js-fx [data-reveal].rv-in{opacity:1;transform:translateY(0);}
+/* 使用者若設定減少動態效果，直接顯示 */
+@media(prefers-reduced-motion:reduce){[data-reveal]{opacity:1;transform:none;transition:none;}}
+/* 印章徽章：進場後微微搖擺一下，hover 再轉正放大 */
+@keyframes seal-stamp{0%{transform:rotate(6deg) scale(.6);opacity:0;}60%{transform:rotate(2deg) scale(1.08);opacity:1;}100%{transform:rotate(6deg) scale(1);opacity:1;}}
+.seal-badge{animation:seal-stamp .8s ease .5s backwards;transition:transform .3s;}
+.seal-badge:hover{transform:rotate(-3deg) scale(1.07);}
+@media(prefers-reduced-motion:reduce){.seal-badge{animation:none;}}
+
+/* ── 動畫五重奏 ── */
+/* 1. 紅藍色帶流動（週期 110px 與花紋同步，無縫循環） */
+@keyframes band-flow{from{background-position-x:0;}to{background-position-x:110px;}}
+.band{animation:band-flow 7s linear infinite;}
+/* 2. 地圖圖釘落下 */
+@keyframes pin-drop{0%{opacity:0;transform:translateY(-16px) scale(.3);}70%{opacity:1;transform:translateY(2px) scale(1.12);}100%{opacity:1;transform:translateY(0) scale(1);}}
+.pin{transform-box:fill-box;transform-origin:center;animation:pin-drop .5s ease backwards;animation-delay:var(--pin-delay,0s);}
+/* 3. Banner 視差（圖放大一點，位移時不露邊） */
+.hero-banner{overflow:hidden;}
+.hero-banner img{transform:translateY(var(--par,0px)) scale(1.12);will-change:transform;}
+/* 4. 購物袋數字跳動 */
+@keyframes cart-pop{0%{transform:scale(.4);}45%{transform:scale(1.55);}100%{transform:scale(1);}}
+.cart-link b{display:inline-block;animation:cart-pop .35s ease;}
+/* 減少動態效果設定：全部停用 */
+@media(prefers-reduced-motion:reduce){
+  .band,.pin,.cart-link b{animation:none;}
+  .hero-banner img{transform:none;}
+}
+
+/* ── 互動微動畫（2026-07-11）── */
+/* 按鈕按壓回彈：按下去收一下，放開回彈 */
+.btn{transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s ease;}
+.btn:active{transform:translate(1px,1px) scale(.97)!important;box-shadow:none!important;}
+/* 購物袋數量跳動（Nav 裡的數字換值時重新掛載觸發） */
+.cart-num{display:inline-block;animation:cartBump .4s cubic-bezier(.34,1.56,.64,1);}
+@keyframes cartBump{0%{transform:scale(1)}45%{transform:scale(1.5)}100%{transform:scale(1)}}
+/* 卡片封面微放大（蓋印章手感） */
+.art-grid .card{overflow:hidden;}
+.art-grid .card img.cover{transition:transform .35s ease;}
+.art-grid .card:hover img.cover{transform:scale(1.04);}
+.prod .img{overflow:hidden;}
+.prod .img img{transition:transform .35s ease;}
+.prod:hover .img img{transform:scale(1.05);}
+/* 換頁淡入（app/template.tsx 每次導航重新掛載） */
+.page-fade{animation:pageFade .22s ease-out;}
+@keyframes pageFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+/* 文章內圖片顯影（ArticleImgFx 掛 img-fx，進視窗換 img-in） */
+article.post img.img-fx{opacity:0;transform:translateY(12px);filter:saturate(.6);transition:opacity .6s ease,transform .6s ease,filter .8s ease;}
+article.post img.img-fx.img-in{opacity:1;transform:none;filter:none;}
+/* 會暈眩的讀者：全部關閉 */
+@media(prefers-reduced-motion:reduce){
+  .cart-num{animation:none;}
+  .page-fade{animation:none;}
+  .art-grid .card:hover img.cover,.prod:hover .img img{transform:none;}
+  article.post img.img-fx{opacity:1;transform:none;filter:none;transition:none;}
+  .btn:active{transform:none!important;}
+}
+
+/* ── 後台總覽鈴鐺（有未讀訂單時整顆會晃） ── */
+.adm-bell{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--seal,#A93B2C);background:var(--card,#F5EFDE);padding:8px 16px;text-decoration:none;color:inherit;animation:bellPulse 1.6s ease-in-out infinite;}
+.adm-bell .bell-ico{display:inline-block;font-size:20px;transform-origin:top center;animation:bellSwing 1.6s ease-in-out infinite;}
+.adm-bell .bell-num{font-weight:900;font-size:20px;color:var(--seal,#A93B2C);font-variant-numeric:tabular-nums;}
+.adm-bell .bell-txt{font-size:13.5px;letter-spacing:.08em;}
+@keyframes bellSwing{0%,55%,100%{transform:rotate(0)}62%{transform:rotate(16deg)}70%{transform:rotate(-13deg)}78%{transform:rotate(9deg)}86%{transform:rotate(-5deg)}}
+@keyframes bellPulse{0%,100%{box-shadow:0 0 0 0 rgba(169,59,44,.35)}50%{box-shadow:0 0 0 7px rgba(169,59,44,0)}}
+@media(prefers-reduced-motion:reduce){.adm-bell,.adm-bell .bell-ico{animation:none;}}
+
+/* ── 文章側欄：熱門文章、你可能有興趣（2026-07-15）── */
+@media(min-width:960px){
+  .toc .side-block{margin-top:22px;padding-top:16px;border-top:2px dashed var(--kraft);}
+  .toc .side-block .h{margin-bottom:10px;}
+  .toc .side-rank{list-style:none;margin:0;padding:0;counter-reset:none;}
+  .toc .side-rank li{display:flex;gap:9px;align-items:baseline;padding:5px 0;}
+  .toc .side-rank .rk{flex:none;width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;font-weight:900;color:var(--rice-lt);background:var(--seal);font-family:var(--font-sans),sans-serif;}
+  .toc .side-rank li:nth-child(n+4) .rk{background:var(--grey);}
+  .toc .side-rank a{padding:0;color:var(--ink);font-size:13px;line-height:1.5;}
+  .toc .side-rank a:hover,.toc .side-list a:hover{color:var(--seal);}
+  .toc .side-list{list-style:none;margin:0;padding:0;}
+  .toc .side-list li{padding:5px 0;border-bottom:1px dashed var(--kraft);}
+  .toc .side-list li:last-child{border-bottom:none;}
+  .toc .side-list a{padding:0;color:var(--ink);font-size:13px;line-height:1.5;}
+}
+
+/* ═══ 懶人動態區塊（文章 ::: 簡碼渲染，捲動進場＋圖表動畫＋hover 手感） ═══
+   初始隱藏一律掛在 .js-fx（layout 內聯腳本加在 <html>）底下：
+   JS 沒跑（壞掉、關掉）時內容完全照常顯示。進場用 animation（跑一次就結束），
+   hover 用 transition，兩者互不打架 */
+.yb-block{border:2px solid var(--ink);background:var(--rice-lt);padding:24px 20px;margin:30px 0;box-shadow:6px 6px 0 rgba(58,50,38,.10);transition:transform .18s ease,box-shadow .18s ease;}
+.yb-block:hover{transform:translate(-3px,-3px);box-shadow:9px 9px 0 rgba(58,50,38,.16);}
+.yb-b-title{text-align:center;font-size:16px;font-weight:900;letter-spacing:.06em;margin-bottom:18px;line-height:1.6;}
+.yb-b-title::after{content:"";display:block;width:44px;height:3px;background:var(--seal);margin:10px auto 0;}
+/* 捲動浮現（rv-arm 由 JS 掛上，進場加 rv-in） */
+article.post .rv-arm{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+article.post .rv-arm.rv-in{opacity:1;transform:none;}
+/* 進場動畫共用 keyframes */
+@keyframes yb-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+@keyframes yb-pop{0%{opacity:0;transform:scale(.2);}70%{opacity:1;transform:scale(1.2);}100%{opacity:1;transform:scale(1);}}
+@keyframes yb-draw{from{transform:scaleY(0);}to{transform:scaleY(1);}}
+@keyframes yb-stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-30deg) scale(.2);}70%{opacity:1;transform:translate(-50%,-50%) rotate(-4deg) scale(1.15);}100%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1);}}
+@keyframes yb-settle{0%{transform:scale(1);}40%{transform:scale(1.14);}100%{transform:scale(1);}}
+@keyframes yb-wiggle{0%,100%{transform:rotate(0);}30%{transform:rotate(-10deg);}60%{transform:rotate(8deg);}}
+/* ── 數字 stat ── */
+.yb-stat-row{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
+/* 文章內表格：手機可橫向捲動，不撐破版面 */
+article.post .post-body table{width:100%;border:2px solid var(--ink);background:var(--rice-lt);border-collapse:collapse;margin:26px 0;display:block;overflow-x:auto;white-space:nowrap;}
+@media(min-width:720px){article.post .post-body table{display:table;white-space:normal;}}
+article.post .post-body th{background:var(--ink);color:var(--rice);font-size:12.5px;letter-spacing:.14em;padding:10px 14px;text-align:left;font-weight:700;}
+article.post .post-body td{padding:10px 14px;border-bottom:1px dashed var(--kraft);font-size:14px;line-height:1.85;vertical-align:top;}
+article.post .post-body tr:last-child td{border-bottom:none;}
+.yb-stat-card{flex:1 1 140px;min-width:118px;text-align:center;border:2px solid var(--ink);background:var(--rice);padding:18px 12px;transition:transform .18s,box-shadow .18s;}
+.yb-stat-card:hover{transform:translateY(-4px);box-shadow:4px 4px 0 var(--ink);}
+.js-fx .yb-block:not(.rv-in) .yb-stat-card{opacity:0;}
+.js-fx .rv-in .yb-stat-card{animation:yb-rise .55s ease backwards;animation-delay:calc(var(--i,0)*.1s);}
+.yb-num{display:block;font-family:var(--font-sans),system-ui,sans-serif;font-size:clamp(30px,7vw,44px);font-weight:900;color:var(--seal);line-height:1.1;letter-spacing:.02em;}
+.yb-num.num-done{animation:yb-settle .35s ease;}
+.yb-stat-label{display:block;font-size:13px;color:var(--grey);margin-top:8px;line-height:1.65;}
+/* ── 長條圖 bar ── */
+.yb-bar-row{display:flex;align-items:center;gap:12px;margin:9px -6px;padding:2px 6px;transition:background .15s;}
+.yb-bar-row:hover{background:rgba(58,50,38,.06);}
+.yb-bar-label{flex:none;width:32%;max-width:150px;font-size:14px;text-align:right;line-height:1.4;}
+.yb-bar-track{flex:1;height:22px;background:var(--rice);border:2px solid var(--ink);overflow:hidden;}
+.yb-bar-fill{display:block;height:100%;width:var(--w);background:repeating-linear-gradient(-45deg,var(--indigo) 0 10px,#24405e 10px 20px);}
+.yb-bar-row:hover .yb-bar-fill{background:var(--seal);}
+.js-fx .yb-bar:not(.rv-in) .yb-bar-fill{width:0;}
+.js-fx .rv-in .yb-bar-fill{width:var(--w);transition:width 1.1s cubic-bezier(.2,.7,.2,1) calc(var(--i,0)*.12s);}
+.yb-bar-val{flex:none;min-width:52px;font-family:var(--font-sans),system-ui,sans-serif;font-weight:700;font-size:14px;color:var(--seal);}
+/* ── 時間軸 timeline ── */
+.yb-tl-item{display:flex;gap:14px;position:relative;padding-bottom:18px;transition:transform .18s;}
+.yb-tl-item:hover{transform:translateX(4px);}
+.yb-tl-item::before{content:"";position:absolute;left:8px;top:20px;bottom:-2px;width:2px;background:var(--ink);opacity:.28;transform-origin:top;}
+.yb-tl-item:last-child::before{display:none;}
+.yb-tl-item:last-child{padding-bottom:0;}
+.yb-tl-dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--ink);background:var(--seal);margin-top:2px;z-index:1;transition:background .2s,transform .2s;}
+.yb-tl-item:hover .yb-tl-dot{background:var(--indigo);transform:scale(1.2);}
+.js-fx .yb-timeline:not(.rv-in) .yb-tl-dot,.js-fx .yb-timeline:not(.rv-in) .yb-tl-body{opacity:0;}
+.js-fx .yb-timeline:not(.rv-in) .yb-tl-item::before{transform:scaleY(0);}
+.js-fx .rv-in .yb-tl-dot{animation:yb-pop .45s cubic-bezier(.34,1.56,.64,1) backwards;animation-delay:calc(var(--i,0)*.14s);}
+.js-fx .rv-in .yb-tl-body{animation:yb-rise .5s ease backwards;animation-delay:calc(var(--i,0)*.14s + .08s);}
+.js-fx .rv-in .yb-tl-item::before{animation:yb-draw .4s ease backwards;animation-delay:calc(var(--i,0)*.14s + .18s);}
+.yb-tl-when{display:block;font-size:15px;font-weight:900;line-height:1.5;}
+.yb-tl-text{display:block;font-size:14px;color:var(--ink);line-height:1.85;margin-top:2px;}
+/* ── 對比 vs ── */
+.yb-vs-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;position:relative;}
+.yb-vs-card{border:2px solid var(--ink);padding:16px;transition:transform .18s,box-shadow .18s;}
+.yb-vs-card:hover{transform:translateY(-3px);box-shadow:3px 3px 0 var(--ink);}
+.js-fx .yb-vs:not(.rv-in) .yb-vs-card{opacity:0;}
+.js-fx .rv-in .yb-vs-card{animation:yb-rise .5s ease backwards;animation-delay:calc(var(--i,0)*.12s);}
+.yb-vs-a{background:var(--rice);}
+.yb-vs-b{background:#e9f0e6;}
+.yb-vs-head{display:block;font-size:16px;font-weight:900;margin-bottom:8px;line-height:1.5;}
+.yb-vs-a .yb-vs-head{color:var(--seal);}
+.yb-vs-b .yb-vs-head{color:#4a6b3a;}
+.yb-vs-body{font-size:14px;line-height:1.85;}
+.yb-vs-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);width:42px;height:42px;border-radius:50%;background:var(--seal);color:var(--rice-lt);border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:var(--font-sans),system-ui,sans-serif;font-weight:900;font-size:13.5px;letter-spacing:.04em;z-index:2;box-shadow:2px 2px 0 rgba(58,50,38,.3);}
+.js-fx .yb-vs:not(.rv-in) .yb-vs-badge{opacity:0;}
+.js-fx .rv-in .yb-vs-badge{animation:yb-stamp .5s cubic-bezier(.34,1.56,.64,1) .35s backwards;}
+@media(max-width:560px){.yb-vs-row{grid-template-columns:1fr;}}
+/* ── 金句 quote ── */
+.yb-quote{position:relative;text-align:center;padding:28px 24px;background:var(--ink);color:var(--rice-lt);border-color:var(--ink);box-shadow:6px 6px 0 rgba(58,50,38,.10),inset 0 0 0 1.5px rgba(239,227,196,.28);}
+.yb-quote-mark{display:block;font-size:46px;line-height:.4;color:var(--seal);font-family:Georgia,serif;height:22px;}
+.js-fx .yb-quote:not(.rv-in) .yb-quote-mark,.js-fx .yb-quote:not(.rv-in) .yb-quote-text{opacity:0;}
+.js-fx .rv-in .yb-quote-mark{animation:yb-pop .5s cubic-bezier(.34,1.56,.64,1) backwards;}
+.js-fx .rv-in .yb-quote-text{animation:yb-rise .6s ease .15s backwards;}
+.yb-quote-text{font-size:clamp(18px,3.4vw,23px);font-weight:700;line-height:1.95;margin:8px 0 0;letter-spacing:.03em;}
+/* ── 重點卡 cards ── */
+.yb-cards-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+.yb-card{display:flex;gap:14px;align-items:flex-start;border:2px solid var(--ink);background:var(--rice);padding:14px 16px;transition:transform .18s,box-shadow .18s;}
+.yb-card:hover{transform:translateY(-3px);box-shadow:3px 3px 0 var(--ink);}
+.yb-card:hover .yb-card-icon{animation:yb-wiggle .5s ease;}
+/* 可點的重點卡（最後一欄放網址）：標題帶底線示意可點 */
+a.yb-card-link{text-decoration:none;color:inherit;cursor:pointer;}
+a.yb-card-link .yb-card-head{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;}
+a.yb-card-link:hover .yb-card-head{color:var(--seal);}
+.js-fx .yb-cards:not(.rv-in) .yb-card{opacity:0;}
+.js-fx .rv-in .yb-card{animation:yb-rise .5s ease backwards;animation-delay:calc(var(--i,0)*.08s);}
+.yb-card-icon{font-size:26px;flex:none;line-height:1.35;}
+.yb-card-head{display:block;font-size:15.5px;font-weight:900;color:var(--seal);line-height:1.5;}
+.yb-card-text{display:block;font-size:14px;color:var(--ink);line-height:1.8;margin-top:3px;}
+/* ── 進度環 donut ── */
+.yb-donut{text-align:center;}
+.yb-ring{width:154px;height:154px;border-radius:50%;margin:2px auto 0;background:conic-gradient(var(--seal) calc(var(--pnow,var(--p,0))*1%),var(--rice) 0);display:flex;align-items:center;justify-content:center;outline:2px dashed var(--kraft);outline-offset:5px;transition:transform .25s;}
+.yb-donut:hover .yb-ring{transform:scale(1.05) rotate(2deg);}
+.yb-ring-hole{width:112px;height:112px;border-radius:50%;background:var(--rice-lt);display:flex;align-items:center;justify-content:center;border:2px solid var(--ink);}
+.yb-donut .yb-num{color:var(--ink);font-size:34px;}
+.yb-donut-label{font-size:14px;color:var(--grey);margin-top:14px;line-height:1.7;}
+/* ── 互動區塊共用：底部操作提示小字 ── */
+.yb-hint{text-align:center;font-size:11.5px;letter-spacing:.35em;color:var(--grey);margin-top:14px;opacity:.8;}
+/* ── 翻卡 flip：3D 翻面 ── */
+.yb-flip-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:560px){.yb-flip-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.yb-flip{perspective:900px;cursor:pointer;min-height:118px;outline:none;}
+.yb-flip-inner{position:relative;width:100%;height:100%;min-height:118px;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.34,1.3,.5,1);}
+.yb-flip.on .yb-flip-inner{transform:rotateY(180deg);}
+.yb-flip:hover .yb-flip-inner{box-shadow:4px 4px 0 rgba(58,50,38,.18);}
+.yb-flip-face{position:absolute;inset:0;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px 14px;border:2px solid var(--ink);line-height:1.8;}
+.yb-flip-front{background:var(--rice);font-weight:900;font-size:15.5px;}
+.yb-flip-front::after{content:"翻";position:absolute;top:6px;right:8px;font-size:10.5px;color:var(--seal);border:1.5px solid var(--seal);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;transform:rotate(8deg);}
+.yb-flip-back{background:var(--ink);color:var(--rice-lt);transform:rotateY(180deg);font-size:14px;}
+.js-fx .yb-flipwrap:not(.rv-in) .yb-flip{opacity:0;}
+.js-fx .rv-in .yb-flip{animation:yb-rise .5s ease backwards;animation-delay:calc(var(--i,0)*.1s);}
+/* ── 問答 quiz：點選項即時對錯回饋 ── */
+.yb-quiz-q{font-size:16.5px;font-weight:900;letter-spacing:.04em;line-height:1.9;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--seal);}
+.yb-quiz-opts{display:grid;gap:10px;}
+.yb-quiz-opt{display:flex;gap:10px;align-items:center;border:2px solid var(--ink);background:var(--rice);padding:11px 14px;cursor:pointer;font-size:14.5px;line-height:1.7;transition:transform .15s,box-shadow .15s,background .2s,border-color .2s;outline:none;}
+.yb-quiz:not(.done) .yb-quiz-opt:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink);}
+.yb-quiz-mark{flex:none;width:20px;height:20px;border:2px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;background:var(--rice-lt);}
+.yb-quiz.done .yb-quiz-opt{cursor:default;opacity:.55;}
+.yb-quiz.done .yb-quiz-opt.right{opacity:1;background:var(--rice-lt);border-color:var(--indigo);box-shadow:3px 3px 0 var(--indigo);}
+.yb-quiz.done .yb-quiz-opt.right .yb-quiz-mark{background:var(--indigo);border-color:var(--indigo);color:var(--rice);}
+.yb-quiz.done .yb-quiz-opt.right .yb-quiz-mark::before{content:"✓";}
+.yb-quiz.done .yb-quiz-opt.pick.wrong{opacity:1;border-color:var(--seal);animation:yb-shake .4s ease;}
+.yb-quiz.done .yb-quiz-opt.pick.wrong .yb-quiz-mark{background:var(--seal);border-color:var(--seal);color:var(--rice);}
+.yb-quiz.done .yb-quiz-opt.pick.wrong .yb-quiz-mark::before{content:"✕";}
+.yb-quiz-exp{display:none;margin-top:14px;border-top:2px dashed var(--kraft);padding-top:12px;font-size:14px;color:var(--ink);line-height:1.9;}
+.yb-quiz-exp.show{display:block;animation:yb-rise .45s ease;}
+.yb-quiz.done .yb-hint{display:none;}
+@keyframes yb-shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}55%{transform:translateX(4px);}80%{transform:translateX(-2px);}}
+/* ── 展開 fold：點開才出現的摺疊內容 ── */
+.yb-fold{padding:0;overflow:hidden;}
+.yb-fold-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;cursor:pointer;font-weight:900;font-size:15px;letter-spacing:.06em;user-select:none;outline:none;transition:background .2s;}
+.yb-fold-btn:hover{background:var(--rice);}
+.yb-fold-arrow{color:var(--seal);transition:transform .3s ease;font-size:15px;}
+.yb-fold.open .yb-fold-arrow{transform:rotate(180deg);}
+.yb-fold-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s ease;}
+.yb-fold.open .yb-fold-body{grid-template-rows:1fr;}
+.yb-fold-innr{overflow:hidden;padding:0 20px;}
+.yb-fold.open .yb-fold-innr{padding-bottom:18px;}
+.yb-fold-innr p{font-size:14.5px;line-height:2;color:var(--ink);margin:0 0 10px;border-top:2px dashed var(--kraft);padding-top:12px;}
+.yb-fold-innr p:not(:first-child){border-top:none;padding-top:0;}
+/* ── 圖片燈箱：點文章圖片放大 ── */
+article.post .post-body img{cursor:zoom-in;}
+.yb-lightbox{position:fixed;inset:0;z-index:120;background:rgba(44,38,26,.9);display:flex;align-items:center;justify-content:center;padding:26px;cursor:zoom-out;animation:yb-fadein .2s ease;}
+.yb-lightbox img{max-width:96%;max-height:94%;object-fit:contain;border:3px solid var(--rice-lt);box-shadow:10px 10px 0 rgba(0,0,0,.3);animation:yb-pop .25s ease;}
+@keyframes yb-fadein{from{opacity:0;}to{opacity:1;}}
+/* ── 滑桿比對 slider ── */
+.yb-slide-stage{position:relative;--x:50%;height:300px;border:2px solid var(--ink);overflow:hidden;cursor:ew-resize;touch-action:none;user-select:none;}
+.yb-slide-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;cursor:ew-resize;}
+.yb-slide-overwrap{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--x)) 0 0);}
+.yb-slide-handle{position:absolute;top:0;bottom:0;left:var(--x);width:0;border-left:3px solid var(--rice-lt);box-shadow:0 0 0 1px rgba(58,50,38,.4);}
+.yb-slide-handle span{position:absolute;top:50%;left:0;transform:translate(-50%,-50%);background:var(--ink);color:var(--rice-lt);font-size:11px;letter-spacing:.05em;padding:7px 9px;border-radius:50%;white-space:nowrap;border:2px solid var(--rice-lt);}
+.yb-slide-tag{position:absolute;bottom:10px;background:rgba(58,50,38,.82);color:var(--rice-lt);font-size:12px;letter-spacing:.14em;padding:4px 12px;}
+.yb-slide-tag-a{left:10px;}
+.yb-slide-tag-b{right:10px;}
+article.post .post-body .yb-slide-img{cursor:ew-resize;}
+/* ── 刮刮樂 scratch ── */
+.yb-scratch-area{position:relative;border:2px dashed var(--gold);min-height:96px;overflow:hidden;}
+.yb-scratch-content{padding:18px 20px;}
+.yb-scratch-content p{margin:0 0 8px;font-size:15px;line-height:2;}
+.yb-scratch-cv{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none;transition:opacity .6s ease;}
+.yb-scratch-area.done .yb-scratch-cv{opacity:0;pointer-events:none;}
+/* ── 投票 poll ── */
+.yb-poll-opts{display:grid;gap:10px;}
+.yb-poll-opt{position:relative;display:flex;align-items:center;gap:12px;border:2px solid var(--ink);background:var(--rice);padding:11px 14px;cursor:pointer;font-size:14.5px;transition:transform .15s,box-shadow .15s;}
+.yb-poll:not(.done) .yb-poll-opt:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 var(--ink);}
+.yb-poll-label{flex:1;position:relative;z-index:1;line-height:1.7;}
+.yb-poll-bar{position:absolute;inset:0;overflow:hidden;}
+.yb-poll-fill{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--kraft);opacity:.55;transition:width .8s cubic-bezier(.22,1,.36,1);}
+.yb-poll.done .yb-poll-fill{width:var(--w,0);}
+.yb-poll-pct{position:relative;z-index:1;font-family:var(--font-sans),"Noto Sans TC";font-weight:700;font-size:13.5px;color:var(--grey);min-width:38px;text-align:right;}
+.yb-poll.done .yb-poll-opt{cursor:default;}
+.yb-poll.done .yb-poll-opt.mine{border-color:var(--seal);box-shadow:3px 3px 0 var(--seal);}
+.yb-poll.done .yb-poll-opt.mine .yb-poll-pct{color:var(--seal);}
+.yb-poll.done .yb-poll-opt.mine .yb-poll-label::after{content:"　✓ 你的一票";font-size:11.5px;color:var(--seal);letter-spacing:.08em;}
+.yb-poll.done .yb-hint{display:none;}
+/* ── 金句打字機游標 ── */
+.yb-quote-text.typing::after{content:"";display:inline-block;width:2px;height:1em;background:var(--seal);margin-left:3px;vertical-align:-.12em;animation:yb-blink .8s step-end infinite;}
+@keyframes yb-blink{50%{opacity:0;}}
+/* ── 詞彙註解 [[詞｜說明]] ── */
+.yb-term{position:relative;border-bottom:2px dotted var(--seal);cursor:help;font-weight:700;}
+.yb-term-pop{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);width:max-content;max-width:260px;background:var(--ink);color:var(--rice-lt);font-size:13px;font-weight:400;line-height:1.8;letter-spacing:.03em;padding:10px 14px;border:2px solid var(--ink);box-shadow:4px 4px 0 rgba(58,50,38,.25);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:30;}
+.yb-term-pop::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:var(--ink);}
+.yb-term:hover .yb-term-pop,.yb-term:focus .yb-term-pop{opacity:1;transform:translateX(-50%) translateY(0);}
+/* 卡片微傾由 JS 動 transform，這裡放回彈的過渡 */
+.yb-stat-card,.yb-card{will-change:transform;transition:transform .25s ease,box-shadow .18s;}
+/* ── 開頁瀑布：文章頂部依序浮上（純 CSS，第一幀生效不閃爍；無 JS 直接顯示） ── */
+.js-fx article.post>.cat-tag{animation:yb-rise .55s ease backwards .05s;}
+.js-fx article.post>h1{animation:yb-rise .6s ease backwards .16s;}
+.js-fx article.post>.meta{animation:yb-rise .6s ease backwards .28s;}
+.js-fx article.post>img{animation:yb-rise .7s ease backwards .4s;}
+.js-fx article.post .visit-chef-card{animation:yb-rise .6s ease backwards .5s;}
+.js-fx article.post .post-body>*:nth-child(1){animation:yb-rise .6s ease backwards .5s;}
+.js-fx article.post .post-body>*:nth-child(2){animation:yb-rise .6s ease backwards .6s;}
+.js-fx article.post .post-body>*:nth-child(3){animation:yb-rise .6s ease backwards .7s;}
+.js-fx article.post .post-body>*:nth-child(4){animation:yb-rise .6s ease backwards .8s;}
+.js-fx article.post .post-body>*:nth-child(5){animation:yb-rise .6s ease backwards .9s;}
+.js-fx article.post .post-body>*:nth-child(6){animation:yb-rise .6s ease backwards 1s;}
+.js-fx .art-layout .toc{animation:yb-rise .65s ease backwards .34s;}
+@media(prefers-reduced-motion:reduce){
+  .js-fx article.post>*,.js-fx article.post .post-body>*,.js-fx .art-layout .toc{animation:none!important;}
+}
+/* ── 雜誌感：h2 方塊壓印進場 ──
+   （原本首段有首字放大的 drop cap，中文字形放大後不好看，且浮動會擠亂首段斷行，已移除） */
+.js-fx article.post h2.rv-arm::before{transform:rotate(45deg) scale(0);}
+.js-fx article.post h2.rv-arm.rv-in::before{transform:none;transition:transform .5s cubic-bezier(.34,1.56,.64,1) .25s;}
+/* ── 減少動態：全部直接顯示、不動 ── */
+@media(prefers-reduced-motion:reduce){
+  article.post .rv-arm{opacity:1;transform:none;transition:none;}
+  .yb-block,.yb-block *{animation:none!important;transition:none!important;}
+  .yb-block:hover{transform:none;box-shadow:6px 6px 0 rgba(58,50,38,.10);}
+  .js-fx .yb-block:not(.rv-in) .yb-stat-card,.js-fx .yb-bar:not(.rv-in) .yb-bar-fill,
+  .js-fx .yb-timeline:not(.rv-in) .yb-tl-dot,.js-fx .yb-timeline:not(.rv-in) .yb-tl-body,
+  .js-fx .yb-vs:not(.rv-in) .yb-vs-card,.js-fx .yb-vs:not(.rv-in) .yb-vs-badge,
+  .js-fx .yb-quote:not(.rv-in) .yb-quote-mark,.js-fx .yb-quote:not(.rv-in) .yb-quote-text,
+  .js-fx .yb-cards:not(.rv-in) .yb-card{opacity:1;}
+  .js-fx .yb-timeline:not(.rv-in) .yb-tl-item::before{transform:none;}
+  .js-fx .yb-bar:not(.rv-in) .yb-bar-fill{width:var(--w);}
+}
+
+/* ── iPhone 原生手感 ──
+   依 WebKit 官方〈Designing Websites for iPhone X〉與業界共識（css-tricks 16px 防縮放、
+   bram.us / samselikoff「8 Tips to Make Your Website Feel Like an iOS App」）：
+   1. 關掉 iOS 點按灰色高亮，改用 :active 按壓回饋（更像原生按鈕）
+   2. touch-action:manipulation 移除 300ms 點擊延遲疑慮、防雙擊誤縮放
+   3. 觸控裝置上表單字級一律 ≥16px，Safari 才不會聚焦時自動放大整頁
+   4. 橫向瀏海用 safe-area-inset 墊回；不用 user-scalable=no（會害到無障礙） */
+html{-webkit-text-size-adjust:100%;}
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+a,button,input,select,textarea,label,summary{-webkit-tap-highlight-color:transparent;}
+a,button,.btn,.c,.mode-tab,.amt,.pay,.vid,.card{touch-action:manipulation;}
+@media(hover:none){
+  /* 觸控裝置：hover 樣式在 iOS 會「黏住」（點一下後殘留位移＋陰影），改成按壓內縮回饋 */
+  .btn:hover:not(:disabled){transform:none;box-shadow:none;}
+  .btn:active:not(:disabled){transform:scale(.96);}
+  .mode-tab:active,.amt:active,.pay:active,.c:active,.sticky-cta a:active{transform:scale(.96);transition:transform .08s ease;}
+  .card:active,.rel:active,.vid:active{opacity:.82;transition:opacity .08s ease;}
+}
+@media(pointer:coarse){
+  /* 特異度須壓過 .field input（0,1,1），同分靠檔案後位取勝 */
+  input,textarea,select,.field input,.field textarea,.field select,.custom input,.addr-row select,
+  .email-box .email-local,.email-box .email-domain{font-size:16px;}
+}
+
+/* ── TapPay 站內刷卡欄位（TapPay Fields 的 iframe 掛載點，樣式比照 .field input）── */
+.tp-fields{margin:14px 0 4px;}
+.tp-input{border:2px solid var(--ink);background:var(--rice);padding:11px 14px;height:46px;}
+.tp-input iframe{height:100% !important;}
+.tp-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.tp-fields .tappay-field-focus{outline:2px solid var(--seal);outline-offset:-2px;}
+
+/* ── 結帳地址三段：縣市／鄉鎮市區／郵遞區號 ── */
+.addr-row{display:grid;grid-template-columns:1fr 1fr 88px;gap:10px;}
+.addr-row select{width:100%;border:2px solid var(--ink);background:var(--rice);padding:11px 10px;color:var(--ink);font-size:15px;}
+.addr-zip{text-align:center;background:var(--rice-lt) !important;color:var(--grey) !important;}
+@media(max-width:420px){.addr-row{grid-template-columns:1fr 1fr 72px;gap:8px;}}
+
+/* ── 贊助頁「你的支持會變成」四格圖示卡 ── */
+.sup-pillars{margin:26px 0 22px;}
+.sp-head{text-align:center;font-weight:900;letter-spacing:.2em;font-size:15.5px;margin-bottom:14px;}
+.sp-head span{color:var(--seal);font-size:11px;vertical-align:2px;}
+.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(min-width:560px){.sp-grid{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.sp-card{border:1.5px solid var(--kraft);background:var(--rice-lt);text-align:center;padding:14px 8px 12px;}
+.sp-card svg{display:block;margin:0 auto 7px;width:26px;height:26px;}
+.sp-card b{display:block;font-size:13.5px;letter-spacing:.12em;}
+.sp-card small{display:block;color:var(--grey);font-size:11.5px;letter-spacing:.04em;margin-top:3px;line-height:1.65;}
+.sp-caption{text-align:center;color:var(--grey);font-size:12.5px;letter-spacing:.05em;line-height:1.9;margin-top:12px;}
+
+/* ── 手機固定購買列 ──
+   捲過商品資訊區的按鈕之後才出現，滑到說明、規格、問答都還按得到。
+   820px 以上是左右兩欄版面，按鈕本來就一直在視線內，不需要這一列。 */
+.buy-bar{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--rice);
+  border-top:2px solid var(--ink);box-shadow:0 -4px 14px rgba(58,50,38,.14);
+  padding-bottom:env(safe-area-inset-bottom);}
+.buy-bar .inner{display:flex;align-items:center;gap:12px;padding:10px 16px;
+  padding-left:calc(16px + env(safe-area-inset-left));padding-right:calc(16px + env(safe-area-inset-right));}
+.buy-bar .p{flex:none;min-width:0;}
+.buy-bar .p .lb{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--grey);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:11em;}
+.buy-bar .p b{font-family:var(--font-sans),"Noto Sans TC";font-size:19px;color:var(--seal);
+  font-variant-numeric:tabular-nums;line-height:1.3;}
+.buy-bar .b{flex:1;display:flex;gap:8px;min-width:0;}
+.buy-bar .b .btn{flex:1;min-width:0;padding:11px 6px;font-size:14px;letter-spacing:.06em;
+  white-space:nowrap;}
+@media(min-width:820px){.buy-bar{display:none;}}
+/* 欄位就地錯誤訊息：表單底部那行紅字不夠，使用者不知道是哪一格 */
+.field-err{margin-top:6px;font-size:12.5px;line-height:1.7;color:var(--seal);}
+
+/* ── 手機商品頁：讓價格與購買鈕盡快進入視線 ──
+   依 2026 行動電商共識，首屏要塞得下「主圖＋價格＋CTA」。
+   原本主圖 1:1 佔滿首屏，後面還接一段百來字短說明，購買鈕被推到第三屏。
+   桌機是左右兩欄、按鈕本來就在右側視線內，所以只在 820px 以下調整。 */
+@media(max-width:819px){
+  /* 主圖改 4:3：比 1:1 矮約四分之一，品名與價格因此能一起進首屏 */
+  .gallery .gal-single,.gal-box{aspect-ratio:4/3;}
+  /* 用 order 重排，不動 DOM：分類→品名→價格→庫存→選項→數量→按鈕→短說明 */
+  .d-info{display:flex;flex-direction:column;}
+  .d-info .cat-tag{order:1;align-self:flex-start;}
+  .d-info h1{order:2;}
+  .d-info .price{order:3;}
+  .d-info .stock{order:4;}
+  .d-info .opt{order:5;}
+  .d-info .d-actions{order:6;}
+  /* 短說明的資訊價值高，但不該擋在購買動作前面，移到按鈕之後 */
+  .d-info .desc{order:7;margin-top:22px;padding-top:18px;border-top:2px dashed var(--kraft);}
+  /* 規格表：左欄固定 120px 會把右欄擠成兩三行，窄螢幕改成上下堆疊 */
+  .spec-table .row{flex-direction:column;}
+  .spec-table .k{flex:none;width:100%;border-right:none;padding:10px 14px 0;
+    border-bottom:none;letter-spacing:.24em;}
+  .spec-table .v{padding:4px 14px 12px;}
+}
+/* 固定列常駐後，手機不再重複顯示內文那組按鈕；桌機維持原樣 */
+@media(max-width:819px){
+  .d-info .d-actions{display:none;}
+  /* 固定列高度約 66px，加上安全區，讓頁尾內容不被蓋住 */
+  .d-lower{padding-bottom:calc(80px + env(safe-area-inset-bottom));}
+}
+
+/* ── 出貨夥伴工作台 ── */
+.ptn-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;
+  border-bottom:3px solid var(--ink);padding-bottom:14px;margin-bottom:26px;}
+.ptn-hd b{font-size:17px;letter-spacing:.18em;}
+.ptn-hd span{font-size:12.5px;color:var(--grey);}
+.ptn-prod{margin-bottom:44px;}
+.ptn-prodhd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.ptn-prodhd h2{font-size:20px;font-weight:900;letter-spacing:.1em;}
+.ptn-csv{font-size:13px;color:var(--indigo);text-decoration:underline;text-underline-offset:3px;}
+.ptn-tbwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:2px solid var(--ink);
+  box-shadow:5px 5px 0 rgba(58,50,38,.1);}
+.ptn-tb{width:100%;min-width:520px;border-collapse:collapse;}
+.ptn-tb th{background:var(--indigo);color:var(--rice);font-size:12.5px;letter-spacing:.1em;padding:9px 8px;font-weight:500;white-space:nowrap;}
+.ptn-tb td{border-top:2px dashed var(--kraft);padding:10px 8px;text-align:center;font-size:15px;background:var(--rice-lt);font-variant-numeric:tabular-nums;}
+.ptn-tb td.hot{color:var(--seal);font-weight:700;}
+.ptn-tb td.dim{color:var(--grey);}
+.ptn-tb tr.sum td{background:#F0E3BE;font-weight:700;}
+.ptn-week{border:2px solid var(--ink);background:var(--rice-lt);margin-top:18px;box-shadow:5px 5px 0 rgba(58,50,38,.1);}
+.ptn-weekhd{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  background:var(--ink);color:var(--rice);padding:10px 14px;}
+.ptn-weekhd b{font-size:15px;letter-spacing:.08em;}
+.ptn-weekhd span{font-size:12px;color:var(--kraft);}
+.ptn-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-top:2px dashed var(--kraft);flex-wrap:wrap;}
+.ptn-row:first-of-type{border-top:none;}
+.ptn-row .l{flex:1;min-width:220px;}
+.ptn-row .l>b{font-size:16px;}
+.ptn-row .qty{color:var(--seal);font-weight:700;margin-left:8px;}
+.ptn-row .meta{font-size:13.5px;color:var(--ink);line-height:1.8;margin-top:3px;}
+.ptn-row .no{font-size:12px;color:var(--grey);margin-top:3px;}
+.ptn-row.done{opacity:.62;}
+.ptn-ship{border:2px solid var(--ink);background:var(--seal);color:var(--rice);padding:9px 22px;
+  font-size:14px;letter-spacing:.14em;font-weight:700;cursor:pointer;font-family:inherit;}
+.ptn-ship.go{background:var(--indigo);}
+.ptn-ship.cancel{background:var(--rice);color:var(--grey);border-color:var(--kraft);}
+.ptn-ship:disabled{opacity:.55;cursor:default;}
+.ptn-shipbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.ptn-shipbox input{border:2px solid var(--ink);background:#FFFDF6;padding:8px 10px;font-size:14px;width:170px;}
+.ptn-shipbox em{font-style:normal;color:var(--seal);font-size:12.5px;flex-basis:100%;}
+.ptn-done{border-top:2px dashed var(--kraft);}
+.ptn-done summary{padding:10px 14px;font-size:13px;color:var(--grey);cursor:pointer;user-select:none;}
+@media(max-width:560px){
+  .ptn-row .r{flex-basis:100%;}
+  .ptn-ship{width:100%;}
+  .ptn-shipbox{width:100%;}
+  .ptn-shipbox input{flex:1;min-width:0;}
+}
+/* 工作台右側的數量徽章：備貨最常看的數字，大而醒目、與出貨按鈕同一視線 */
+.ptn-row .r{display:flex;align-items:center;gap:12px;flex:none;}
+.ptn-qty{display:inline-flex;align-items:baseline;gap:3px;border:2px solid var(--ink);background:var(--rice);
+  padding:6px 14px;font-size:22px;font-weight:900;line-height:1;color:var(--seal);font-variant-numeric:tabular-nums;}
+.ptn-qty small{font-size:12px;font-weight:400;color:var(--grey);letter-spacing:.08em;}
+@media(max-width:560px){
+  .ptn-row .r{flex-basis:100%;justify-content:space-between;}
+}
+/* 結帳頁缺填欄位的標紅（填了就自動消） */
+.miss{border-color:var(--seal) !important;background:#FBEFE9 !important;}
+
+
+/* ── 信箱欄位：看起來是一格 ──
+ *
+ * 外框畫在 .email-box 上，裡面的 input 與 select 都不帶邊框，
+ * 所以整組讀起來就是一個信箱欄位而不是兩個獨立的方框。
+ * 分成兩格時，人會很自然地在第一格就把 @gmail.com 一起打完。
+ *
+ * 特異度：站上各頁的欄位規則是 .field input（0,1,1）、.corp-grid input（0,1,1）。
+ * 這裡用 .email-box .email-local（0,2,0）才壓得過，不能只寫 .email-box input。
+ */
+.email-box{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,46%);
+  align-items:center;width:100%;box-sizing:border-box;max-width:100%;
+  border:2px solid var(--ink);background:var(--rice);}
+.email-box:focus-within{outline:3px solid var(--indigo);outline-offset:1px;}
+.email-box .email-local,
+.email-box .email-domain{border:0;background:transparent;outline:none;color:var(--ink);
+  font-size:15px;font-family:var(--font-sans),"Noto Sans TC";padding:11px 0;margin:0;
+  min-width:0;border-radius:0;}
+.email-box .email-local{width:100%;padding-left:14px;}
+.email-box .email-at{color:var(--grey);font-size:15px;padding:0 6px;}
+.email-box .email-domain{width:100%;padding-right:12px;text-overflow:ellipsis;}
+/* select 在 Safari 會被系統樣式蓋掉，要自己畫箭頭才跟站上的視覺一致 */
+.email-box select.email-domain{-webkit-appearance:none;appearance:none;padding-right:26px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--grey) 50%),
+    linear-gradient(135deg,var(--grey) 50%,transparent 50%);
+  background-position:calc(100% - 14px) calc(50% + 1px),calc(100% - 9px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+.email-hint{font-size:12px;color:var(--grey);line-height:1.8;margin:6px 0 0;}
+/* 各頁的欄位底色不一樣，外框要跟著同一頁的其他欄位走 */
+.corp-grid .email-box,.adm-form .email-box{background:#FFFDF6;}
+.corp-grid .email-box .email-local,.corp-grid .email-box .email-domain{font-size:15.5px;padding-top:11px;padding-bottom:11px;}
+
+
+/* ── iOS 點擊放大的最後一道覆寫，位置必須在整份檔案的最後 ──
+ *
+ * 輸入框字級小於 16px 時，iOS Safari 會在聚焦的當下把整頁放大，
+ * 使用者要自己縮回來，非常煩。站上第 1275 行那條 @media(pointer:coarse)
+ * 本來就是為了這件事，但企業訂購頁的 .corp-grid input（特異度 0,1,1）
+ * 寫在它後面，同分靠後位取勝，所以那一頁一直是 15.5px。
+ * 同理，本檔案上面那條 .corp-grid .email-box .email-local（0,3,0）
+ * 也會壓過媒體查詢裡的 .email-box .email-local（0,2,0）。
+ * 覆寫放在檔尾並用相同的特異度，才真的蓋得過去。
+ */
+@media(pointer:coarse){
+  .corp-grid input,.corp-grid select,.corp-grid textarea{font-size:16px;}
+  .email-box .email-local,.email-box .email-domain,
+  .corp-grid .email-box .email-local,.corp-grid .email-box .email-domain{font-size:16px;}
+}
+
+
+/* ── 手機版面被 select 撐寬的根治 ──
+ *
+ * grid 與 flex 的子項目預設 min-width:auto，意思是「不得小於自己的內容寬度」。
+ * 而 <select> 的內容寬度在 Safari 是以最長的那個選項計算的（Chromium 小得多），
+ * 所以像地址那一列（縣市／鄉鎮市區／郵遞區三欄並排）在 iPhone 上縮不下去，
+ * 就會把整個表單撐得比螢幕還寬，於是每一個 width:100% 的欄位一起溢出，
+ * 看起來就是整頁大跑版，而卡片外框還留在原位。
+ *
+ * 讓這些欄位可以縮到 0 以下限，版面就交還給格線決定。
+ * 文字用省略號收尾，不會擠成一團。
+ */
+.addr-row{min-width:0;}
+.addr-row > *,.field select,.field input,.email-box > *{min-width:0;}
+.addr-row select{text-overflow:ellipsis;}
+@media(max-width:480px){
+  /* 三欄並排在窄螢幕本來就太擠，郵遞區自己一行，縣市與鄉鎮市區各半 */
+  /* 站長 2026-09-04：手機也要三欄同一排（縣市、鄉鎮、郵遞區號），郵遞區號固定 64px 就夠放三碼 */
+  .addr-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px;gap:6px;}
+  .addr-row select{padding:11px 6px;font-size:14px;}
+  .addr-zip{padding:11px 2px !important;font-size:14px;}
+}
+
+/* 全站文章資料來源收合區（2026-08-27，前 10 篇比照豆腐頁） */
+.srcfold{max-width:720px;margin:18px auto 0;border:2px dashed var(--kraft);background:var(--rice-lt);
+  padding:14px 18px;font-size:13px;color:var(--grey);line-height:1.9}
+.srcfold summary{cursor:pointer;font-family:var(--sans,inherit);font-size:13px;letter-spacing:.12em;
+  color:var(--ink);user-select:none}
+.srcfold summary:hover{color:var(--seal)}
+.srcfold .sg{font-size:12px;letter-spacing:.2em;color:var(--ink);margin:16px 0 6px;font-weight:700}
+.srcfold ol{margin:0;padding-left:1.6em}
+.srcfold li{margin-bottom:.45em}
+.srcfold a{color:inherit;text-decoration:underline;text-underline-offset:3px;word-break:break-all}
+.srcfold a:hover{color:var(--indigo)}
+
+/* ── 前台的同意勾選（購物車、贊助頁）：灰框、透明底、灰勾、跟文字同高、對齊第一行；
+      不用 label 包文字，所以只有按方框本身才會切換，按到字不會（站長 2026-09-04） ── */
+.soft-chk{display:flex;align-items:flex-start;gap:9px;font-weight:400;font-size:13.5px;line-height:1.8;color:var(--grey);}
+/* 放在 .field 裡也要長一樣：.field input 的 padding、2px 茶墨框、100% 寬全部壓掉 */
+.soft-chk input[type=checkbox],.field .soft-chk input[type=checkbox]{appearance:none;-webkit-appearance:none;width:1em !important;height:1em !important;min-height:0;padding:0 !important;margin:.42em 0 0;border:1.5px solid var(--grey) !important;border-radius:2px;background:transparent !important;box-shadow:none;flex:none;position:relative;cursor:pointer;accent-color:var(--grey);font-size:inherit;}
+.soft-chk input[type=checkbox]:checked::after{content:"";position:absolute;left:.26em;top:.04em;width:.28em;height:.55em;border:solid var(--grey);border-width:0 1.5px 1.5px 0;transform:rotate(45deg);}
+.soft-chk input[type=checkbox]:focus-visible{outline:2px solid var(--indigo);outline-offset:2px;}
+.soft-chk>span{font-weight:400;}
+
+/* 郵遞區號排最後：原本 CSS 就是 1fr 1fr 88px，只是標記順序放反了，現在對上了 */
+/* 付款格直排：Apple Pay 字比較長，縮小字距與字級，不要撐出格子 */
+.pay-stack .pay-lab{letter-spacing:.02em;font-size:13px;}
+@media(max-width:560px){.pay-stack .pay-lab{font-size:12px;letter-spacing:0;}.pay-stack{padding:12px 2px;gap:6px;}}
+
+/* ── 文末支持模組（2026-09-13）：跟首頁底下那組同一套。
+   放在檔案最後：.wd-supportcta／.b568-supportcta／.ot-cta 與 tofu 區那條裸的 .article-cta
+   都在前面，同權重時後面的贏，這裡才拿得回首頁的信封框長相。 ── */
+.article-cta.support-letter{margin-top:3em;border:2px solid var(--ink);background:var(--rice-lt);padding:0;
+  box-shadow:8px 8px 0 rgba(58,50,38,.14);text-align:center;overflow:hidden;color:var(--ink)}
+.article-cta.support-letter .inner{padding:30px 22px 26px}
+.article-cta.support-letter h2{font-size:clamp(24px,4vw,30px);font-weight:900;letter-spacing:.14em;margin:0 0 14px;line-height:1.5}
+.article-cta.support-letter .cta-line{color:var(--seal);font-weight:700;letter-spacing:.1em;font-size:16px;line-height:1.9;margin:0 0 6px;white-space:pre-line}
+.article-cta.support-letter .cta-note{margin-bottom:6px}
+/* 長信收合：一條虛線的按鈕列，44px 手指按得到；點開後信箋照首頁 v2 的長相 */
+.article-cta.support-letter .letter-fold{max-width:33em;margin:14px auto 0;text-align:left}
+.article-cta.support-letter .letter-fold summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;font-family:var(--sans,inherit);font-size:13.5px;letter-spacing:.14em;color:var(--grey);
+  border:1.5px dashed var(--kraft);background:var(--rice);padding:8px 14px}
+.article-cta.support-letter .letter-fold summary::-webkit-details-marker{display:none}
+.article-cta.support-letter .letter-fold summary:hover{color:var(--seal);border-color:var(--seal)}
+.article-cta.support-letter .letter-fold summary i{font-style:normal;transition:transform .2s}
+.article-cta.support-letter .letter-fold[open] summary i{transform:rotate(90deg)}
+.article-cta.support-letter .letter-fold .lead-letter{margin:14px auto 0}
+.article-cta.support-letter .sup-pillars{margin:22px 0 18px}
+.article-cta.support-letter .formwrap{text-align:left}

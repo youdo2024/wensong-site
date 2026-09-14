@@ -1,0 +1,30 @@
+{
+  "name": "wensong-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "smoke": "node --experimental-strip-types --import ./tests/reg.mjs tests/smoke.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "marked": "^18.0.5",
+    "next": "16.2.10",
+    "nodemailer": "^9.0.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "sanitize-html": "^2.17.5",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.1",
+    "typescript": "^5"
+  }
+}
