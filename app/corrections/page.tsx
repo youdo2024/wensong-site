@@ -13,7 +13,7 @@ export const metadata: Metadata = buildMetadata({
   description: "問爽的的查證流程與更正政策：內容如何查證、發現錯誤如何處理、讀者如何通報。事實正確是本站的底線。",
 });
 
-/* 更正政策（信任基礎建設）：查證流程、錯誤處理、讀者通報管道 */
+/* 更正政策（信任基礎建設）：逐字稿與來賓資料的查證與回報管道 */
 export default function CorrectionsPage() {
   const sec = { fontSize: 18, fontWeight: 900 as const, letterSpacing: ".1em", margin: "28px 0 10px" };
   const p = { fontSize: 15, lineHeight: 2, color: "var(--ink)" };
@@ -21,31 +21,28 @@ export default function CorrectionsPage() {
     <>
       <Nav />
       <div className="frame" style={{ maxWidth: 680, padding: "48px 20px 100px" }}>
-        <Crumbs items={[{ name: "首頁", path: "/" }, { name: "查證與更正政策" }]} />
+        <Crumbs items={[{ name: "首頁", path: "/" }, { name: "更正回報" }]} />
         <div className="page-head">
-          <span className="tag">查 證 與 更 正</span>
-          <h1>查證與更正政策</h1>
-          <p>事實正確是這個網站的底線</p>
+          <span className="tag">更 正 回 報</span>
+          <h1>更正回報</h1>
+          <p>發現錯誤了嗎？告訴我們</p>
         </div>
 
-        <h2 style={sec}>我們怎麼查證</h2>
+        <h2 style={sec}>逐字稿的正確性</h2>
         <p style={p}>
-          本站內容以三種材料為基礎：實地田野調查與第一手訪談、官方公開資料（如農業部、林業及自然保育署、農業部生物多樣性研究所、海洋委員會等機構之統計與報告）、以及可具名的當事人說法。
-          數字與事件在發布前會比對可取得的原始出處；引用他人研究或報導時，於文中或文末標示來源。
-          無法查證的傳聞，我們選擇不寫。
+          每一集的逐字稿都是 AI 語音辨識加上人工粗校產出。雖然已經過檢查，難免還是有錯字或漏字。如果你在逐字稿裡發現某個字念得不對，或整句話要改，歡迎寄信告訴我們。
         </p>
 
-        <h2 style={sec}>發現錯誤時，我們怎麼處理</h2>
+        <h2 style={sec}>來賓資料可能過時</h2>
         <p style={p}>
-          確認屬實的錯誤，我們會盡快更正內文（原則上於確認後 48 小時內），並視錯誤性質在文末加註更正說明與日期；
-          若錯誤足以影響讀者對事件的理解，會另行於社群平台公告。我們不會無聲修改重大錯誤。
+          集數頁顯示的來賓頭銜與簡介是錄音當時的資訊。如果來賓後來換工作或有新發展，網站上的資料可能就不是最新的了。如果你發現某位來賓的資料需要更新，也可以來信通知。
         </p>
 
-        <h2 style={sec}>你發現錯誤，怎麼告訴我們</h2>
+        <h2 style={sec}>怎麼回報</h2>
         <p style={p}>
-          來信 <a href={`mailto:${SEO.email}?subject=${encodeURIComponent("內容更正回報")}`} style={{ color: "var(--indigo)", textUnderlineOffset: 4 }}>{SEO.email}</a>，
-          註明文章網址、有疑義的段落、以及你認為正確的資訊（若有出處更好）。
-          每一封更正回報都會由主持人親自查核，並回覆處理結果。謝謝每一位幫忙把關的讀者——你們是這個網站可信的原因之一。
+          寄信到 <a href={`mailto:${SEO.email}?subject=${encodeURIComponent("更正回報")}`} style={{ color: "var(--indigo)", textUnderlineOffset: 4 }}>{SEO.email}</a>，
+          註明是哪一集、錯誤在哪裡、你認為應該怎麼改。有出處或證據最好。
+          每一封回報都會由主持人親自看，確認後我們會更新，並回信感謝你。
         </p>
       </div>
       <Footer />

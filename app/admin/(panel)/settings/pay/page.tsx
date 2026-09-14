@@ -5,6 +5,7 @@ import { saveSettings } from "@/app/admin/actions";
 import { shopGateway } from "@/lib/shop";
 import { tappayConfig, tappayEnabled } from "@/lib/tappay";
 import { ecpayConfig, ecpayEnabled } from "@/lib/ecpay";
+import { newebpayEnabled } from "@/lib/newebpay";
 import { amegoConfig } from "@/lib/amego";
 import { linepayEnabled } from "@/lib/linepay";
 import { payuniEnabled } from "@/lib/payuni";
@@ -43,14 +44,18 @@ export default async function SettingsPay({
           ? ec.live ? "綠界＋LINE Pay・正式" : ecpayEnabled() ? "綠界・測試特店" : "綠界・未設定"
           : shopGateway() === "tappay"
             ? (tappayEnabled() ? (tp.sandbox ? "TapPay・沙箱" : "TapPay・正式") : "TapPay・未設定")
-            : payuniEnabled() ? "PayUni・啟用" : "未設定",
-      ok: shopGateway() === "ecpay" ? ec.live : shopGateway() === "tappay" ? tappayEnabled() && !tp.sandbox : payuniEnabled(),
+            : shopGateway() === "newebpay"
+              ? (newebpayEnabled() ? "藍新・已設定" : "藍新・未設定")
+              : payuniEnabled() ? "PayUni・啟用" : "未設定",
+      ok: shopGateway() === "ecpay" ? ec.live : shopGateway() === "tappay" ? tappayEnabled() && !tp.sandbox : shopGateway() === "newebpay" ? newebpayEnabled() : payuniEnabled(),
       hint:
         shopGateway() === "ecpay"
           ? "商店結帳與贊助共用綠界金鑰，發票由光貿開立"
           : shopGateway() === "tappay" && tp.sandbox
             ? "顧客刷卡不會真的扣款。開賣前在 Zeabur 設 TAPPAY_SANDBOX=0"
-            : "商店結帳走的金流",
+            : shopGateway() === "newebpay" && !newebpayEnabled()
+              ? "沒讀到 NEWEBPAY_MERCHANT_ID／HASH_KEY／HASH_IV，收不到真正的款項"
+              : "商店結帳走的金流",
     },
     {
       name: "贊助金流",
@@ -136,7 +141,7 @@ export default async function SettingsPay({
               hint="（與贊助同一套金鑰；信用卡／Apple Pay／ATM／多元支付走綠界，LINE Pay 走官方金流，發票由本站光貿開立）"
             />
             <Check
-              type="radio" name="shop_gateway" value="payuni" defaultChecked={gw !== "tappay" && gw !== "ecpay"}
+              type="radio" name="shop_gateway" value="payuni" defaultChecked={gw !== "tappay" && gw !== "ecpay" && gw !== "newebpay"}
               label={<b>統一金流 PayUni</b>}
               hint="（跳轉付款頁；信用卡／ATM／多元支付；發票由 PayUni 開）"
             />
@@ -144,6 +149,11 @@ export default async function SettingsPay({
               type="radio" name="shop_gateway" value="tappay" defaultChecked={gw === "tappay"}
               label={<b>TapPay ＋ 光貿發票</b>}
               hint="（站內刷卡不跳轉、3D 驗證；目前僅信用卡，商店頁會出現 TapPay 標示）"
+            />
+            <Check
+              type="radio" name="shop_gateway" value="newebpay" defaultChecked={gw === "newebpay"}
+              label={<b>藍新金流 NewebPay ＋ 光貿發票</b>}
+              hint="（跳轉藍新付款頁；僅信用卡與 ATM，發票由本站光貿開立。需先在 Zeabur 設 NEWEBPAY_MERCHANT_ID／HASH_KEY／HASH_IV）"
             />
           </div>
           <p className="fine">

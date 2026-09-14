@@ -81,7 +81,7 @@ export default function CheckoutForm({
   lineNotify?: boolean;
   presets?: { name: string; phone: string; email: string; address: string };
   /* 後台選的金流：文案與流程跟著它走（就算金鑰還沒設好，也不會顯示成另一家） */
-  gateway?: "payuni" | "tappay" | "ecpay";
+  gateway?: "payuni" | "tappay" | "ecpay" | "newebpay";
   /* TapPay 前端設定；gateway=tappay 但金鑰未設時為 null（欄位隱藏、送出鎖住） */
   tappay?: TapPayClientConfig | null;
   /*
@@ -180,9 +180,9 @@ export default function CheckoutForm({
   }, []);
   const tpRef = useRef<TapPayCardHandle | null>(null);
   const isTappay = gateway === "tappay";
-  /* 站內開票（光貿）：TapPay 與綠界模式都由本站開發票，要在這裡收發票選項；
+  /* 站內開票（光貿）：TapPay、綠界、藍新模式都由本站開發票，要在這裡收發票選項；
      只有 PayUni 是由它的付款頁自行收集 */
-  const selfInvoice = isTappay || gateway === "ecpay";
+  const selfInvoice = isTappay || gateway === "ecpay" || gateway === "newebpay";
   const tappayCard = isTappay && pay === "信用卡";
   /*
    * 預設店到店（站長指示 2026-08-30）：多數客人選的是超商，而且運費便宜一半
@@ -622,6 +622,22 @@ export default function CheckoutForm({
       f.submit();
       return;
     }
+    if (data.newebpay) {
+      /* 跳轉藍新付款頁：跟綠界／PayUni 同一招（自動 POST 隱藏表單） */
+      const f = document.createElement("form");
+      f.method = "POST";
+      f.action = data.newebpay.action;
+      for (const [k, v] of Object.entries(data.newebpay.fields as Record<string, string>)) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = k;
+        input.value = v;
+        f.appendChild(input);
+      }
+      document.body.appendChild(f);
+      f.submit();
+      return;
+    }
     router.push(`/shop/thanks?no=${data.orderNo}${data.token ? `&k=${data.token}` : ""}`);
   }
 
@@ -979,6 +995,10 @@ export default function CheckoutForm({
           ) : gateway === "ecpay" ? (
             <p className="fine center" style={{ marginTop: 16 }}>
               付款由綠界科技（ECPay）／LINE Pay 加密處理，本站不經手也不儲存你的卡號
+            </p>
+          ) : gateway === "newebpay" ? (
+            <p className="fine center" style={{ marginTop: 16 }}>
+              付款由藍新科技（NewebPay）加密處理，本站不經手也不儲存你的卡號
             </p>
           ) : (
             <p className="fine center" style={{ marginTop: 16 }}>

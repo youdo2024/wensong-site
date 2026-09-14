@@ -7,6 +7,7 @@ import { gaClientIdFromCookie, gaSessionFromCookie, GA_SESSION_COOKIE } from "@/
 import { payuniEnabled } from "@/lib/payuni";
 import { portalyEnabled, ensureOncePlan, ensureMonthlyPlan, createCheckoutSession } from "@/lib/portaly";
 import { ecpayEnabled } from "@/lib/ecpay";
+import { newebpayEnabled } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
 import { isPayMethodOff, supportMode } from "@/lib/shop";
 import { sendSponsorThanksMail } from "@/lib/mail";
@@ -64,7 +65,10 @@ export async function createSponsorship(formData: FormData) {
   if (!/^09\d{8}$/.test(phone)) redirect(back("phone"));
 
   const useEcpay = ecpayEnabled();
-  const usePortaly = !useEcpay && portalyEnabled();
+  /* 藍新只做單筆（沒有定期定額委託 API 可串），且只收信用卡與 ATM；
+     定期定額一律略過藍新，退回下面的 Portaly／PayUni */
+  const useNewebpay = !useEcpay && mode === "once" && newebpayEnabled();
+  const usePortaly = !useEcpay && !useNewebpay && portalyEnabled();
   if (!usePortaly && isPayMethodOff(payMethod, "support")) redirect(back("1"));
   if (usePortaly && mode === "monthly") {
     const tiers = json<number[]>(getSetting("sponsor_tiers", "[888,5000,30000,80000]"), [888, 5000, 30000, 80000]);
@@ -75,6 +79,7 @@ export async function createSponsorship(formData: FormData) {
     if (mode === "monthly" && payMethod !== "信用卡") redirect(back("1"));
     if (payMethod === "LINE Pay" && !linepayEnabled()) redirect(back("1"));
   }
+  if (useNewebpay && !["信用卡", "ATM 轉帳"].includes(payMethod)) redirect(back("1"));
 
   /* 發票偏好：雲端寄 Email（預設）／手機條碼載具／愛心碼捐贈／公司統編 */
   const invKind = String(formData.get("inv_kind") || "email");
@@ -106,8 +111,8 @@ export async function createSponsorship(formData: FormData) {
   if (invKind === "mobile" && !/^\/[0-9A-Z.+-]{7}$/.test(String(formData.get("inv_carrier_no") || "").trim().toUpperCase()))
     redirect(back("carrier"));
 
-  const live = useEcpay || usePortaly || payuniEnabled();
-  const provider = useEcpay ? (payMethod === "LINE Pay" ? "linepay" : "ecpay") : usePortaly ? "portaly" : "payuni";
+  const live = useEcpay || useNewebpay || usePortaly || payuniEnabled();
+  const provider = useEcpay ? (payMethod === "LINE Pay" ? "linepay" : "ecpay") : useNewebpay ? "newebpay" : usePortaly ? "portaly" : "payuni";
   const payToken = crypto.randomBytes(12).toString("hex");
   /* 抓訪客的 GA client_id：付款完成時伺服器端回報 GA 用，能歸因回原本的流量來源 */
   const ck = await cookies();

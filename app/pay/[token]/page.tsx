@@ -72,12 +72,16 @@ export default async function PayLinkPage({ params }: { params: Promise<{ token:
      先濾再判斷有沒有剩，順序反過來的話會把空清單交給表單，
      表單只好退回預設的「信用卡」，而那可能正是這條連結沒開放的方式，
      對方填完送出才被伺服器擋下。 */
-  const pays = enabledPays(json<string[]>(link.pays, []).filter((p) => p !== "LINE Pay" || linepayEnabled()));
-  if (pays.length === 0)
-    return <Frame title="這條連結目前無法結帳" body={<>連結開放的付款方式現在都不可用，請跟我們聯絡換一條新的。</>} />;
-
   const needAddress = Boolean(link.need_address);
   const gateway = shopGateway();
+  /* 藍新只做信用卡與 ATM，連結原本開放的其他方式（LINE Pay／Apple Pay／多元支付）在這個模式下不能出現 */
+  const pays = enabledPays(
+    json<string[]>(link.pays, [])
+      .filter((p) => p !== "LINE Pay" || linepayEnabled())
+      .filter((p) => gateway !== "newebpay" || p === "信用卡" || p === "ATM 轉帳")
+  );
+  if (pays.length === 0)
+    return <Frame title="這條連結目前無法結帳" body={<>連結開放的付款方式現在都不可用，請跟我們聯絡換一條新的。</>} />;
 
   return (
     <>

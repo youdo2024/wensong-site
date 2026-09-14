@@ -1,6 +1,6 @@
 import "./admin.css";
 import { redirect } from "next/navigation";
-import { isAdmin, adminPasswordIsDefault } from "@/lib/auth";
+import { isAdmin, adminPasswordIsDefault, currentAdmin } from "@/lib/auth";
 import AdminNav from "@/components/AdminNav";
 import ViewToggle from "@/components/admin/ViewToggle";
 import { adminTodo } from "@/lib/admin-todo";
@@ -20,9 +20,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     "/admin/orders": todo.attention + todo.contact + todo.suspect,
     "/admin/partners": todo.lateWeeks,
   };
+  const admin = await currentAdmin();
   return (
     <div className="adm">
-      <AdminNav badges={badges} />
+      <AdminNav badges={badges} adminName={admin?.name} />
       <main className="adm-main">
         {/* 手機：卡片／表格切換放在內容最上面一列，不再浮在畫面上擋東西 */}
         <div className="adm-viewbar"><ViewToggle /></div>

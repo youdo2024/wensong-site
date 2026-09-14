@@ -109,15 +109,16 @@ export function footerBusinessModel(): boolean {
 }
 
 /* 商店金流閘道：
-   ecpay ＝綠界＋LINE Pay＋光貿發票（與贊助同一套：跳轉綠界收信用卡／Apple Pay／
-           ATM／多元支付，LINE Pay 走官方金流，發票由光貿開立）
-   payuni＝統一金流（跳轉 UPP，發票由 PayUni 開）
-   tappay＝TapPay 站內刷卡＋光貿發票（暫時停用中，程式保留）
+   ecpay   ＝綠界＋LINE Pay＋光貿發票（與贊助同一套：跳轉綠界收信用卡／Apple Pay／
+             ATM／多元支付，LINE Pay 走官方金流，發票由光貿開立）
+   payuni  ＝統一金流（跳轉 UPP，發票由 PayUni 開）
+   tappay  ＝TapPay 站內刷卡＋光貿發票（暫時停用中，程式保留）
+   newebpay＝藍新金流 MPG（跳轉藍新收信用卡／ATM，發票由光貿開立）
    後台網站設定切換。 */
-export type ShopGateway = "ecpay" | "payuni" | "tappay";
+export type ShopGateway = "ecpay" | "payuni" | "tappay" | "newebpay";
 export function shopGateway(): ShopGateway {
   const v = getSetting("shop_gateway", "payuni");
-  return v === "tappay" ? "tappay" : v === "ecpay" ? "ecpay" : "payuni";
+  return v === "tappay" ? "tappay" : v === "ecpay" ? "ecpay" : v === "newebpay" ? "newebpay" : "payuni";
 }
 
 /* 付款方式開關：後台可暫停個別方式（例如 LINE Pay 尚未開通）
@@ -294,7 +295,9 @@ export function discountLabel(d: Discount): string {
  * 這份清單必須跟 /api/orders/pay 認得的 m= 值一致，不然給出去的連結會被彈回感謝頁。
  */
 export function retryPayOptions(): string[] {
-  return shopGateway() === "tappay"
-    ? enabledPays(["信用卡"])
-    : enabledPays(["ATM 轉帳", "信用卡", "LINE Pay", "Apple Pay", "多元支付"]).filter((p) => p !== "LINE Pay" || linepayEnabled());
+  const gw = shopGateway();
+  if (gw === "tappay") return enabledPays(["信用卡"]);
+  /* 藍新只做信用卡與 ATM（見 lib/newebpay.ts），其餘方式不能出現在重付連結上 */
+  if (gw === "newebpay") return enabledPays(["ATM 轉帳", "信用卡"]);
+  return enabledPays(["ATM 轉帳", "信用卡", "LINE Pay", "Apple Pay", "多元支付"]).filter((p) => p !== "LINE Pay" || linepayEnabled());
 }

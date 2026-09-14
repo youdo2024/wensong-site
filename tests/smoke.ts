@@ -23,10 +23,11 @@ import { genpayEncrypt, genpayDecrypt, genpayMtnFor, isGenpayMtn, orderNoFromGen
 import { quietUntil, STEP_OFFSETS_MIN, FAIL_AFTER_MIN } from "@/lib/remind";
 import { renderCopy, copyDefault, COPY_EVENTS } from "@/lib/notify-copy";
 import { parseUtmCode, utmQuery, UTM_CHANNELS, utmLinksFor } from "@/lib/utm-link";
-import { createHmac } from "crypto";
+import { createHmac, createCipheriv } from "crypto";
 import { deriveZip, zipDisplay } from "@/lib/zip-lookup";
 import { createThrottle, isNoise, sanitizeCspUrl, violationKey } from "@/lib/csp-noise";
-import { passwordUsable } from "@/lib/admin-password";
+import { passwordUsable, accountModeEnabled } from "@/lib/admin-password";
+import { hashPassword, verifyPassword } from "@/lib/admin-users";
 import { activeChoices, choiceActive, parseChoiceExpiry, splitChoices, weekRetired } from "@/lib/choice-split";
 import { csvCell } from "@/lib/csv";
 import { brandOfMethod, cvsMethodOf, isCvsMethod, normalizeBrand } from "@/lib/cvs";
@@ -42,7 +43,7 @@ import { mailTabFromParams, contactTone, payLinkStatus, newsletterStatus } from 
 import { willWrite, carriesField, SETTING_SOURCES } from "@/components/admin/settings-fields";
 import { safeEqual } from "@/lib/safe-equal";
 import { taipeiDateExpired, taipeiYMDAt } from "@/lib/month";
-import { DEFAULT_EPOCH, packSession, parseEpoch, verifySession } from "@/lib/admin-session";
+import { DEFAULT_EPOCH, packSession, parseEpoch, sessionUser, verifySession } from "@/lib/admin-session";
 import {
   SHORT_ALPHABET, SHORT_CODE_LEN, newShortCode, internalPath, shortSiteUrl,
   ensureShortLink, shortUrl, resolveShortPath, shortLinkByCode, shortClickSummary,
@@ -863,22 +864,43 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
   const sign = (p: string) => createHmac("sha256", "測試用金鑰").update(p).digest("hex");
   const now = Date.parse("2026-09-06T01:00:00Z");
   const exp = now + 60_000;
-  const cookie = packSession(exp, 3, sign);
-  eq("cookie 是三段：到期時間.epoch.簽章", cookie.split(".").length, 3);
+  const cookie = packSession(exp, 3, sign, { id: 2, name: "阿明" });
+  eq("cookie 是四段：到期時間.epoch.使用者.簽章", cookie.split(".").length, 4);
   ok("同一代的 cookie 驗得過", verifySession(cookie, sign, 3, now));
+  eq("解得回登入者的 id 與名字", sessionUser(cookie, sign, 3, now), { id: 2, name: "阿明" });
   ok("登出後 epoch 加一，舊 cookie 立刻失效", !verifySession(cookie, sign, 4, now));
+  eq("失效的 cookie 解不出登入者", sessionUser(cookie, sign, 4, now), null);
   ok("過期的 cookie 不算數", !verifySession(cookie, sign, 3, exp + 1));
   ok("簽章被改過就不算數", !verifySession(cookie.slice(0, -1) + "0", sign, 3, now));
   ok("換一把金鑰簽的不算數", !verifySession(cookie, (p) => createHmac("sha256", "別把金鑰").update(p).digest("hex"), 3, now));
-  /* 舊格式（兩段）自然驗不過，站長重登一次就好，不必寫相容分支 */
+  /* 舊格式（兩段或三段）自然驗不過，站長重登一次就好，不必寫相容分支 */
   ok("舊格式 cookie 一律驗不過", !verifySession(`${exp}.${sign(String(exp))}`, sign, 3, now));
   ok("沒有 cookie 不算登入", !verifySession(undefined, sign, 3, now));
   ok("亂填的 cookie 不算登入", !verifySession("隨便打的東西", sign, 3, now));
+  /* 沒帶登入者（舊的單一密碼制）：預設記成「站長」 */
+  const defaultCookie = packSession(exp, 3, sign);
+  eq("沒帶使用者時預設記成「站長」", sessionUser(defaultCookie, sign, 3, now), { id: 0, name: "站長" });
   /* epoch 讀壞了寧可退回第一代，也不能變成 NaN 讓站長自己都登不進去 */
   eq("epoch 讀不到退回 1", parseEpoch(""), DEFAULT_EPOCH);
   eq("epoch 是亂碼退回 1", parseEpoch("abc"), 1);
   eq("epoch 是 0 退回 1", parseEpoch("0"), 1);
   eq("正常的 epoch 照讀", parseEpoch("7"), 7);
+}
+
+/* ── 後台帳號制（第 2 段，2026-09-14）：密碼雜湊與帳號制判斷 ── */
+{
+  const h = hashPassword("correct horse battery staple");
+  ok("雜湊格式是 scrypt$salt$hash（十六進位）", /^scrypt\$[0-9a-f]+\$[0-9a-f]+$/.test(h));
+  ok("正確密碼驗得過", verifyPassword("correct horse battery staple", h));
+  ok("錯誤密碼被擋下", !verifyPassword("wrong password", h));
+  ok("同一組密碼每次雜湊出不同的 salt", hashPassword("same") !== hashPassword("same"));
+  ok("壞格式的雜湊值一律當驗證失敗，不丟例外", !verifyPassword("x", "not-a-real-hash"));
+  ok("空字串雜湊值不丟例外", !verifyPassword("x", ""));
+
+  ok("三個 ADMIN_USER_N 都沒設＝單一密碼制", !accountModeEnabled({}));
+  ok("設了任何一個就算帳號制", accountModeEnabled({ ADMIN_USER_2: "a|b|c" }));
+  ok("帳號制時只看 ADMIN_USER_1 有沒有設", passwordUsable({ ADMIN_USER_1: "a|b|c" }));
+  ok("帳號制但 ADMIN_USER_1 沒設＝不給登入", !passwordUsable({ ADMIN_USER_2: "a|b|c" }));
 }
 
 /* ── 站內短網址（2026-09-07）── */
@@ -1279,6 +1301,86 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
   eq("RSS：日期轉 ISO", feed.items[0].pubDate, "2024-07-28T04:00:00.000Z");
   eq("RSS：沒有日期是空字串，不是 Invalid Date", feed.items[1].pubDate, "");
   eq("集數標籤", [epLabel("main", "07"), epLabel("submit", "03"), epLabel("pilot", "0"), epLabel("other", "")], ["第 7 集", "投稿 03", "試播集", "特別篇"]);
+}
+
+/* ── 藍新金流 NewebPay（問爽的第 3 段）：加密／簽章／編號的來回測試 ──
+   沒有真的測試金鑰，這裡自己造一組合法長度（32／16 碼）的假金鑰做來回測試，
+   驗證的是「我們自己的加解密邏輯自洽」，不是對上藍新真實環境（那要等站長拿到金鑰後手動測）。 */
+{
+  const {
+    encryptTradeInfo, decryptTradeInfo, tradeSha, verifyTradeSha, parseNotify,
+    newebpayOrderMtn, orderNoFromNewebpayMtn, isNewebpayOrderMtn,
+    newebpaySponsorMtn, sponsorIdFromNewebpayMtn, isNewebpaySponsorMtn,
+  } = await import("@/lib/newebpay");
+
+  const K = "01234567890123456789012345678901"; // 32 碼
+  const V = "0123456789012345"; // 16 碼
+
+  /* 加密解密來回一致：TradeInfo 是「參數組成 query string 後加密」，解密要能還原同一份 query string */
+  const params = { MerchantID: "TEST001", Amt: 100, MerchantOrderNo: "WOYD260914000700", ItemDesc: "測試商品 A#B" };
+  const enc = encryptTradeInfo(params, K, V);
+  ok("TradeInfo 是小寫 hex", /^[0-9a-f]+$/.test(enc));
+  const dec = decryptTradeInfo(enc, K, V);
+  const qsExpected = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) qsExpected.set(k, String(v));
+  eq("解密還原成同一份 query string", dec, qsExpected.toString());
+
+  /* TradeSha 大寫、驗簽通過；改一個字元就要被拒絕 */
+  const sha = tradeSha(enc, K, V);
+  ok("TradeSha 是大寫 hex（64 碼）", /^[0-9A-F]{64}$/.test(sha));
+  ok("驗簽通過", verifyTradeSha(enc, sha, K, V));
+  ok("改過的簽章擋下", !verifyTradeSha(enc, sha.slice(0, -1) + (sha.endsWith("A") ? "B" : "A"), K, V));
+  ok("換一把假的 HashKey 也擋下", !verifyTradeSha(enc, sha, K.slice(0, -1) + "9", V));
+
+  /* MerchantOrderNo：訂單編號的產生與還原（WO 前綴＋重試加碼） */
+  const orderNo = "YD2609140007";
+  const mtn1 = newebpayOrderMtn(orderNo);
+  eq("首次取號沒有 R 尾碼", mtn1, `WO${orderNo}`);
+  ok("30 碼以內", mtn1.length <= 30);
+  ok("認得是訂單編號", isNewebpayOrderMtn(mtn1));
+  eq("還原回原始訂單編號", orderNoFromNewebpayMtn(mtn1), orderNo);
+  const mtn2 = newebpayOrderMtn(orderNo, true);
+  ok("重試會加上 R 與時間碼，跟首次不同", mtn2 !== mtn1 && mtn2.startsWith(`WO${orderNo}R`));
+  ok("重試編號一樣 30 碼以內", mtn2.length <= 30);
+  eq("重試編號也能還原回同一個訂單編號", orderNoFromNewebpayMtn(mtn2), orderNo);
+
+  /* MerchantOrderNo：贊助 id 的產生與還原（WS 前綴＋時間戳尾 6 碼），不需要查資料庫就能剝回身分 */
+  const spMtn = newebpaySponsorMtn(57);
+  ok("贊助編號 WS 開頭帶 id", spMtn.startsWith("WS57"));
+  ok("贊助編號 30 碼以內", spMtn.length <= 30);
+  ok("認得是贊助編號", isNewebpaySponsorMtn(spMtn));
+  eq("還原回贊助 id", sponsorIdFromNewebpayMtn(spMtn), 57);
+  eq("訂單編號不會被誤判成贊助 id", sponsorIdFromNewebpayMtn(mtn1), 0);
+  ok("訂單編號不會被誤判成贊助編號", !isNewebpaySponsorMtn(mtn1));
+  ok("贊助編號不會被誤判成訂單編號", !isNewebpayOrderMtn(spMtn));
+
+  /* parseNotify：沒設金鑰時 newebpayEnabled() 是 false，一律回 null，安靜不動 */
+  const bodyGood = { Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: enc, TradeSha: sha, Version: "2.0" };
+  eq("環境變數空著時 parseNotify 一律回 null（newebpayEnabled 為 false）", parseNotify(bodyGood), null);
+
+  /* 設好假金鑰之後，錯的簽章要被拒絕；沒有 TradeSha／TradeInfo 也要被拒絕 */
+  process.env.NEWEBPAY_MERCHANT_ID = "TEST001";
+  process.env.NEWEBPAY_HASH_KEY = K;
+  process.env.NEWEBPAY_HASH_IV = V;
+  try {
+    /* parseNotify 解的是「JSON 字串」而不是 query string，這裡自己組一份藍新格式的回應內容 */
+    const notifyRaw = JSON.stringify({
+      Status: "SUCCESS", Message: "授權成功",
+      Result: { MerchantID: "TEST001", Amt: 720, TradeNo: "24091400000001", MerchantOrderNo: mtn1, PaymentType: "CREDIT", PayTime: "2026-09-14 12:00:00" },
+    });
+    const notifyCipher = createCipheriv("aes-256-cbc", Buffer.from(K, "utf8"), Buffer.from(V, "utf8"));
+    const notifyJsonHex = Buffer.concat([notifyCipher.update(notifyRaw, "utf8"), notifyCipher.final()]).toString("hex");
+    const okSha = tradeSha(notifyJsonHex, K, V);
+    const parsed = parseNotify({ Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: notifyJsonHex, TradeSha: okSha, Version: "2.0" });
+    ok("正確簽章解得出結果", parsed !== null && parsed.ok && parsed.merchantOrderNo === mtn1 && parsed.paymentType === "CREDIT" && parsed.payTime !== "");
+    const badParsed = parseNotify({ Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: notifyJsonHex, TradeSha: okSha.slice(0, -1) + (okSha.endsWith("A") ? "B" : "A"), Version: "2.0" });
+    eq("錯簽章一律拒絕（回 null）", badParsed, null);
+    eq("缺 TradeSha 也拒絕", parseNotify({ Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: notifyJsonHex, TradeSha: "", Version: "2.0" }), null);
+  } finally {
+    delete process.env.NEWEBPAY_MERCHANT_ID;
+    delete process.env.NEWEBPAY_HASH_KEY;
+    delete process.env.NEWEBPAY_HASH_IV;
+  }
 }
 
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);

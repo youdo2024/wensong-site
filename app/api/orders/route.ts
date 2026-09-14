@@ -9,6 +9,7 @@ import { addonEnabled, addonTiers, applyDiscount, coldEnabled, findDiscount, fre
 import { tappayEnabled } from "@/lib/tappay";
 import { buildCheckoutFields, ecpayEnabled, type EcpayMethod } from "@/lib/ecpay";
 import { ecpayBackstageAtmOn, takeAtmNumberForOrder } from "@/lib/ecpay-genpay";
+import { buildMpgForm, newebpayEnabled, type NewebpayMethod } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { draftViewable, shopViewable } from "@/lib/shop-preview";
@@ -334,7 +335,14 @@ export async function POST(req: NextRequest) {
         throw new OrderError("金流啟用作業中，暫時無法結帳");
       if (useEcpay && payMethod === "LINE Pay" && !linepayEnabled())
         throw new OrderError("LINE Pay 尚未啟用，請改用其他付款方式");
-      const live = useTappay || useEcpay || payuniEnabled();
+      /* 藍新模式：只接信用卡與 ATM（見 lib/newebpay.ts），其餘方式在這個模式下不該出現，
+         前台已經濾過，這裡再擋一次防有人繞過網頁直接打 API */
+      const useNewebpay = shopGateway() === "newebpay" && newebpayEnabled();
+      if (shopGateway() === "newebpay" && !newebpayEnabled())
+        throw new OrderError("金流啟用作業中，暫時無法結帳");
+      if (useNewebpay && !["信用卡", "ATM 轉帳"].includes(payMethod || "信用卡"))
+        throw new OrderError("此付款方式目前暫停使用，請改用其他方式");
+      const live = useTappay || useEcpay || useNewebpay || payuniEnabled();
       /* 訪客的 GA client_id：付款完成時伺服器端回報 purchase 用，能歸因回原流量來源 */
       const gaCid = gaClientIdFromCookie(req.cookies.get("_ga")?.value);
       const gaSess = gaSessionFromCookie(req.cookies.get(GA_SESSION_COOKIE)?.value);
@@ -374,7 +382,7 @@ export async function POST(req: NextRequest) {
       const descParts = lineItems.map((li) => `${li.name}x${li.qty}`);
       /* 加購支持在金流明細上與發票定性一致，寫交易標的而非「贊助」 */
       if (addonAmt) descParts.push(`數位內容服務${addonAmt}`);
-      return { orderNo, orderToken, total, desc: descParts.join(";").slice(0, 200), emailTrim: email.trim(), useTappay, useEcpay };
+      return { orderNo, orderToken, total, desc: descParts.join(";").slice(0, 200), emailTrim: email.trim(), useTappay, useEcpay, useNewebpay };
     })();
 
     /* 這單把某個規格買到額滿 → 通知站長（該發限動了） */
@@ -439,6 +447,19 @@ export async function POST(req: NextRequest) {
         clientBackUrl: `${site}/shop/thanks?no=${encodeURIComponent(result.orderNo)}&k=${result.orderToken}`,
       });
       return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, ecpay: ec });
+    }
+    if (result.useNewebpay) {
+      /* 藍新只接信用卡與 ATM，其餘方式在建單那段已經擋下 */
+      const method: NewebpayMethod = payMethod === "ATM 轉帳" ? "atm" : "credit";
+      const nb = buildMpgForm({
+        orderNo: result.orderNo,
+        amount: result.total,
+        itemDesc: result.desc.split(";").join("、"),
+        email: result.emailTrim,
+        method,
+        kind: "order",
+      });
+      return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, newebpay: { action: nb.action, fields: nb.fields } });
     }
     if (payuniEnabled()) {
       /*

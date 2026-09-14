@@ -1,8 +1,9 @@
 import db, { getSetting, setSetting } from "./db";
 import { queryByOrderNo, tappayEnabled } from "./tappay";
-import { applyTappayOrderResult, restoreStock, applyEcpayOrderResult } from "./payment-sync";
+import { applyTappayOrderResult, restoreStock, applyEcpayOrderResult, applyNewebpayOrderResult } from "./payment-sync";
 import { ecpayEnabled, ecpayConfig, ecpayPayLabel, queryTradeInfo, queryPeriodInfo, orderNoFromMtn } from "./ecpay";
 import { isGenpayMtn, queryGenPayTrade } from "./ecpay-genpay";
+import { newebpayEnabled, newebpayOrderMtn, queryTrade as queryNewebpayTrade } from "./newebpay";
 import { settleSponsorOncePaid, isSponsorAutoFailed, SPONSOR_AUTO_FAIL_MARK } from "./sponsor-settle";
 import { loadOrderTarget, loadSponsorTarget, autoRemindStep, shouldFail, supersededBy, sendNotice, notifySponsorFailed, flushQueue, notifyPaused, notifyDryRun, allSkipped, anySent } from "./remind";
 import { linepayEnabled, linepayQueryByOrderId, linepayCheckRequest, linepayConfirm } from "./linepay";
@@ -253,6 +254,25 @@ async function checkLinePay(sp: PendingRow, r: ReconcileResult): Promise<void> {
 }
 
 /*
+ * ── 藍新（NewebPay）單筆 ──
+ * trade_no 存的是這筆贊助最後一次送出去的 MerchantOrderNo（見 app/support/pay/[id]/page.tsx），
+ * 查詢 API 要用同一個值才問得到正確的交易，不能自己重算（重算的時間戳跟送出去的不會一樣）。
+ */
+async function checkNewebpaySponsor(sp: PendingRow, r: ReconcileResult): Promise<void> {
+  const q = await queryNewebpayTrade(sp.trade_no, sp.amount);
+  if (!q.ok) { r.notes.push(`#${sp.id} 藍新查詢異常：${q.error || ""}`); r.skipped++; return; }
+  if (q.paid) {
+    if (settlePaid(sp, sp.trade_no, "對帳補正：藍新顯示已付款")) {
+      r.paid++;
+      r.notes.push(`#${sp.id} ${sp.display_name || "匿名"} NT.${sp.amount} → 其實已付款，已補開發票並寄信`);
+    }
+    return;
+  }
+  const isAtm = Boolean(sp.atm_vaccount) || sp.pay_method.includes("ATM");
+  await handleUnpaid(sp, r, "藍新顯示尚未付款", isAtm ? FAIL_AFTER_HOURS_ATM : FAIL_AFTER_HOURS);
+}
+
+/*
  * 商店訂單清理：pending 訂單的庫存在下單當下就扣走了，
  * 顧客中途放棄的話沒有任何回呼會來，庫存會被永遠鎖住（會造成假性售罄）。
  * 1. TapPay 有查詢 API：先回查補正（付了就入帳開發票、明確失敗就取消回補）
@@ -390,6 +410,26 @@ async function cleanupStaleOrders(r: ReconcileResult): Promise<void> {
         }
       } catch (e) {
         console.error("[reconcile] 訂單 TapPay 回查失敗", o.order_no, e);
+      }
+    }
+    /* 藍新回查：通知掉了的訂單在這裡補上（查無此單＝走別家金流，harmless，跳過即可）。
+       trade_no 有值代表重試過（見 app/api/orders/pay），沒有值就是第一次送出時那組固定編號 */
+    if (newebpayEnabled()) {
+      try {
+        const mtn = o.trade_no && o.trade_no.startsWith("WO") ? o.trade_no : newebpayOrderMtn(o.order_no);
+        const q = await queryNewebpayTrade(mtn, o.total);
+        if (q.paid) {
+          const res = applyNewebpayOrderResult(o.order_no, "paid", mtn, "藍新", "對帳補正：藍新顯示已付款", o.total);
+          if (res.kind === "order" && res.outcome === "failed") {
+            r.notes.push(`訂單 ${o.order_no} → 藍新回報金額與應付不符，未自動入帳，請人工確認`);
+            continue;
+          }
+          r.paid++;
+          r.notes.push(`訂單 ${o.order_no} → 藍新其實已付款，已補入帳與發票`);
+          continue;
+        }
+      } catch (e) {
+        console.error("[reconcile] 訂單藍新回查失敗", o.order_no, e);
       }
     }
     /*
@@ -604,6 +644,9 @@ export async function reconcilePending(): Promise<ReconcileResult> {
         if (!ecpayEnabled()) { r.skipped++; continue; }
         if (sp.mode === "monthly") await checkEcpayPeriod(sp, r);
         else await checkEcpayOnce(sp, r);
+      } else if (sp.provider === "newebpay") {
+        if (!newebpayEnabled()) { r.skipped++; continue; }
+        await checkNewebpaySponsor(sp, r);
       } else {
         r.skipped++; // Portaly／PayUni 有自己的回呼，這裡不介入
       }

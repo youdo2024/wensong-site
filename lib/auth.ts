@@ -4,7 +4,8 @@ import { getSetting, setSetting } from "./db";
 import { cookieSecure } from "./cookie-secure";
 import { passwordUsable } from "./admin-password";
 import { appSecret } from "./app-secret";
-import { packSession, parseEpoch, verifySession } from "./admin-session";
+import { packSession, parseEpoch, sessionUser, verifySession, type SessionUser } from "./admin-session";
+import { findUser, seedAdminUsersFromEnv, touchLogin, verifyPassword } from "./admin-users";
 
 const COOKIE = "yo_admin";
 
@@ -24,7 +25,7 @@ export function adminPasswordIsDefault(): boolean {
 }
 
 /* 判斷邏輯在 lib/admin-password.ts（純函式，冒煙測試載得動），這裡照舊出口 */
-export { passwordUsable } from "./admin-password";
+export { passwordUsable, accountModeEnabled } from "./admin-password";
 
 function password(): string {
   return process.env.ADMIN_PASSWORD || "yozaiganma";
@@ -43,6 +44,19 @@ export function checkPassword(pw: string) {
 }
 
 /*
+ * 帳號制（第 2 段）：核對帳號密碼，對了就補上 last_login_at 並回傳登入者。
+ * 種子先跑一次（讀環境變數 upsert 進 admin_users），確保站長剛改完 ADMIN_USER_N
+ * 不必手動跑遷移，下一次登入就吃得到新密碼或新名字。
+ */
+export function checkAccountPassword(username: string, pw: string): SessionUser | null {
+  seedAdminUsersFromEnv();
+  const user = username ? findUser(username) : undefined;
+  if (!user || !verifyPassword(pw, user.pass_hash)) return null;
+  touchLogin(user.id);
+  return { id: user.id, name: user.name };
+}
+
+/*
  * 目前這一代的後台 session。cookie 裡帶著它，值對不上就一律不算登入。
  * 登出時 bumpSessionEpoch() 加一，等於把先前簽出去的每一張 cookie 一次作廢
  * （被側錄走的那張也包含在內），這是原本的 `到期時間.簽章` 做不到的事。
@@ -56,10 +70,10 @@ export function bumpSessionEpoch(): void {
   setSetting("admin_session_epoch", String(sessionEpoch() + 1));
 }
 
-export async function createSession() {
+export async function createSession(user: SessionUser = { id: 0, name: "站長" }) {
   const exp = Date.now() + 1000 * 60 * 60 * 24 * 7; // 7 天
   const store = await cookies();
-  store.set(COOKIE, packSession(exp, sessionEpoch(), sign), {
+  store.set(COOKIE, packSession(exp, sessionEpoch(), sign, user), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -102,6 +116,12 @@ export async function destroySession() {
 export async function isAdmin(): Promise<boolean> {
   const store = await cookies();
   /* 驗證邏輯在 lib/admin-session.ts（純函式，冒煙測試載得動）：
-     驗簽、比對現行 epoch、檢查到期時間，三關都過才算登入 */
+     驗簽、比對現行 epoch、檢查到期時間，四關都過才算登入 */
   return verifySession(store.get(COOKIE)?.value, sign, sessionEpoch());
+}
+
+/* 現在登入的是誰。用在修改記錄（lib/admin-log.ts）與後台頁首顯示「現在登入：名字」 */
+export async function currentAdmin(): Promise<SessionUser | null> {
+  const store = await cookies();
+  return sessionUser(store.get(COOKIE)?.value, sign, sessionEpoch());
 }

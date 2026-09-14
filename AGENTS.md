@@ -27,7 +27,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## 站長模式
 - 商店、支持、電子報三塊做完但鎖住：`shop_enabled=0`（帶 `shop_preview_key` 的連結才看得到）、`support_mode=off`、`newsletter_block=0`。第 3 段接藍新後才開。
-- 藍新（NewebPay）尚未串：`lib/newebpay.ts` 不存在。綠界／PayUni／TapPay／LINE Pay 程式保留但不設金鑰。
+- 藍新（NewebPay）幕前支付 MPG 已串（`lib/newebpay.ts`）：`shop_gateway="newebpay"` 時商店走藍新（信用卡／ATM），
+  贊助單筆在綠界沒開、藍新有金鑰時自動優先於 Portaly／PayUni。沒有測試金鑰跑過，正式收款前照
+  `docs/newebpay-spec.md` 的清單用測試金鑰驗過一輪再開。綠界／PayUni／TapPay／LINE Pay 程式保留但不設金鑰。
 
 ## 開發與測試
 - `npm run smoke`：純邏輯測試，改完必跑。`npm run build` 過了才准推。
@@ -42,7 +44,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## 已知限制
 - 集數頁與文章頁是 force-dynamic，不是 ISR：這版 Next 正式模式下 `revalidate` 頁會因 layout 讀 cookie 炸 DYNAMIC_SERVER_USAGE（2026-09-14 實測 500）。要 ISR 得先把 layout 的 `shopViewable()` 改成不讀 cookie。
-- 藍新尚未串、3 帳號後台尚未做（第 2、3 段）。`/business-model` 與 `/corrections` 的內文還是佑在幹嘛口吻換品牌名，第 3 段送審前重寫。
+- 藍新已串（第 3 段，程式完整但沒有測試金鑰跑過，見 `docs/newebpay-spec.md`）。`/business-model` 與 `/corrections` 的內文還是佑在幹嘛口吻換品牌名，第 3 段送審前重寫。
+- 後台帳號制（第 2 段，2026-09-14 完成）：設任何一個 `ADMIN_USER_1..3`（格式 `帳號|顯示名|scrypt$salt$hash`，雜湊用 `lib/admin-users.ts` 的 `hashPassword()` 產生）就整站切成 3 人各自登入；三個都沒設維持舊的 `ADMIN_PASSWORD` 單一密碼。修改記錄在 `/admin/log`（`admin_log` 表，寫入端 `lib/admin-log.ts`）。
 
 ## 其他
 - 圖片派生 `/api/images?w=480|768|1200|1600`（AVIF/WebP），原圖永不改動。

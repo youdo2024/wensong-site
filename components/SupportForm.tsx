@@ -30,7 +30,7 @@ export default function SupportForm({
   initMode: "monthly" | "once";
   initShowCustom?: boolean;
   pays?: string[];
-  provider?: "portaly" | "payuni" | "ecpay";
+  provider?: "portaly" | "payuni" | "ecpay" | "newebpay";
   /* 綜合模式：每月定額導去的外部頁面；空字串＝定額照舊留在站內 */
   monthlyExternal?: string;
   /* 首頁嵌入用：把小小的模式切換連結換成兩顆大分頁鈕（每月定額／單筆支持） */
@@ -40,9 +40,11 @@ export default function SupportForm({
 }) {
   const portaly = provider === "portaly";
   const ecpay = provider === "ecpay";
+  const newebpay = provider === "newebpay";
   const creditOn = portaly || pays.includes("信用卡");
   /* 定額走外部頁時不需要站內信用卡也能選定額 */
-  const canMonthly = creditOn || Boolean(monthlyExternal);
+  /* 藍新沒有定期定額委託 API（見 lib/newebpay.ts），這個 provider 只做單次支持 */
+  const canMonthly = (creditOn && !newebpay) || Boolean(monthlyExternal);
   const [monthly, setMonthly] = useState(initMode === "monthly" && canMonthly);
   const [amount, setAmount] = useState<number | null>(initShowCustom ? null : tiers.includes(initAmount) ? initAmount : null);
   const [custom, setCustom] = useState(tiers.includes(initAmount) ? "" : String(initAmount));
@@ -353,7 +355,7 @@ export default function SupportForm({
                 </span>
               </div>
             )}
-            {ecpay && pay === "ATM 轉帳" && (
+            {(ecpay || newebpay) && pay === "ATM 轉帳" && (
               <p className="fine center" style={{ marginTop: 10 }}>
                 會產生一組專屬轉帳帳號（寄到你的 Email），三天內完成轉帳即可
               </p>
@@ -471,7 +473,7 @@ export default function SupportForm({
             付款・發票・取消說明 ▾
           </summary>
           <p className="fine center" style={{ marginTop: 10 }}>
-            付款由{portaly ? " Portaly " : ecpay ? "綠界科技（ECPay）與 LINE Pay " : "法定金流公司"}安全處理，本站不儲存你的卡號。完成後將寄送確認信與電子發票，定期定額支持者的信中附有取消訂閱連結，隨時可停止。
+            付款由{portaly ? " Portaly " : ecpay ? "綠界科技（ECPay）與 LINE Pay " : newebpay ? "藍新科技（NewebPay）" : "法定金流公司"}安全處理，本站不儲存你的卡號。完成後將寄送確認信與電子發票，定期定額支持者的信中附有取消訂閱連結，隨時可停止。
           </p>
           <p className="fine center" style={{ marginTop: 8, lineHeight: 2 }}>
             本服務為支持內容創作之交易行為（由於悅商行依法開立統一發票），並非捐贈或募資，不得作為捐贈申報所得稅扣除。

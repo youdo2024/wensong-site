@@ -31,15 +31,15 @@ export default async function SupportThanks({
   const choose = pay === "choose";
 
   /* 失敗救援：sid+權杖有效且仍是待付款的單筆，就給「換個方式重試」按鈕（免重填，同提醒信的權杖機制） */
-  let rescue: { id: number; token: string; payMethod: string } | null = null;
+  let rescue: { id: number; token: string; payMethod: string; provider: string } | null = null;
   if ((failed || choose) && sid && tok) {
     try {
       const db = (await import("@/lib/db")).default;
       const row = db
-        .prepare("SELECT id,mode,status,pay_token,pay_method FROM sponsorships WHERE id=?")
-        .get(Number(sid)) as { id: number; mode: string; status: string; pay_token: string; pay_method: string } | undefined;
+        .prepare("SELECT id,mode,status,pay_token,pay_method,provider FROM sponsorships WHERE id=?")
+        .get(Number(sid)) as { id: number; mode: string; status: string; pay_token: string; pay_method: string; provider: string } | undefined;
       if (row && row.mode === "once" && row.status === "pending" && row.pay_token === tok) {
-        rescue = { id: row.id, token: row.pay_token, payMethod: row.pay_method };
+        rescue = { id: row.id, token: row.pay_token, payMethod: row.pay_method, provider: row.provider };
       }
     } catch { rescue = null; }
   }
@@ -140,7 +140,8 @@ export default async function SupportThanks({
                   {!isPayMethodOff("ATM 轉帳", "support") && rescue.payMethod !== "ATM 轉帳" && (
                     <Link className="btn fill" href={`/support/pay/${rescue.id}?t=${encodeURIComponent(rescue.token)}&m=atm`}>改用 ATM 轉帳（最穩）</Link>
                   )}
-                  {linepayEnabled() && !isPayMethodOff("LINE Pay", "support") && rescue.payMethod !== "LINE Pay" && (
+                  {/* 藍新沒有 LINE Pay 這條路，換過去只會卡住 */}
+                  {rescue.provider !== "newebpay" && linepayEnabled() && !isPayMethodOff("LINE Pay", "support") && rescue.payMethod !== "LINE Pay" && (
                     <Link className="btn" href={`/support/pay/${rescue.id}?t=${encodeURIComponent(rescue.token)}&m=linepay`}>改用 LINE Pay</Link>
                   )}
                   {!isPayMethodOff("信用卡", "support") && rescue.payMethod !== "信用卡" && (

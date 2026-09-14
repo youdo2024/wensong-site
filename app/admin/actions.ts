@@ -4,7 +4,8 @@ import { clientIp } from "@/lib/ratelimit";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import db, { setSetting, getSetting } from "@/lib/db";
-import { bumpSessionEpoch, checkPassword, createSession, destroySession, isAdmin, loginLocked, recordLoginFail, clearLoginFails, passwordUsable } from "@/lib/auth";
+import { bumpSessionEpoch, checkAccountPassword, checkPassword, createSession, destroySession, isAdmin, loginLocked, recordLoginFail, clearLoginFails, passwordUsable, accountModeEnabled } from "@/lib/auth";
+import { logAdmin } from "@/lib/admin-log";
 import { sendOrderShippedMail, sendMail } from "@/lib/mail";
 import { mailEnabled, sendOrderPaidMail, sendSponsorThanksMail, sendSponsorChargedMail, sendSponsorResumeMail } from "@/lib/mail";
 import { checkEmail } from "@/lib/email-typo";
@@ -91,21 +92,37 @@ export async function login(formData: FormData) {
   const ip = clientIp(h);
   if (loginLocked(ip)) redirect("/admin/login?error=locked");
   /*
-   * 正式環境沒設 ADMIN_PASSWORD（或短於 8 碼）時 checkPassword 一律回 false，
+   * 正式環境沒設好登入方式時 passwordUsable 一律回 false，
    * 這時顯示「密碼不對」會害站長一直重打密碼、找不到真正的原因，
    * 所以先分流出一個講清楚的訊息：要去 Zeabur 設環境變數。
    */
   if (!passwordUsable(process.env)) redirect("/admin/login?error=nopw");
-  const pw = String(formData.get("password") || "");
-  if (!checkPassword(pw)) {
-    recordLoginFail(ip);
-    redirect("/admin/login?error=1");
+  /* 有設任何一個 ADMIN_USER_N 就走帳號制，三個都沒設才退回舊的單一密碼（本機開發用） */
+  if (accountModeEnabled(process.env)) {
+    const username = String(formData.get("username") || "").trim();
+    const pw = String(formData.get("password") || "");
+    const user = checkAccountPassword(username, pw);
+    if (!user) {
+      recordLoginFail(ip);
+      redirect("/admin/login?error=1");
+    }
+    clearLoginFails(ip);
+    await createSession(user!);
+  } else {
+    const pw = String(formData.get("password") || "");
+    if (!checkPassword(pw)) {
+      recordLoginFail(ip);
+      redirect("/admin/login?error=1");
+    }
+    clearLoginFails(ip);
+    await createSession({ id: 0, name: "站長" });
   }
-  clearLoginFails(ip);
-  await createSession();
+  await logAdmin("登入");
   redirect("/admin");
 }
 export async function logout() {
+  /* 記錄要在 session 還有效的時候讀，作廢之後 currentAdmin() 就讀不到人了 */
+  await logAdmin("登出");
   /* 登出＝把這一代的 session 全部作廢，不只是刪掉自己瀏覽器裡那張。
      cookie 沒有識別碼，站長懷疑 cookie 外流時能做的就是按登出；
      少了這一行，被側錄走的那張還能再用 7 天。 */
@@ -164,11 +181,13 @@ export async function saveArticle(formData: FormData) {
     const { pingIndexNow } = await import("@/lib/indexnow");
     void pingIndexNow([`/articles/${data.slug}`]);
   }
+  await logAdmin("編輯文章", data.slug, data.title);
   redirect("/admin/articles");
 }
 export async function deleteArticle(formData: FormData) {
   await guard();
   db.prepare("DELETE FROM articles WHERE id=?").run(Number(formData.get("id")));
+  await logAdmin("刪除文章", String(formData.get("id") || ""));
   revalidatePath("/articles");
   redirect("/admin/articles");
 }
@@ -1060,6 +1079,7 @@ export async function togglePublished(formData: FormData) {
   if (!(table in MOVABLE)) redirect("/admin");
   const id = Number(formData.get("id"));
   db.prepare(`UPDATE ${table} SET published = 1 - published WHERE id=?`).run(id);
+  await logAdmin("切換顯示", `${table}#${id}`);
   revalidatePath(table === "articles" ? "/articles" : table === "products" ? "/shop" : table === "episodes" ? "/ep" : "/guests");
   revalidatePath("/");
   redirect(MOVABLE[table]);
@@ -1159,6 +1179,7 @@ export async function saveCopy(formData: FormData) {
     const v = formData.get(`copy_${key}`);
     if (v !== null) setSetting(`copy_${key}`, String(v).trim());
   }
+  await logAdmin("儲存文案");
   revalidatePath("/", "layout");
   redirect("/admin/settings/content?saved=1");
 }
@@ -1269,7 +1290,7 @@ export async function saveSettings(formData: FormData) {
   /* 商店金流閘道（PayUni ⇄ TapPay＋光貿） */
   if (has("shop_gateway")) {
     const gw = String(formData.get("shop_gateway") || "payuni");
-    setSetting("shop_gateway", gw === "tappay" ? "tappay" : gw === "ecpay" ? "ecpay" : "payuni");
+    setSetting("shop_gateway", gw === "tappay" ? "tappay" : gw === "ecpay" ? "ecpay" : gw === "newebpay" ? "newebpay" : "payuni");
   }
   /*
    * 付款方式開關：沒勾＝停用，存代號陣列。商店與贊助各存一份（站長指示 2026-08-31），
@@ -1344,6 +1365,7 @@ export async function saveSettings(formData: FormData) {
   revalidatePath("/", "layout");
   /* 存完回原來那一頁。網址由表單自己帶（_back），但只認設定底下那七條，其他一律回目錄頁 */
   const dest = settingsBack(formData.get("_back"));
+  await logAdmin("儲存設定", dest);
   redirect(linepayMsg ? `${dest}?saved=1&linepay=${encodeURIComponent(linepayMsg)}` : `${dest}?saved=1`);
 }
 
@@ -1999,6 +2021,7 @@ export async function saveEpisode(formData: FormData) {
     const { pingIndexNow } = await import("@/lib/indexnow");
     void pingIndexNow([`/ep/${key}`]);
   }
+  await logAdmin("編輯集數", data.key, data.short_title);
   redirect(`/admin/episodes/${id}?saved=1`);
 }
 
@@ -2009,6 +2032,7 @@ export async function deleteEpisode(formData: FormData) {
     db.prepare("DELETE FROM episode_guests WHERE episode_id=?").run(id);
     db.prepare("DELETE FROM episodes WHERE id=?").run(id);
   })();
+  await logAdmin("刪除集數", String(id));
   revalidatePath("/");
   revalidatePath("/ep");
   redirect("/admin/episodes");
@@ -2018,6 +2042,7 @@ export async function syncEpisodesNow() {
   await guard();
   const { syncEpisodes } = await import("@/lib/episodes");
   const r = await syncEpisodes();
+  await logAdmin("同步集數", "", r.ok ? `新增 ${r.added}・更新 ${r.updated}` : r.msg || "失敗");
   revalidatePath("/");
   revalidatePath("/ep");
   redirect(`/admin/episodes?synced=${r.ok ? "ok" : "fail"}`);
@@ -2072,6 +2097,7 @@ export async function saveGuest(formData: FormData) {
     ).run(data);
     gid = Number(r.lastInsertRowid);
   }
+  await logAdmin("編輯來賓", slug, name);
   revalidatePath("/");
   revalidatePath("/guests");
   revalidatePath(`/guests/${slug}`);
@@ -2085,6 +2111,7 @@ export async function deleteGuest(formData: FormData) {
     db.prepare("DELETE FROM episode_guests WHERE guest_id=?").run(id);
     db.prepare("DELETE FROM guests WHERE id=?").run(id);
   })();
+  await logAdmin("刪除來賓", String(id));
   revalidatePath("/");
   revalidatePath("/guests");
   redirect("/admin/guests");

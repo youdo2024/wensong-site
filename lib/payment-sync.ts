@@ -1,7 +1,7 @@
 import db, { json } from "./db";
 import { isAutoCancelled, AUTO_CANCEL_MARK } from "./order-superseded";
 import { PAY_TYPE_NAME } from "./payuni";
-import { sendOrderPaidMail, sendOrderAtmMail, sendSponsorThanksMail } from "./mail";
+import { sendOrderPaidMail, sendOrderAtmMail, sendSponsorThanksMail, sendSponsorAtmMail } from "./mail";
 import { notifyProductPurchases, notifySponsorship } from "./notify";
 import { restoreChoiceStocks, deductChoiceStocks, parseChoiceStocks } from "./choice-stock";
 import { itemsNeedShipping, type PayLinkItem } from "./pay-link";
@@ -10,6 +10,7 @@ import { invoiceForOrder } from "./amego";
 import { addOneMonth } from "./month";
 import { notifyOrderLine, orderStatusUrl, type LineOrderLike } from "./line";
 import { rememberSponsorTradeNo } from "./sponsor-trade-no";
+import { settleSponsorOncePaid } from "./sponsor-settle";
 
 type OrderRow = {
   order_no: string; name: string; email: string; address: string;
@@ -349,6 +350,128 @@ export function applyEcpayOrderAtmInfo(orderNo: string, bank: string, vacc: stri
     void notifyOrderLine("atm", full as LineOrderLike, { info: note, url: orderStatusUrl(full.order_no, (full as LineOrderLike).token || "") }).catch((e) => console.error("[line] atm", e));
   }
   return { kind: "order", orderNo, outcome: "pending" };
+}
+
+/*
+ * 藍新（NewebPay）商店訂單入帳／失敗。完全比照 applyEcpayOrderResult：
+ * 條件式 UPDATE 搶佔（NotifyURL 會重送，只有 status='pending' 的那一次會贏），
+ * 金額不符就不入帳，只留備註給後台人工看。發票同樣由光貿開（invoiceForOrder）。
+ */
+export function applyNewebpayOrderResult(
+  orderNo: string,
+  outcome: "paid" | "failed",
+  tradeNo: string,
+  payMethodLabel: string,
+  note: string,
+  paidAmount?: number
+): SyncResult {
+  const order = db.prepare("SELECT id,status,items,total FROM orders WHERE order_no=?").get(orderNo) as
+    | { id: number; status: string; items: string; total: number }
+    | undefined;
+  if (!order) return { kind: "unknown" };
+
+  if (outcome === "paid" && typeof paidAmount === "number" && paidAmount > 0 && paidAmount !== order.total) {
+    db.prepare("UPDATE orders SET pay_note=trim(COALESCE(pay_note,'') || ' ' || ?) WHERE id=?")
+      .run(`⚠️金額不符：藍新回報 ${paidAmount}、應付 ${order.total}，未自動入帳`, order.id);
+    return { kind: "order", orderNo, outcome: "failed" };
+  }
+
+  if (outcome === "paid") {
+    const revived = reopenIfAutoCancelled(order.id);
+    const win = db
+      .prepare("UPDATE orders SET status='paid', trade_no=?, pay_method=?, pay_note=? WHERE id=? AND status='pending'")
+      .run(tradeNo, payMethodLabel, note, order.id);
+    if (win.changes > 0) afterOrderPaid(order.id, revived);
+    return { kind: "order", orderNo, outcome: "paid" };
+  }
+
+  const win = db
+    .prepare("UPDATE orders SET status='cancelled', trade_no=?, pay_note=? WHERE id=? AND status='pending'")
+    .run(tradeNo, note || "付款失敗", order.id);
+  if (win.changes > 0) restoreStock(order.items);
+  return { kind: "order", orderNo, outcome: "failed" };
+}
+
+/*
+ * 藍新 ATM 取號：還沒付錢，只是拿到繳費代碼。訂單維持 pending，
+ * 寫進繳費資訊並寄信，比照 applyEcpayOrderAtmInfo。
+ * NotifyURL 與瀏覽器跳回的 CustomerURL 可能都會呼叫到這支，
+ * 「尚未寫過繳費帳號」的守門讓重複呼叫不會寄兩封信。
+ */
+export function applyNewebpayOrderAtmInfo(orderNo: string, bank: string, codeNo: string, expire: string): SyncResult {
+  const order = db.prepare("SELECT id,status FROM orders WHERE order_no=?").get(orderNo) as
+    | { id: number; status: string }
+    | undefined;
+  if (!order) return { kind: "unknown" };
+  const note = `ATM 轉帳：${bank} ${codeNo}${expire ? `（${expire} 前完成）` : ""}`;
+  const win = db
+    .prepare("UPDATE orders SET pay_method='ATM 轉帳', pay_note=? WHERE id=? AND status='pending' AND COALESCE(pay_note,'') NOT LIKE '%ATM 轉帳：%'")
+    .run(note, order.id);
+  if (win.changes > 0) {
+    const full = db.prepare("SELECT * FROM orders WHERE id=?").get(order.id) as OrderRow;
+    void sendOrderAtmMail(full);
+    void notifyOrderLine("atm", full as LineOrderLike, { info: note, url: orderStatusUrl(full.order_no, (full as LineOrderLike).token || "") }).catch((e) => console.error("[line] atm", e));
+  }
+  return { kind: "order", orderNo, outcome: "pending" };
+}
+
+/*
+ * 藍新贊助入帳／失敗。付款成功直接交給 settleSponsorOncePaid（唯一實作，
+ * 綠界回呼、對帳補正都走它），失敗則條件式 UPDATE，不動已經是終態的紀錄。
+ * 藍新的 MerchantOrderNo 本身就帶著贊助 id（見 lib/newebpay.ts），
+ * 所以這裡不需要像綠界那樣另外查一張單號歷史表才找得回身分。
+ */
+export function applyNewebpaySponsorResult(
+  sponsorId: number,
+  outcome: "paid" | "failed",
+  tradeNo: string,
+  note: string,
+  paidAmount?: number
+): SyncResult {
+  const sp = db.prepare("SELECT id,status,mode,amount FROM sponsorships WHERE id=?").get(sponsorId) as
+    | { id: number; status: string; mode: string; amount: number }
+    | undefined;
+  if (!sp) return { kind: "unknown" };
+
+  if (outcome === "paid" && typeof paidAmount === "number" && paidAmount > 0 && paidAmount !== sp.amount) {
+    db.prepare("UPDATE sponsorships SET last_charge_note=trim(COALESCE(last_charge_note,'') || ' ' || ?) WHERE id=?")
+      .run(`⚠️金額不符：藍新回報 ${paidAmount}、應付 ${sp.amount}，未自動入帳`, sp.id);
+    return { kind: "sponsorship", id: sp.id, mode: sp.mode, outcome: "failed" };
+  }
+
+  if (outcome === "paid") {
+    const ok = settleSponsorOncePaid(sp.id, tradeNo, note);
+    return { kind: "sponsorship", id: sp.id, mode: sp.mode, outcome: ok ? "paid" : "pending" };
+  }
+
+  db.prepare("UPDATE sponsorships SET status='failed', last_charge_note=? WHERE id=? AND status='pending'")
+    .run(note || "付款失敗", sp.id);
+  return { kind: "sponsorship", id: sp.id, mode: sp.mode, outcome: "failed" };
+}
+
+/*
+ * 藍新贊助 ATM 取號：寫入 atm_bank／atm_vaccount／atm_expire 並寄繳費信，比照
+ * app/api/ecpay/atm/route.ts 對贊助那段的寫法。「尚未寫過虛擬帳號」守門避免重複通知重寄信。
+ */
+export function applyNewebpaySponsorAtmInfo(sponsorId: number, bank: string, codeNo: string, expire: string): SyncResult {
+  const sp = db
+    .prepare("SELECT id,mode,amount,display_name,email,COALESCE(pay_token,'') pay_token FROM sponsorships WHERE id=?")
+    .get(sponsorId) as
+    | { id: number; mode: string; amount: number; display_name: string; email: string; pay_token: string }
+    | undefined;
+  if (!sp) return { kind: "unknown" };
+  const win = db
+    .prepare(
+      "UPDATE sponsorships SET pay_method='ATM 轉帳', atm_bank=?, atm_vaccount=?, atm_expire=?, last_charge_note=? WHERE id=? AND status='pending' AND COALESCE(atm_vaccount,'')=''"
+    )
+    .run(bank, codeNo, expire, `ATM 已取號，繳費期限 ${expire}`, sp.id);
+  if (win.changes > 0) {
+    void sendSponsorAtmMail({
+      id: sp.id, amount: sp.amount, display_name: sp.display_name, email: sp.email,
+      bank, vaccount: codeNo, expire, token: sp.pay_token, mode: sp.mode,
+    });
+  }
+  return { kind: "sponsorship", id: sp.id, mode: sp.mode, outcome: "pending" };
 }
 
 /*

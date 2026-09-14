@@ -56,6 +56,7 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
       { href: "/admin/settings/pay", label: "金流", icon: "gear" },
       { href: "/admin/settings/notify", label: "通知", icon: "gear" },
       { href: "/admin/settings/system", label: "系統", icon: "gear" },
+      { href: "/admin/log", label: "修改記錄", icon: "file" },
     ],
   },
 ];
@@ -69,7 +70,7 @@ const BOTTOM: NavLink[] = [
   { href: "/admin/sponsors", label: "贊助", icon: "heart" },
 ];
 
-export default function AdminNav({ badges = {} }: { badges?: Record<string, number> }) {
+export default function AdminNav({ badges = {}, adminName }: { badges?: Record<string, number>; adminName?: string }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const isOn = (href: string) => {
@@ -92,6 +93,7 @@ export default function AdminNav({ badges = {} }: { badges?: Record<string, numb
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={BRAND.logo} alt={BRAND.fullName} style={{ width: 56, height: 56, border: "2px solid var(--ink)" }} />
         <small>管 理 後 台</small>
+        {adminName && <small>現在登入：{adminName}</small>}
       </div>
       <nav className="adm-links">
         {GROUPS.map((g) => (

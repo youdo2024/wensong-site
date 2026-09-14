@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { buildCheckoutFields, ecpayEnabled, retryTradeNo, type EcpayMethod } from "@/lib/ecpay";
 import { ecpayBackstageAtmOn, takeAtmNumberForOrder } from "@/lib/ecpay-genpay";
+import { buildMpgForm, newebpayEnabled, type NewebpayMethod } from "@/lib/newebpay";
 import { resetRound } from "@/lib/remind";
 import { linepayEnabled } from "@/lib/linepay";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { reopenFailedOrderForRetry } from "@/lib/payment-sync";
-import { isPayMethodOff } from "@/lib/shop";
+import { isPayMethodOff, shopGateway } from "@/lib/shop";
 import { safeEqual } from "@/lib/safe-equal";
 
 /*
@@ -30,8 +31,8 @@ export async function GET(req: NextRequest) {
   if (!no || !token) return bad();
 
   const o = db
-    .prepare("SELECT id,order_no,token,status,total,pay_method,items FROM orders WHERE order_no=?")
-    .get(no) as { id: number; order_no: string; token: string; status: string; total: number; pay_method: string; items: string } | undefined;
+    .prepare("SELECT id,order_no,token,status,total,pay_method,items,email FROM orders WHERE order_no=?")
+    .get(no) as { id: number; order_no: string; token: string; status: string; total: number; pay_method: string; items: string; email: string } | undefined;
   /* 權杖不符一律當作查無此單，不透露訂單是否存在。
      用定時比較：這條連結可以無限次重試，字串比較的時間差夠人把權杖一個字元一個字元試出來 */
   if (!o || !safeEqual(token, o.token)) return bad();
@@ -71,6 +72,46 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${site}/api/linepay/request?od=${encodeURIComponent(no)}&t=${o.token}`, 303);
   }
 
+  let itemName = "問爽的訂單"; /* 品名組不出來時的備援，不寫死某一樣商品 */
+  try {
+    const items = JSON.parse(o.items || "[]") as { name: string; choice: string | null; qty: number }[];
+    if (items.length) itemName = items.map((i) => `${i.name}x${i.qty}`).join("#").slice(0, 400);
+  } catch { /* 組不出來就用預設，不要因為品名擋住付款 */ }
+
+  /* 藍新模式：只接信用卡與 ATM。GET 轉不過藍新要的 POST 表單，一樣回自動送出頁。
+     重試一定要換新的 MerchantOrderNo（藍新不收重複），新號寫回 trade_no，對帳查詢才知道該問哪一筆。 */
+  if (shopGateway() === "newebpay") {
+    if (!newebpayEnabled() || !["信用卡", "ATM 轉帳"].includes(method))
+      return NextResponse.redirect(`${site}/shop/thanks?no=${encodeURIComponent(no)}&k=${o.token}&pay=failed`, 303);
+    const nbMethod: NewebpayMethod = method === "ATM 轉帳" ? "atm" : "credit";
+    const nb = buildMpgForm({
+      orderNo: o.order_no,
+      amount: o.total,
+      itemDesc: itemName.replace(/#/g, "、"),
+      email: o.email,
+      method: nbMethod,
+      kind: "order",
+      retry: true,
+    });
+    db.prepare("UPDATE orders SET trade_no=? WHERE order_no=? AND status='pending'").run(nb.merchantOrderNo, o.order_no);
+    const nbInputs = Object.entries(nb.fields)
+      .map(([k, v]) => `<input type="hidden" name="${k}" value="${String(v).replace(/"/g, "&quot;")}">`)
+      .join("");
+    const nbHtml = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>前往付款…</title></head>
+<body style="margin:0;background:#EFE3C4;font-family:'Noto Serif TC',serif;color:#3A3226;">
+<div style="max-width:420px;margin:0 auto;padding:96px 20px;text-align:center;">
+  <p style="font-size:15px;letter-spacing:.1em;">正在前往付款頁，請稍候…</p>
+  <form id="f" method="post" action="${nb.action}">${nbInputs}
+    <noscript><button type="submit" style="margin-top:16px;padding:12px 28px;font-size:15px;">按這裡繼續</button></noscript>
+  </form>
+</div>
+<script>document.getElementById('f').submit();</script>
+</body></html>`;
+    return new NextResponse(nbHtml, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  }
+
   if (!ecpayEnabled()) return NextResponse.redirect(`${site}/shop/thanks?no=${encodeURIComponent(no)}&k=${o.token}&pay=failed`, 303);
 
   /* ATM 幕後取號（後台開關）：已取過號且沒到期就沿用，否則重取；成功直接回感謝頁看帳號。失敗退回綠界頁 */
@@ -86,12 +127,6 @@ export async function GET(req: NextRequest) {
     : method === "ATM 轉帳" ? "atm"
     : method === "多元支付" ? "twqr"
     : "credit";
-
-  let itemName = "問爽的訂單"; /* 品名組不出來時的備援，不寫死某一樣商品 */
-  try {
-    const items = JSON.parse(o.items || "[]") as { name: string; choice: string | null; qty: number }[];
-    if (items.length) itemName = items.map((i) => `${i.name}x${i.qty}`).join("#").slice(0, 400);
-  } catch { /* 組不出來就用預設，不要因為品名擋住付款 */ }
 
   /* 綠界不收重複的 MerchantTradeNo，重試一定要換新號。
      新號寫回 trade_no，對帳回查才知道要去問哪一筆。 */

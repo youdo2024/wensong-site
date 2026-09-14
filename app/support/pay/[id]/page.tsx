@@ -5,6 +5,7 @@ import db from "@/lib/db";
 import { PAYUNI, buildUppFields, payMethodParams, payuniEnabled, siteUrl } from "@/lib/payuni";
 import { buildCheckoutFields, ecpayEnabled, type EcpayMethod } from "@/lib/ecpay";
 import { ecpayBackstageAtmOn, takeAtmNumberForSponsorship } from "@/lib/ecpay-genpay";
+import { buildMpgForm, newebpayEnabled, type NewebpayMethod } from "@/lib/newebpay";
 import { resetRound } from "@/lib/remind";
 import { isPayMethodOff } from "@/lib/shop";
 import { payItemName } from "@/lib/item-name";
@@ -57,20 +58,22 @@ export default async function SponsorPay({
   if (sp.status !== "pending") redirect(`/support/thanks?mode=${sp.mode}&pay=paid`);
 
   /* ── 失敗救援：換一種方式重試（免重填）。
-     僅限單筆、pending、且帶正確權杖；白名單以外的 m 一律忽略，原流程完全不受影響 ── */
+     僅限單筆、pending、且帶正確權杖；白名單以外的 m 一律忽略，原流程完全不受影響 ──
+     藍新贊助只在信用卡／ATM 之間切換，不提供 LINE Pay（藍新沒有那條路），
+     也不會把藍新的贊助切去綠界（那要重新走一次 ecpay 的建單邏輯，這裡不做）。 */
   if (m && sp.mode === "once") {
-    const SWITCH: Record<string, [string, string]> = {
-      atm: ["ecpay", "ATM 轉帳"],
-      credit: ["ecpay", "信用卡"],
-      linepay: ["linepay", "LINE Pay"],
-    };
+    const gw = sp.provider === "newebpay" ? "newebpay" : "ecpay";
+    const SWITCH: Record<string, [string, string]> =
+      gw === "newebpay"
+        ? { atm: ["newebpay", "ATM 轉帳"], credit: ["newebpay", "信用卡"] }
+        : { atm: ["ecpay", "ATM 轉帳"], credit: ["ecpay", "信用卡"], linepay: ["linepay", "LINE Pay"] };
     /* 換過去的目標也要過停用名單：關掉的方式不能經由換方式復活 */
     const target = SWITCH[m] && !isPayMethodOff(SWITCH[m][1], "support") ? SWITCH[m] : undefined;
     if (target) {
       db.prepare("UPDATE sponsorships SET provider=?, pay_method=? WHERE id=? AND status='pending'").run(target[0], target[1], sp.id);
       if (target[1] !== sp.pay_method) resetRound("sponsor", sp.id);
       if (target[0] === "linepay") redirect(`/api/linepay/request?sp=${sp.id}&t=${encodeURIComponent(sp.pay_token)}`);
-      sp.provider = "ecpay";
+      sp.provider = target[0];
       sp.pay_method = target[1];
     }
   }
@@ -112,6 +115,41 @@ export default async function SponsorPay({
       itemName: payItemName(sp.mode),
       clientBackUrl: `${site}/support/thanks?mode=${sp.mode}&pay=${method === "atm" ? "pending" : "paid"}`,
     });
+    return (
+      <>
+        <Nav />
+        <div className="frame" style={{ maxWidth: 560, padding: "72px 20px 120px" }}>
+          <div className="box">
+            <div className="band" />
+            <div className="inner">
+              <AutoSubmitForm action={action} fields={fields} />
+            </div>
+            <div className="band" />
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  /* ── 藍新站內收款（單筆限定，信用卡／ATM） ── */
+  if (sp.provider === "newebpay") {
+    if (!newebpayEnabled()) redirect("/support");
+    const payLabel = sp.pay_method || "信用卡";
+    if (isPayMethodOff(payLabel, "support"))
+      redirect(`/support/thanks?mode=${sp.mode}&pay=failed&sid=${sp.id}&t=${encodeURIComponent(sp.pay_token)}`);
+    const method: NewebpayMethod = payLabel === "ATM 轉帳" ? "atm" : "credit";
+    /* 每次進頁重生 MerchantOrderNo（藍新不接受重複），回呼靠它裡面帶的贊助 id 找回這筆贊助，
+       不需要像綠界那樣另外查歷史表。buildMpgForm 回傳的 merchantOrderNo 一定要原封寫回
+       trade_no：對帳查詢用的是這個值，自己重算一次時間戳會跟送出去的那組對不上。 */
+    const { action, fields, merchantOrderNo } = buildMpgForm({
+      orderNo: String(sp.id),
+      amount: sp.amount,
+      itemDesc: payItemName(sp.mode),
+      email: sp.email,
+      method,
+      kind: "sponsor",
+    });
+    db.prepare("UPDATE sponsorships SET trade_no=? WHERE id=?").run(merchantOrderNo, sp.id);
     return (
       <>
         <Nav />

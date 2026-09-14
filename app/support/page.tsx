@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { enabledPays, monthlyExternalUrl, supportEnabled, supportMode, supportUrl } from "@/lib/shop";
 import { portalyEnabled } from "@/lib/portaly";
 import { ecpayEnabled } from "@/lib/ecpay";
+import { newebpayEnabled } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
 import { isAdmin } from "@/lib/auth";
 import PageViewPing from "@/components/PageViewPing";
@@ -89,7 +90,7 @@ export default async function SupportPage({
         ) : sp.error ? (
           <p className="msg-err">資料不完整，請確認金額與 Email 後再送出。</p>
         ) : null}
-        <SupportForm tiers={tiers} initAmount={initAmount} initMode={initMode} initShowCustom={sp.custom === "1"} pays={ecpayEnabled() ? enabledPays(["LINE Pay", "Apple Pay", "信用卡", "ATM 轉帳", "多元支付"], "support").filter((p) => p !== "LINE Pay" || linepayEnabled()) : enabledPays(["LINE Pay", "Apple Pay", "信用卡", "銀行轉帳"], "support")} provider={ecpayEnabled() ? "ecpay" : portalyEnabled() ? "portaly" : "payuni"} monthlyExternal={monthlyExternalUrl()} modeTabs bare />
+        <SupportForm tiers={tiers} initAmount={initAmount} initMode={initMode} initShowCustom={sp.custom === "1"} pays={ecpayEnabled() ? enabledPays(["LINE Pay", "Apple Pay", "信用卡", "ATM 轉帳", "多元支付"], "support").filter((p) => p !== "LINE Pay" || linepayEnabled()) : newebpayEnabled() ? enabledPays(["信用卡", "ATM 轉帳"], "support") : enabledPays(["LINE Pay", "Apple Pay", "信用卡", "銀行轉帳"], "support")} provider={ecpayEnabled() ? "ecpay" : newebpayEnabled() ? "newebpay" : portalyEnabled() ? "portaly" : "payuni"} monthlyExternal={monthlyExternalUrl()} modeTabs bare />
           </div>
           <div className="band" />
         </div>

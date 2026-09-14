@@ -2,12 +2,14 @@
 import Script from "next/script";
 import { useEffect } from "react";
 
-/* GA4 評估 ID（公開資訊，非機密） */
-const GA_ID = "G-KHVHFQ1DFP";
+/* GA4 評估 ID 從環境變數讀取，沒設時不載入 */
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 
 type GtagWindow = { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
 
 export function GoogleAnalytics() {
+  if (!GA_ID) return null;
+
   return (
     <>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
@@ -16,7 +18,7 @@ export function GoogleAnalytics() {
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         /*
-         * 付款完成後顧客是「從綠界／LINE Pay 的網域跳回來」的，document.referrer 會是金流商。
+         * 付款完成後顧客是「從藍新的網域跳回來」的，document.referrer 會是金流商。
          * GA4 預設把外部 referrer 當成新的工作階段來源，於是這次回訪被切成新 session，
          * 原本的廣告／搜尋來源就斷了，報表上大量顯示 (not set) 或金流商 referral。
          * 感謝頁改用 ignore_referrer，讓 GA4 沿用原本的工作階段與來源。
@@ -36,14 +38,8 @@ export function GoogleAnalytics() {
 export function GaEvent({ name, params }: { name: string; params?: Record<string, string> }) {
   useEffect(() => {
     const w = window as unknown as GtagWindow;
+    if (!w.gtag) return; /* GA 未載入時安靜略過 */
     w.dataLayer = w.dataLayer || [];
-    if (!w.gtag) {
-      /* gtag.js 規定佇列裡放 arguments 物件（不能是陣列），所以不用箭頭函式 */
-      w.gtag = function () {
-        // eslint-disable-next-line prefer-rest-params
-        (w.dataLayer as unknown[]).push(arguments);
-      } as unknown as (...args: unknown[]) => void;
-    }
     w.gtag("event", name, params || {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

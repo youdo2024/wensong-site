@@ -46,6 +46,10 @@ next-env.d.ts
 # 資料庫（SQLite）
 /data/
 
+# 逐字稿批次工具：下載的音檔與 whisperx 產出，本機暫存不進版控
+/tools/transcribe/audio/
+/tools/transcribe/out/
+
 
 # 設計畫布的組好檔（2 MB，來源是同目錄的 .dc.html，可重新產生）
 docs/admin-redesign/canvas/*.html

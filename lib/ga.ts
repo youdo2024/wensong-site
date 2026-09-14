@@ -7,8 +7,8 @@
  * Measurement Protocol API 密鑰 → 建立）。未設定時自動略過並記 log，不影響主流程。
  */
 
-/* 與 components/Analytics.tsx 相同的評估 ID（公開資訊，非機密） */
-const GA_ID = "G-KHVHFQ1DFP";
+/* 與 components/Analytics.tsx 相同的評估 ID 從環境變數讀取 */
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 
 /* 從 _ga cookie 取出 client_id（格式 GA1.1.1610744124.1753399224 → 1610744124.1753399224），
    讓伺服器端事件能歸因回訪客原本的工作階段與流量來源 */
