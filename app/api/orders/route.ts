@@ -354,7 +354,14 @@ export async function POST(req: NextRequest) {
         throw new OrderError("金流啟用作業中，暫時無法結帳");
       if (useNewebpay && !["信用卡", "ATM 轉帳", "Apple Pay"].includes(payMethod || "信用卡"))
         throw new OrderError("此付款方式目前暫停使用，請改用其他方式");
-      const live = useTappay || useEcpay || useNewebpay || payuniEnabled();
+      /*
+       * total<=0（折扣碼／贈品湊出 0 元訂單）：不管設定哪個金流，都不能照常送出去請款。
+       * 藍新的 Amt、綠界的 TotalAmount 規格上都要求正整數，0 元送過去實務上會被拒收，
+       * 客人會卡在金流商的錯誤頁走不完結帳，訂單也會停在 pending 永遠等不到回呼。
+       * 0 元訂單本來就不需要跟任何人收錢，比照本來就有的「模擬模式」（沒設金流時）
+       * 直接視為已付款，讓它走同一條路，不用另外發明一套。
+       */
+      const live = total > 0 && (useTappay || useEcpay || useNewebpay || payuniEnabled());
       /* 訪客的 GA client_id：付款完成時伺服器端回報 purchase 用，能歸因回原流量來源 */
       const gaCid = gaClientIdFromCookie(req.cookies.get("_ga")?.value);
       const gaSess = gaSessionFromCookie(req.cookies.get(GA_SESSION_COOKIE)?.value);
@@ -424,11 +431,11 @@ export async function POST(req: NextRequest) {
         .run(email.trim().toLowerCase(), name?.trim() || "", "結帳", new Date().toISOString());
     }
 
-    if (result.useTappay) {
+    if (result.useTappay && result.total > 0) {
       /* TapPay 站內刷卡：訂單已成立（pending），前端接著產 prime 打 /api/tappay/pay 請款 */
       return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, tappay: true });
     }
-    if (result.useEcpay) {
+    if (result.useEcpay && result.total > 0) {
       const site = siteUrl();
       /* LINE Pay 走官方金流：前端導去 request 路由建立付款並跳轉 LINE 授權頁 */
       if ((payMethod || "") === "LINE Pay") {
@@ -461,7 +468,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, ecpay: ec });
     }
-    if (result.useNewebpay) {
+    if (result.useNewebpay && result.total > 0) {
       /* 藍新只接信用卡、ATM、Apple Pay，其餘方式在建單那段已經擋下 */
       const method: NewebpayMethod = payMethod === "ATM 轉帳" ? "atm" : payMethod === "Apple Pay" ? "applepay" : "credit";
       /*
@@ -485,7 +492,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ orderNo: result.orderNo, token: result.orderToken, newebpay: { action: nb.action, fields: nb.fields } });
     }
-    if (payuniEnabled()) {
+    if (payuniEnabled() && result.total > 0) {
       /*
        * 這裡沒有帶統編、載具、愛心碼等發票明細，是刻意的，不是漏掉。
        * 查證過官方的 PAYUNi_for_WooCommerce 與 OpenCart4.0 兩個模組，
