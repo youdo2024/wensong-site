@@ -1949,14 +1949,14 @@ console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 
   ).run(orderNo, "冒煙測試", "0912345678", "smoke-zeroamt@example.com", "測試地址一段1號", "信用卡", "b2c", "{}", "[]", 500, 0, 500, "pending", new Date().toISOString());
   try {
     const res = applyNewebpayOrderResult(orderNo, "paid", "TN-SMOKE-ZEROAMT", "信用卡", "藍新付款成功", 0);
-    eq("藍新回報 Amt=0 不會被判定成入帳成功", res.outcome, "failed");
+    eq("藍新回報 Amt=0 不會被判定成入帳成功", (res as { outcome?: string }).outcome, "failed");
     const o = db.prepare("SELECT status, COALESCE(pay_note,'') note FROM orders WHERE order_no=?").get(orderNo) as { status: string; note: string };
     eq("金額比對沒被跳過，訂單維持 pending 等人工確認", o.status, "pending");
     ok("有留下金額不符的紀錄，不是靜靜地什麼都沒發生", o.note.includes("金額不符"));
 
     /* 正常付款（金額相符）不能被這個防呆誤傷 */
     const res2 = applyNewebpayOrderResult(orderNo, "paid", "TN-SMOKE-MATCHAMT", "信用卡", "藍新付款成功", 500);
-    eq("金額相符時照常入帳", res2.outcome, "paid");
+    eq("金額相符時照常入帳", (res2 as { outcome?: string }).outcome, "paid");
     const o2 = db.prepare("SELECT status FROM orders WHERE order_no=?").get(orderNo) as { status: string };
     eq("金額相符時訂單真的變成 paid", o2.status, "paid");
   } finally {
@@ -1970,7 +1970,7 @@ console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 
   const spId = Number(insSp.lastInsertRowid);
   try {
     const res = applyNewebpaySponsorResult(spId, "paid", "TN-SMOKE-SP-ZEROAMT", "藍新付款成功", 0);
-    eq("贊助：藍新回報 Amt=0 不會被判定成入帳成功", res.outcome, "failed");
+    eq("贊助：藍新回報 Amt=0 不會被判定成入帳成功", (res as { outcome?: string }).outcome, "failed");
     const sp = db.prepare("SELECT status, COALESCE(last_charge_note,'') note FROM sponsorships WHERE id=?").get(spId) as { status: string; note: string };
     eq("贊助狀態維持 pending", sp.status, "pending");
     ok("贊助也留下金額不符的紀錄", sp.note.includes("金額不符"));
