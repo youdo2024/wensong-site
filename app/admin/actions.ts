@@ -1097,11 +1097,6 @@ export async function toggleArticleCta(formData: FormData) {
   redirect("/admin/articles");
 }
 
-/* ── 生態廚師置頂 ── */
-
-
-/* 置頂名單內的順序：跟相鄰那位交換 */
-
 /* ── 排序：與相鄰項目交換序號 ── */
 const MOVABLE = {
   articles: "/admin/articles",
@@ -1251,6 +1246,10 @@ export async function saveSettings(formData: FormData) {
     setSetting("support_enabled", supMode === "off" ? "0" : "1"); /* 保留舊鍵相容 */
   }
   if (has("support_url")) setSetting("support_url", String(formData.get("support_url") || "").trim());
+  if (has("monthly_gateway")) {
+    const mg = String(formData.get("monthly_gateway") || "portaly");
+    setSetting("monthly_gateway", mg === "newebpay" ? "newebpay" : "portaly");
+  }
   /* 節目連結與主持人（問爽的）：網址欄只收 http(s)，其餘文字照存 */
   const urlOrEmpty = (v: FormDataEntryValue | null) => { const t = String(v || "").trim(); return /^https?:\/\//i.test(t) ? t : ""; };
   if (has("podcast_rss_url")) { const v = urlOrEmpty(formData.get("podcast_rss_url")); if (v) setSetting("podcast_rss_url", v); }
@@ -1421,8 +1420,8 @@ export async function sendTemplateTestMails(formData: FormData) {
     email: to,
     address: "台中市西區測試路 1 號 5 樓",
     items: JSON.stringify([
-      { name: "生態廚師工作T恤", choice: "M", price: 780, qty: 1 },
-      { name: "老鷹紅豆（600g）", choice: null, price: 220, qty: 2 },
+      { name: "問爽的節目T恤", choice: "M", price: 780, qty: 1 },
+      { name: "問爽的貼紙組", choice: null, price: 220, qty: 2 },
     ]),
     subtotal: 1220,
     shipping: 120,

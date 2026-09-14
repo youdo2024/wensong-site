@@ -14,7 +14,7 @@ export const PILLARS_CAPTION = "這些是節目收入真正流向的地方，我
  * 文章文末支持模組（2026-09-13 改版）：跟首頁底下那組同一套。
  *
  * 站長：「文章底下的贊助模組，可不可以跟首頁底下那組一樣？」
- * 首頁那組是信封框、一封長信（則佑敬上）、四格「你的支持會變成」、長期／單次表單。
+ * 首頁那組是信封框、一封長信（主持人敬上）、四格「你的支持會變成」、長期／單次表單。
  * 原本文末只有一個標題加一兩句話就接表單，讀者不知道錢會變成什麼。
  *
  * 三個跟首頁不一樣的地方，都是站長決定的：
@@ -29,7 +29,7 @@ export const PILLARS_CAPTION = "這些是節目收入真正流向的地方，我
  * 底色與外框覆寫，換掉 class 那些覆寫會失效，所以加一個 .support-letter 疊在後面。
  */
 export default function ArticleSupportCta({ ctaText, initAmount, tiers, note }: { ctaText: string; initAmount?: number; tiers?: number[]; note?: string }) {
-  const lead = getSetting("sponsor_lead", "沒有回饋品，只有一直拍下去的台灣現場");
+  const lead = getSetting("sponsor_lead", "沒有回饋品，只有一直錄下去的問爽的");
   return (
     <div className="article-cta support-letter">
       <div className="band" />

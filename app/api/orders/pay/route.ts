@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     const nbHtml = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>前往付款…</title></head>
-<body style="margin:0;background:#EFE3C4;font-family:'Noto Serif TC',serif;color:#3A3226;">
+<body style="margin:0;background:#FFF6EA;font-family:'Noto Serif TC',serif;color:#33271F;">
 <div style="max-width:420px;margin:0 auto;padding:96px 20px;text-align:center;">
   <p style="font-size:15px;letter-spacing:.1em;">正在前往付款頁，請稍候…</p>
   <form id="f" method="post" action="${nb.action}">${nbInputs}
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
   const html = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <title>前往付款…</title></head>
-<body style="margin:0;background:#EFE3C4;font-family:'Noto Serif TC',serif;color:#3A3226;">
+<body style="margin:0;background:#FFF6EA;font-family:'Noto Serif TC',serif;color:#33271F;">
 <div style="max-width:420px;margin:0 auto;padding:96px 20px;text-align:center;">
   <p style="font-size:15px;letter-spacing:.1em;">正在前往付款頁，請稍候…</p>
   <form id="f" method="post" action="${ec.action}">${inputs}

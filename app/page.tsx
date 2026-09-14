@@ -18,8 +18,9 @@ import { buildMetadata } from "@/lib/seo";
 import { BRAND } from "@/lib/brand";
 import { displayTitle, epLabel, fmtDuration, type EpisodeRow } from "@/lib/episodes";
 import { hosts, newsletterBlock, platformLinks } from "@/lib/site-config";
-import { enabledPays, homeSupportSection, navSupportHome, shopEnabled, supportHref, supportMode, supportUrl } from "@/lib/shop";
+import { enabledPays, homeSupportSection, navSupportHome, shopEnabled, supportHref, supportMode, supportUrl, monthlyExternalUrl } from "@/lib/shop";
 import { ecpayEnabled } from "@/lib/ecpay";
+import { newebpayEnabled } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
 import { portalyEnabled } from "@/lib/portaly";
 import { fmtDate } from "@/lib/format";
@@ -225,6 +226,25 @@ export default function Home() {
                   <div className="center" style={{ marginTop: 8 }}>
                     <a className="btn fill" href={supportHref()} target="_blank" rel="noopener" data-ga="sponsor-external">前往支持</a>
                   </div>
+                ) : (supportMode() === "api" || supportMode() === "hybrid") && !ecpayEnabled() && newebpayEnabled() ? (
+                  /*
+                   * 藍新有金鑰（綠界沒開）時，長期／單次兩個分頁都在站內完成：
+                   * 單筆一律走藍新 MPG；長期定額依後台 monthly_gateway 設定，
+                   * newebpay 就走站內定期定額委託，portaly 就沿用既有的外連「下一步」
+                   * （monthlyExternalUrl 在 monthly_gateway=newebpay 時本來就回空字串）。
+                   * 不再用 QuickSupport 中繼一次：那是為了「先選金額再進 /support 填資料」，
+                   * 這裡兩個分頁都能直接在首頁完成，不需要那道中繼。
+                   */
+                  <SupportForm
+                    tiers={tiers}
+                    initAmount={tiers[0] ?? 150}
+                    initMode="monthly"
+                    modeTabs
+                    bare
+                    monthlyExternal={monthlyExternalUrl()}
+                    pays={enabledPays(["信用卡", "ATM 轉帳"], "support")}
+                    provider="newebpay"
+                  />
                 ) : supportMode() === "hybrid" && supportUrl() ? (
                   <SupportForm
                     tiers={tiers}

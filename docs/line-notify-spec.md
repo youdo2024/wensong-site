@@ -1,5 +1,9 @@
 # LINE 通知規格（2026-09-03 與站長逐題定案）
 
+> 此為佑在幹嘛時期的紀錄。第二節「LINE 後台結構」談的是佑在幹嘛自己的 LINE Provider／Messaging API
+> 帳號搬遷，問爽的要用自己的 LINE 官方帳號與 Provider 走一遍，網址也要換成 wensong.tw，不能照抄。
+> 程式機制（綁定表、webhook、推播節奏）本身是通用的，可以參考。
+
 目標：訂單與投稿的通知走 LINE 官方帳號推播，沒綁 LINE 的人維持 Email 與簡訊。
 本文件是共識紀錄，開工前站長確認過。改動前先讀 AGENTS.md 與 handoff-2026-09-02.md。
 

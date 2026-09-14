@@ -141,3 +141,8 @@
 .nl-form{display:flex;gap:10px;max-width:480px;margin:0 auto;}
 .nl-form input{flex:1;border:2px solid var(--ink);background:var(--paper);padding:12px 14px;font-size:16px;min-width:0;}
 
+
+/* ── 頁尾的平台按鈕：白底頁尾上一排彩色膠囊，跟頁首那排同一套 ── */
+.site-footer .platforms{justify-content:flex-start;margin:0 0 6px;}
+.site-footer .platforms .pf{box-shadow:none;}
+.site-footer .cols{align-items:center;}

@@ -14,7 +14,7 @@ export const BRAND = {
   /* 站名完整版：<title> 後綴、OG siteName、頁尾 */
   fullName: "問爽的 WenSong",
   tagline: "問東問西，問爽的拉",
-  description: "問爽的是維尼與安妮主持的 Podcast，每週問東問西，聊餐飲、創業、生活與那些想問很久的事。這裡有每一集的節目筆記、逐字稿與來賓資料。",
+  description: "問爽的是維尼與安妮主持的 Podcast，問東問西，聊餐飲、創業、生活，有什麼想問的，我們幫你問，也讀聽眾投稿來的秘密與故事。這裡有每一集的節目筆記、逐字稿與來賓資料。",
   /* 對外正式網址（SITE_URL 環境變數優先） */
   siteUrl: "https://www.wensong.tw",
   legalName: "於悅商行",

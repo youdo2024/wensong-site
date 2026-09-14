@@ -6,6 +6,7 @@ import { PAYUNI, buildUppFields, payMethodParams, payuniEnabled, siteUrl } from 
 import { buildCheckoutFields, ecpayEnabled, type EcpayMethod } from "@/lib/ecpay";
 import { ecpayBackstageAtmOn, takeAtmNumberForSponsorship } from "@/lib/ecpay-genpay";
 import { buildMpgForm, newebpayEnabled, type NewebpayMethod } from "@/lib/newebpay";
+import { buildPeriodForm } from "@/lib/newebpay-period";
 import { resetRound } from "@/lib/remind";
 import { isPayMethodOff } from "@/lib/shop";
 import { payItemName } from "@/lib/item-name";
@@ -131,9 +132,39 @@ export default async function SponsorPay({
     );
   }
 
-  /* ── 藍新站內收款（單筆限定，信用卡／ATM） ── */
+  /* ── 藍新站內收款（單筆：信用卡／ATM；每月：定期定額委託，只收信用卡） ── */
   if (sp.provider === "newebpay") {
     if (!newebpayEnabled()) redirect("/support");
+    if (sp.mode === "monthly") {
+      if (isPayMethodOff("信用卡", "support")) redirect(`/support/thanks?mode=monthly&pay=failed`);
+      /* 每次進頁重生 MerOrderNo（藍新不接受重複），首期成功後回呼靠它裡面帶的贊助 id
+         找回這筆贊助；解約時要用「建立當初那一組」，所以連同新的一起記進歷史，
+         被換掉的那組不會失效（比照綠界定期定額同一個理由，見 lib/sponsor-trade-no.ts） */
+      const { action, fields, merOrderNo } = buildPeriodForm({
+        sponsorshipId: sp.id,
+        amount: sp.amount,
+        email: sp.email,
+        desc: payItemName(sp.mode),
+      });
+      db.transaction(() => {
+        db.prepare("UPDATE sponsorships SET trade_no=? WHERE id=?").run(merOrderNo, sp.id);
+        rememberSponsorTradeNo(sp.id, merOrderNo);
+      })();
+      return (
+        <>
+          <Nav />
+          <div className="frame" style={{ maxWidth: 560, padding: "72px 20px 120px" }}>
+            <div className="box">
+              <div className="band" />
+              <div className="inner">
+                <AutoSubmitForm action={action} fields={fields} />
+              </div>
+              <div className="band" />
+            </div>
+          </div>
+        </>
+      );
+    }
     const payLabel = sp.pay_method || "信用卡";
     if (isPayMethodOff(payLabel, "support"))
       redirect(`/support/thanks?mode=${sp.mode}&pay=failed&sid=${sp.id}&t=${encodeURIComponent(sp.pay_token)}`);

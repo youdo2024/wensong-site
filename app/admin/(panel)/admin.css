@@ -840,7 +840,7 @@
 /* 預覽那一列的標頭（「預覽」與複製原始碼），原本是 inline flex */
 .adm .mailprev .pv-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:var(--sp-1);}
 .adm .mailprev .pv-top b{font-size:var(--fs-b);}
-.adm .mailprev iframe{width:100%;border:2px solid var(--ink);background:#EFE3C4;}
+.adm .mailprev iframe{width:100%;border:2px solid var(--ink);background:#FFF6EA;}
 /* 寄出那一列：送出鈕與「先看預覽」並排，手機也放得下 */
 .adm .ad-sendrow{display:flex;gap:var(--sp-2);align-items:center;flex-wrap:wrap;margin-top:18px;}
 /* 收件人超過上限時的紅字提示 */

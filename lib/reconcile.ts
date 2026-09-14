@@ -646,6 +646,10 @@ export async function reconcilePending(): Promise<ReconcileResult> {
         else await checkEcpayOnce(sp, r);
       } else if (sp.provider === "newebpay") {
         if (!newebpayEnabled()) { r.skipped++; continue; }
+        /* 藍新定期定額委託沒有規格提供查詢 API（只有建立委託／解約兩支），
+           首期還卡在 pending 的只能等 NotifyURL 或使用者放棄，這裡不介入查詢，
+           免得拿委託建立用的 MerOrderNo 去打單筆 MPG 的交易查詢 API 而查無此筆 */
+        if (sp.mode === "monthly") { r.skipped++; continue; }
         await checkNewebpaySponsor(sp, r);
       } else {
         r.skipped++; // Portaly／PayUni 有自己的回呼，這裡不介入

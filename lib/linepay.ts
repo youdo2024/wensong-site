@@ -106,7 +106,7 @@ async function onLinePayFailure(code: string, message: string): Promise<void> {
       "LINE Pay 付款建立失敗，已自動暫停",
       `<p style="font-size:15px;line-height:2;">LINE Pay 回了 <b>${code} ${message}</b>（${stamp}）。這不是單一訂單的問題，是金鑰對不到商家，每一位選 LINE Pay 的客人都會失敗。</p>
        <p style="font-size:15px;line-height:2;">系統已經把 LINE Pay 從商店與贊助的付款方式暫停，客人現在只會看到 ATM 與信用卡。</p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">要檢查的三件事：<br>
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">要檢查的三件事：<br>
          1. Zeabur 的 LINEPAY_CHANNEL_ID／LINEPAY_CHANNEL_SECRET 是不是 LINE Pay 商家中心（pay.line.me）發的那組，不是 LINE Login 或 Messaging API 的。<br>
          2. 目前打的是<b>${sandbox ? "沙箱" : "正式"}</b>環境。沙箱金鑰只能配 LINEPAY_SANDBOX=1，正式金鑰不能設這個變數。<br>
          3. LINE Pay 商家申請是否已審核通過。審核中的商家在正式環境會回 1104。<br>

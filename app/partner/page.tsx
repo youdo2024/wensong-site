@@ -88,7 +88,7 @@ export default async function PartnerPage({
   return (
     <div className="frame ptn" style={{ maxWidth: 880, padding: "40px 20px 100px" }}>
       <header className="ptn-hd">
-        <b>佑 在 幹 嘛 ｜ 出 貨 工 作 台{scope !== "admin" && `｜${scope.name}`}</b>
+        <b>問 爽 的 ｜ 出 貨 工 作 台{scope !== "admin" && `｜${scope.name}`}</b>
         <span className="sans">{now}（台北時間）・重新整理就是最新現況</span>
       </header>
       {/* 站長視角的明示：站長登入後開這頁看到的是全部夥伴的總覽，

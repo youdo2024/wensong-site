@@ -28,8 +28,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## 站長模式
 - 商店、支持、電子報三塊做完但鎖住：`shop_enabled=0`（帶 `shop_preview_key` 的連結才看得到）、`support_mode=off`、`newsletter_block=0`。第 3 段接藍新後才開。
 - 藍新（NewebPay）幕前支付 MPG 已串（`lib/newebpay.ts`）：`shop_gateway="newebpay"` 時商店走藍新（信用卡／ATM），
-  贊助單筆在綠界沒開、藍新有金鑰時自動優先於 Portaly／PayUni。沒有測試金鑰跑過，正式收款前照
-  `docs/newebpay-spec.md` 的清單用測試金鑰驗過一輪再開。綠界／PayUni／TapPay／LINE Pay 程式保留但不設金鑰。
+  贊助單筆在綠界沒開、藍新有金鑰時自動優先於 Portaly／PayUni。信用卡定期定額也已串（`lib/newebpay-period.ts`），
+  後台設定・贊助的 `monthly_gateway` 選 `newebpay` 時，長期支持在站內走藍新每月扣款，選 `portaly` 才外連。
+  沒有測試金鑰跑過，正式收款前照 `docs/newebpay-spec.md` 的清單用測試金鑰驗過一輪再開。綠界／PayUni／TapPay／LINE Pay 程式保留但不設金鑰。
 
 ## 開發與測試
 - `npm run smoke`：純邏輯測試，改完必跑。`npm run build` 過了才准推。

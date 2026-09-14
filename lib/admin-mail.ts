@@ -4,7 +4,7 @@ import { findLineBinding } from "./line";
 import { isMultiShip } from "./multi-ship";
 
 /*
- * 後台手寫信：把純文字組成站上那套信件版型（米袋黃底、上下織帶、紅框感謝區）。
+ * 後台手寫信：把純文字組成站上那套信件版型（奶油底、圓角白卡、橘色感謝區）。
  *
  * 為什麼不讓站長直接寫 HTML：他要的是「跟系統信長得一樣」，不是排版自由。
  * 給一個文字框就好，段落與換行自動處理，出來的東西一定跟訂單信同一個模子。
@@ -46,13 +46,13 @@ export function buildAdminMail(input: AdminMailInput): string {
       ? `<p style="margin:22px 0 0;">
            <a href="${esc(input.btnUrl.trim())}"
               style="display:inline-block;padding:13px 26px;font-size:15px;letter-spacing:.08em;
-                     border:2px solid #3A3226;background:#B8402C;color:#EFE3C4;text-decoration:none;">
+                     border-radius:999px;background:#EA962E;color:#FFFFFF;text-decoration:none;">
              ${esc(input.btnText.trim())}
            </a>
          </p>`
       : "";
   const note = input.footnote?.trim()
-    ? `<p style="font-size:13px;color:#7C7060;line-height:2;margin:14px 0 0;">${esc(input.footnote.trim()).replace(/\n/g, "<br>")}</p>`
+    ? `<p style="font-size:13px;color:#8A7A6E;line-height:2;margin:14px 0 0;">${esc(input.footnote.trim()).replace(/\n/g, "<br>")}</p>`
     : "";
   /* 退訂放框外最底下、11.5px 灰字：站長要求「要有，但別讓人一眼就看到」。
      藏得太深會被檢舉垃圾信，那對網域的傷害比少一個訂閱者大得多，所以還是一行完整的字，不是一個點。 */

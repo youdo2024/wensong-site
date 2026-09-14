@@ -360,7 +360,7 @@ function sponsorQueue(): ContactItem[] {
   const out: ContactItem[] = [];
   for (const sp of rows) {
     /* 支持者名稱是選填的。沒填的話開頭直接用「你好」，
-       不然會變成「你好你好，我是則佑」。 */
+       不然會變成「你好你好，我是小明」。 */
     const name = sp.display_name || "";
     const hi = name ? `${name}你好` : "你好";
     const link = `${site()}/support/pay/${sp.id}?t=${encodeURIComponent(sp.pay_token)}`;

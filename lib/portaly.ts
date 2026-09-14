@@ -102,7 +102,7 @@ export async function ensureOncePlan(): Promise<string> {
     cacheKey: "portaly_plan_once",
     merchantPlanId: "yo-support-once",
     name: payItemName("once"),
-    description: "一次性支持「問爽的」的台灣生態飲食內容，金額自訂",
+    description: "一次性支持「問爽的」Podcast 的節目內容，金額自訂",
     billingPeriod: "one-time",
   });
 }
@@ -113,7 +113,7 @@ export async function ensureMonthlyPlan(amount: number): Promise<string> {
     cacheKey: `portaly_plan_monthly_${amount}`,
     merchantPlanId: `yo-support-monthly-${amount}`,
     name: `${payItemName("monthly")} NT$${amount.toLocaleString()}`,
-    description: "每月自動支持「問爽的」的台灣生態飲食內容，隨時可取消",
+    description: "每月自動支持「問爽的」Podcast 的節目內容，隨時可取消",
     billingPeriod: "monthly",
     amount,
   });

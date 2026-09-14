@@ -26,10 +26,15 @@ function invoiceFields(sp: DueRow): Record<string, string> {
 export async function chargeDueSponsorships(): Promise<{ charged: number; failed: number }> {
   if (!payuniEnabled()) return { charged: 0, failed: 0 };
   const now = new Date().toISOString();
+  /* provider='newebpay' 的定期定額不由我方發動扣款：藍新委託成立後自己每月扣、
+     自己打 NotifyURL（見 app/api/newebpay/period/notify），這裡排除以防萬一
+     （credit_hash 這條件本來就會排除它們，因為那一欄是 PayUni 專用；
+     多加這行是講清楚意圖，不是靠巧合排除） */
   const due = db
     .prepare(
       `SELECT id,amount,email,display_name,credit_token,credit_hash,invoice_type,invoice_data FROM sponsorships
-       WHERE mode='monthly' AND status='active' AND credit_hash!='' AND next_charge_at!='' AND next_charge_at<=?`
+       WHERE mode='monthly' AND status='active' AND provider!='newebpay'
+         AND credit_hash!='' AND next_charge_at!='' AND next_charge_at<=?`
     )
     .all(now) as DueRow[];
 

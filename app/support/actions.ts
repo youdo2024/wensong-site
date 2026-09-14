@@ -9,7 +9,7 @@ import { portalyEnabled, ensureOncePlan, ensureMonthlyPlan, createCheckoutSessio
 import { ecpayEnabled } from "@/lib/ecpay";
 import { newebpayEnabled } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
-import { isPayMethodOff, supportMode } from "@/lib/shop";
+import { isPayMethodOff, supportMode, monthlyGateway } from "@/lib/shop";
 import { sendSponsorThanksMail } from "@/lib/mail";
 import { isAdmin } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -23,8 +23,11 @@ import { SPONSOR_COOKIE, makeSponsorCookie } from "@/lib/line-bind";
  * 建立贊助。金流優先序：
  * 1. 綠界（站內收款）：信用卡單筆／定期定額、Apple Pay、ATM、TWQR 多元支付；
  *    LINE Pay 獨立走 LINE Pay API。付款成功由回呼自動開光貿發票。
- * 2. Portaly Payment（沒設綠界金鑰時）：跳轉代管結帳。
- * 3. PayUni（僅供既有測試）；都沒有則為模擬模式。
+ * 2. 藍新（沒設綠界金鑰時）：單筆信用卡／ATM 走 MPG；每月定額只在後台
+ *    monthly_gateway=newebpay 時走定期定額委託（lib/newebpay-period.ts），
+ *    否則每月定額退回下一順位。
+ * 3. Portaly Payment（沒設綠界、藍新月費不適用時）：跳轉代管結帳。
+ * 4. PayUni（僅供既有測試）；都沒有則為模擬模式。
  */
 export async function createSponsorship(formData: FormData) {
   const mode = formData.get("mode") === "once" ? "once" : "monthly";
@@ -49,8 +52,9 @@ export async function createSponsorship(formData: FormData) {
      站長預覽模式例外：登入後台的站長可在切換前實測站內金流 */
   const sMode = supportMode();
   if (sMode !== "api" && sMode !== "hybrid" && !(await isAdmin())) redirect("/support");
-  /* 綜合模式：定額一律走外部頁，站內不收定額提交（正常介面不會送出，這裡擋手動打 API 的） */
-  if (sMode === "hybrid" && mode === "monthly" && !(await isAdmin())) redirect("/support");
+  /* 綜合模式：定額走 Portaly 外部頁時站內不收定額提交（正常介面不會送出，這裡擋手動打 API 的）；
+     monthly_gateway=newebpay 時定額本來就該在站內完成，不受這道擋 */
+  if (sMode === "hybrid" && mode === "monthly" && monthlyGateway() !== "newebpay" && !(await isAdmin())) redirect("/support");
   if (!email || !amount) redirect(back("1"));
   /* 信箱：收據與電子發票全靠它，打錯的話對方付了錢什麼都收不到 */
   if (checkEmail(email)) redirect(back("email"));
@@ -65,9 +69,15 @@ export async function createSponsorship(formData: FormData) {
   if (!/^09\d{8}$/.test(phone)) redirect(back("phone"));
 
   const useEcpay = ecpayEnabled();
-  /* 藍新只做單筆（沒有定期定額委託 API 可串），且只收信用卡與 ATM；
-     定期定額一律略過藍新，退回下面的 Portaly／PayUni */
-  const useNewebpay = !useEcpay && mode === "once" && newebpayEnabled();
+  /*
+   * 藍新單筆一律可用（信用卡／ATM）。每月定額：
+   *   support_mode=hybrid 時，monthly_gateway 決定要不要走站內藍新（否則就是外連，
+   *   前端根本不會送出這個表單，這裡只是防手動打 API）；
+   *   其餘模式（api、站長預覽）沒有「外連」這個選項可言，藍新有金鑰就直接是站內主力金流，
+   *   跟單筆一致，不受 monthly_gateway 影響（那顆設定只在綜合模式的語境下才有意義）。
+   */
+  const useNewebpay =
+    !useEcpay && newebpayEnabled() && (mode === "once" || (mode === "monthly" && (sMode !== "hybrid" || monthlyGateway() === "newebpay")));
   const usePortaly = !useEcpay && !useNewebpay && portalyEnabled();
   if (!usePortaly && isPayMethodOff(payMethod, "support")) redirect(back("1"));
   if (usePortaly && mode === "monthly") {
@@ -79,7 +89,11 @@ export async function createSponsorship(formData: FormData) {
     if (mode === "monthly" && payMethod !== "信用卡") redirect(back("1"));
     if (payMethod === "LINE Pay" && !linepayEnabled()) redirect(back("1"));
   }
-  if (useNewebpay && !["信用卡", "ATM 轉帳"].includes(payMethod)) redirect(back("1"));
+  /* 藍新模式的基本檢查：定期定額委託只收信用卡（規格沒有 ATM 定期扣款這條路），單筆才收 ATM */
+  if (useNewebpay) {
+    if (mode === "monthly" && payMethod !== "信用卡") redirect(back("1"));
+    if (mode === "once" && !["信用卡", "ATM 轉帳"].includes(payMethod)) redirect(back("1"));
+  }
 
   /* 發票偏好：雲端寄 Email（預設）／手機條碼載具／愛心碼捐贈／公司統編 */
   const invKind = String(formData.get("inv_kind") || "email");
@@ -198,7 +212,9 @@ export async function createSponsorship(formData: FormData) {
   }
 
   if (live) {
-    if (mode === "monthly") {
+    /* credit_token 這個佔位值是 PayUni 舊制訂閱的做法；藍新那條把這一欄留給
+       首期成功後才拿得到的 PeriodNo（見 app/api/newebpay/period/notify），不能先塞假值蓋掉 */
+    if (mode === "monthly" && !useNewebpay) {
       db.prepare("UPDATE sponsorships SET credit_token=? WHERE id=?").run(`SPTOKEN${id}`, id);
     }
     /* 一定要帶 pay_token：付款頁對每一種金流都會驗權杖（避免任意編號被開啟），

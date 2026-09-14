@@ -112,7 +112,7 @@ export function copyTarget(plan: CopyPlan, kind: MailKind, to: string): string {
 export function recipientsLine(list: string[]): string {
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
   const shown = list.slice(0, 60).map(esc).join("、");
-  return `<div style="font-family:sans-serif;font-size:12px;line-height:1.8;color:#7C7060;background:#FBF6EA;border:1px solid #E3D3AC;padding:8px 12px;margin:0 0 12px;word-break:break-all;">`
+  return `<div style="font-family:sans-serif;font-size:12px;line-height:1.8;color:#8A7A6E;background:#FBF6EA;border:1px solid #FFE3BF;padding:8px 12px;margin:0 0 12px;word-break:break-all;">`
     + `本次寄給：${shown}　共 ${list.length} 人（這一份是副本）</div>`;
 }
 

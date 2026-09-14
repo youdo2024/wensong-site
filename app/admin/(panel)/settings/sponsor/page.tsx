@@ -35,6 +35,7 @@ export default async function SettingsSponsor({
   const mode = ["api", "hybrid", "link", "off"].includes(getSetting("support_mode", ""))
     ? getSetting("support_mode", "")
     : (getSetting("support_enabled", "1") === "1" ? "api" : "off");
+  const monthlyGw = getSetting("monthly_gateway", "portaly") === "newebpay" ? "newebpay" : "portaly";
 
   return (
     <>
@@ -139,9 +140,24 @@ export default async function SettingsSponsor({
             />
             <Check
               type="radio" name="support_mode" value="hybrid" defaultChecked={mode === "hybrid"}
-              label={<b>綜合：單筆站內・定額站外</b>}
-              hint={<>（單筆贊助照舊在自己網站完成收款；每月定額只剩一顆「下一步」，連到下方外部網址。定額的紀錄在對方平台，<b>不會進本站後台</b>）</>}
+              label={<b>綜合：單筆站內・每月依下方選擇</b>}
+              hint={<>（單筆贊助一律在自己網站用藍新完成收款；每月定額依下面「每月定額怎麼收」的設定，走站內藍新定期定額，或改成一顆「下一步」連到外部網址）</>}
             />
+            <div className="field ad-sub-field">
+              <b style={{ fontSize: 13, letterSpacing: ".06em" }}>每月定額怎麼收（只在上面選「綜合」時生效）</b>
+              <div className="chk-list" style={{ marginTop: 8 }}>
+                <Check
+                  type="radio" name="monthly_gateway" value="newebpay" defaultChecked={monthlyGw === "newebpay"}
+                  label="站內藍新信用卡定期定額"
+                  hint="（要先在藍新後台開通「信用卡定期定額」；付款進後台贊助紀錄、發品牌感謝信）"
+                />
+                <Check
+                  type="radio" name="monthly_gateway" value="portaly" defaultChecked={monthlyGw !== "newebpay"}
+                  label="前往外部網址（例如 Portaly）"
+                  hint={<>（外部網址請填在下面「前往指定頁面贊助」的欄位，兩者共用同一個設定）</>}
+                />
+              </div>
+            </div>
             <Check
               type="radio" name="support_mode" value="link" defaultChecked={mode === "link"}
               label={<b>前往指定頁面贊助</b>}

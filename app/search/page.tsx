@@ -10,7 +10,7 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "站內搜尋",
   path: "/search",
-  description: "搜尋問爽的的全部文章與生態廚師。",
+  description: "搜尋問爽的的全部集數與文章。",
   noindex: true,
 });
 

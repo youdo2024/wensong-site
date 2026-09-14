@@ -120,12 +120,12 @@ export async function runBackup(opts: { force?: boolean } = {}): Promise<BackupR
     const html = wrapOwnerMail(
       "網站每日備份",
       `<p style="font-size:15px;line-height:2;">附件是 ${stamp.slice(0, 8)} 的網站完整資料備份，請保留這封信（或另存到雲端硬碟）。</p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
          檔案：${filename}（${kb.toLocaleString()} KB）<br>
          內容：${mode === "full" ? "資料庫 ＋ 後台上傳的圖片" : "僅資料庫（圖片過大，未含在內）"}<br>
          資料筆數：${counts}
        </p>
-       <p style="font-size:13px;color:#7C7060;line-height:1.9;">
+       <p style="font-size:13px;color:#8A7A6E;line-height:1.9;">
          還原方式：解開附件後把 site.db 放回主機的 data/ 目錄（檔名改回 site.db），圖片放回 data/images/，重新啟動即可。
          程式碼本身在 GitHub，換任何一家主機都能重新部署。
        </p>`

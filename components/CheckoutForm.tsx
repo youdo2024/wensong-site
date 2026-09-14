@@ -50,7 +50,7 @@ export default function CheckoutForm({
   freeShip,
   shipFee,
   addonTiers,
-  addonPitch = "結帳前，要不要【額外贊助「問爽的」】？多一份支持，沒有業配的台灣現場就能走得更遠。",
+  addonPitch = "結帳前，要不要【額外贊助「問爽的」】？多一份支持，沒有業配的節目就能走得更遠。",
   pays = DEFAULT_PAYS,
   showAddon = true,
   cvsFee = 65,

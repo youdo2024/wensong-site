@@ -221,9 +221,9 @@ export async function sendNotice(
     else {
       const a = atmOf(t);
       const extra = a.acct
-        ? `<p style="font-size:16px;line-height:2.2;border-left:3px solid #A87F2E;padding-left:14px;">銀行代碼 <b style="font-family:monospace">${esc(a.bank)}</b><br>帳號 <b style="font-family:monospace">${esc(a.acct)}</b><br>應付 <b>${money(t.total)}</b>${a.expire ? `<br>請於 ${esc(a.expire)} 前完成` : ""}</p>`
-        : `<p style="font-size:14px;color:#7C7060;margin-top:6px;">${t.kind === "order" ? "訂單編號" : "支持編號"}　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(t.no)}</b>　金額　<b>${money(t.total)}</b></p>` +
-          (t.kind === "order" && t.items ? `<table width="100%" style="border-top:2px solid #3A3226;margin-top:8px;">${itemRows(t.items)}</table>` : "");
+        ? `<p style="font-size:16px;line-height:2.2;border-left:3px solid #D97F12;padding-left:14px;">銀行代碼 <b style="font-family:monospace">${esc(a.bank)}</b><br>帳號 <b style="font-family:monospace">${esc(a.acct)}</b><br>應付 <b>${money(t.total)}</b>${a.expire ? `<br>請於 ${esc(a.expire)} 前完成` : ""}</p>`
+        : `<p style="font-size:14px;color:#8A7A6E;margin-top:6px;">${t.kind === "order" ? "訂單編號" : "支持編號"}　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(t.no)}</b>　金額　<b>${money(t.total)}</b></p>` +
+          (t.kind === "order" && t.items ? `<table width="100%" style="border-top:2px solid #33271F;margin-top:8px;">${itemRows(t.items)}</table>` : "");
       const buttons: { href: string; label: string; primary?: boolean }[] = [];
       const { cont, choose } = linksFor(t, "mail");
       const isCharge = event.startsWith("charge");

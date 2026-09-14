@@ -42,9 +42,9 @@ export default function SupportForm({
   const ecpay = provider === "ecpay";
   const newebpay = provider === "newebpay";
   const creditOn = portaly || pays.includes("信用卡");
-  /* 定額走外部頁時不需要站內信用卡也能選定額 */
-  /* 藍新沒有定期定額委託 API（見 lib/newebpay.ts），這個 provider 只做單次支持 */
-  const canMonthly = (creditOn && !newebpay) || Boolean(monthlyExternal);
+  /* 定額走外部頁時不需要站內信用卡也能選定額；藍新現在也有定期定額委託
+     （lib/newebpay-period.ts，問爽的第 3 段接上），所以不再特別排除 newebpay */
+  const canMonthly = creditOn || Boolean(monthlyExternal);
   const [monthly, setMonthly] = useState(initMode === "monthly" && canMonthly);
   const [amount, setAmount] = useState<number | null>(initShowCustom ? null : tiers.includes(initAmount) ? initAmount : null);
   const [custom, setCustom] = useState(tiers.includes(initAmount) ? "" : String(initAmount));

@@ -21,8 +21,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   if (!row || !row.body) return new NextResponse("這筆紀錄沒有存內容（只有手寫信會存）", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   const page = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${esc(row.subject)}</title>
-<style>html,body{margin:0;height:100%;background:#EFE3C4;}
-.bar{font:13px/1.6 -apple-system,system-ui,sans-serif;color:#3A3226;background:#FBF6EA;border-bottom:1px solid #E3D3AC;padding:8px 12px;word-break:break-all;}
+<style>html,body{margin:0;height:100%;background:#FFF6EA;}
+.bar{font:13px/1.6 -apple-system,system-ui,sans-serif;color:#33271F;background:#FBF6EA;border-bottom:1px solid #FFE3BF;padding:8px 12px;word-break:break-all;}
 iframe{display:block;width:100%;height:calc(100% - 42px);border:0;}</style></head>
 <body><div class="bar">寄給 ${esc(row.to_addr)}　${esc(row.created_at.slice(0, 16).replace("T", " "))}（UTC）　主旨：${esc(row.subject)}</div>
 <iframe sandbox="" referrerpolicy="no-referrer" srcdoc="${esc(row.body)}"></iframe></body></html>`;

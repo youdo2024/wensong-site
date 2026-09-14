@@ -23,8 +23,8 @@ export async function requestUnsubLink(formData: FormData) {
       const html = wrapMail(
         "取消訂閱電子報",
         `<p style="font-size:15px;line-height:2;">你要求取消訂閱問爽的的電子報。按下面這個按鈕就完成，不用登入。</p>
-         <p style="margin:18px 0 0;"><a href="${url}" style="display:inline-block;padding:12px 24px;font-size:15px;border:2px solid #3A3226;background:#EFE3C4;color:#3A3226;text-decoration:none;">取消訂閱</a></p>
-         <p style="font-size:13px;color:#7C7060;line-height:2;margin-top:14px;">如果不是你要求的，忽略這封信就好，什麼都不會改變。</p>`
+         <p style="margin:18px 0 0;"><a href="${url}" style="display:inline-block;padding:12px 24px;font-size:15px;border-radius:999px;background:#EA962E;color:#FFFFFF;text-decoration:none;">取消訂閱</a></p>
+         <p style="font-size:13px;color:#8A7A6E;line-height:2;margin-top:14px;">如果不是你要求的，忽略這封信就好，什麼都不會改變。</p>`
       );
       await sendMail(email, "取消訂閱電子報｜問爽的 WenSong", html);
     }

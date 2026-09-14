@@ -119,7 +119,7 @@ eq("品牌素材不動", imgSrc("/brand/logo.png"), { src: "/brand/logo.png" });
 /* ── 信件跳脫：惡意姓名一個標籤都不准插進去 ── */
 const base = { id: 1, mode: "single", amount: 500, email: "a@b.c", provider: "ecpay", pay_method: "credit", pay_token: "t", atm_bank: "", atm_vaccount: "", atm_expire: "" };
 const evil = sponsorResumeMailHtml({ ...base, display_name: '陳<img src=x onerror=alert(1)>' } as never).html;
-const safe = sponsorResumeMailHtml({ ...base, display_name: "陳則佑" } as never).html;
+const safe = sponsorResumeMailHtml({ ...base, display_name: "王小明" } as never).html;
 const tags = (h: string) => (h.match(/<[a-zA-Z][^>]*>/g) || []).length;
 eq("惡意輸入插不進任何標籤", tags(evil), tags(safe));
 ok("原始 <img 沒有出現", !evil.includes("<img src=x"));
@@ -1376,6 +1376,75 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
     const badParsed = parseNotify({ Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: notifyJsonHex, TradeSha: okSha.slice(0, -1) + (okSha.endsWith("A") ? "B" : "A"), Version: "2.0" });
     eq("錯簽章一律拒絕（回 null）", badParsed, null);
     eq("缺 TradeSha 也拒絕", parseNotify({ Status: "SUCCESS", MerchantID: "TEST001", TradeInfo: notifyJsonHex, TradeSha: "", Version: "2.0" }), null);
+  } finally {
+    delete process.env.NEWEBPAY_MERCHANT_ID;
+    delete process.env.NEWEBPAY_HASH_KEY;
+    delete process.env.NEWEBPAY_HASH_IV;
+  }
+}
+
+/* ── 藍新定期定額（問爽的第 3 段）：PostData 加解密來回、MerOrderNo 編碼還原、
+   PeriodPoint 29～31 收斂成 28 ── */
+{
+  const {
+    newebpayPeriodMtn, sponsorIdFromNewebpayPeriodMtn, isNewebpayPeriodMtn,
+    parsePeriodNotify,
+  } = await import("@/lib/newebpay-period");
+  const { encryptTradeInfo, decryptTradeInfo } = await import("@/lib/newebpay");
+
+  const K = "01234567890123456789012345678901"; // 32 碼
+  const V = "0123456789012345"; // 16 碼
+
+  /* PostData 加解密來回一致：跟 MPG 共用同一套 AES-256-CBC，這裡驗定期定額自己的欄位組合 */
+  const params = { RespondType: "JSON", Version: "1.5", MerOrderNo: "WP57X00ABCD", PeriodAmt: 300, PeriodType: "M", PeriodPoint: "15" };
+  const enc = encryptTradeInfo(params, K, V);
+  ok("PostData 是小寫 hex", /^[0-9a-f]+$/.test(enc));
+  const dec = decryptTradeInfo(enc, K, V);
+  const qsExpected = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) qsExpected.set(k, String(v));
+  eq("PostData 解密還原成同一份 query string", dec, qsExpected.toString());
+
+  /* MerOrderNo：WP 前綴＋贊助 id＋X＋時間戳尾，20 碼內，還原不需要查資料庫 */
+  const mtn = newebpayPeriodMtn(57);
+  ok("委託編號 WP 開頭帶贊助 id", mtn.startsWith("WP57X"));
+  ok("委託編號 20 碼以內（規格限定）", mtn.length <= 20);
+  ok("認得是委託編號", isNewebpayPeriodMtn(mtn));
+  eq("還原回贊助 id", sponsorIdFromNewebpayPeriodMtn(mtn), 57);
+  ok("單筆 MPG 的 WS 編號不會被誤判成委託編號", !isNewebpayPeriodMtn("WS57X00ABCD"));
+  eq("不是委託編號的字串還原回 0", sponsorIdFromNewebpayPeriodMtn("WS57X00ABCD"), 0);
+
+  /* PeriodPoint：29～31 一律改 28，其餘照原本的日期（用固定時刻測，不依賴今天是幾號） */
+  const dayOf = (mtnDate: string) => {
+    const d = new Date(mtnDate);
+    const day = d.getUTCDate();
+    return String(day > 28 ? 28 : day).padStart(2, "0");
+  };
+  eq("15 號照原樣", dayOf("2026-09-15T04:00:00.000Z"), "15");
+  eq("29 號改成 28", dayOf("2026-08-29T04:00:00.000Z"), "28");
+  eq("30 號改成 28", dayOf("2026-08-30T04:00:00.000Z"), "28");
+  eq("31 號改成 28", dayOf("2026-08-31T04:00:00.000Z"), "28");
+
+  /* parsePeriodNotify：沒設金鑰時 newebpayEnabled() 為 false，一律回 null */
+  eq("環境變數空著時 parsePeriodNotify 一律回 null", parsePeriodNotify({ Period: enc }), null);
+
+  process.env.NEWEBPAY_MERCHANT_ID = "TEST001";
+  process.env.NEWEBPAY_HASH_KEY = K;
+  process.env.NEWEBPAY_HASH_IV = V;
+  try {
+    /* 首期成功的回傳內容：Period 欄位是加密後的 JSON，格式跟站長給的規格一致 */
+    const raw = JSON.stringify({
+      Status: "SUCCESS", Message: "授權成功",
+      Result: { MerchantID: "TEST001", MerOrderNo: mtn, PeriodType: "M", AuthTimes: 1, PeriodAmt: 300, PeriodNo: "26090412345", AlreadyTimes: 1, TradeNo: "24091400000099", AuthTime: "2026-09-15 12:00:00" },
+    });
+    const cipher = createCipheriv("aes-256-cbc", Buffer.from(K, "utf8"), Buffer.from(V, "utf8"));
+    const periodHex = Buffer.concat([cipher.update(raw, "utf8"), cipher.final()]).toString("hex");
+    const parsed = parsePeriodNotify({ Period: periodHex });
+    ok(
+      "首期成功解得出 PeriodNo／TradeNo／MerOrderNo",
+      parsed !== null && parsed.ok && parsed.merOrderNo === mtn && parsed.periodNo === "26090412345" && parsed.tradeNo === "24091400000099" && parsed.alreadyTimes === 1
+    );
+    eq("缺 Period 欄位一律拒絕", parsePeriodNotify({}), null);
+    eq("Period 內容壞掉（解不出 JSON）一律拒絕", parsePeriodNotify({ Period: periodHex.slice(0, -4) + "0000" }), null);
   } finally {
     delete process.env.NEWEBPAY_MERCHANT_ID;
     delete process.env.NEWEBPAY_HASH_KEY;

@@ -18,7 +18,7 @@ export default function NotFound() {
             <span className="tag">4 0 4</span>
             <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: ".14em", marginTop: 14 }}>這一頁不在地圖上</h2>
             <p style={{ color: "var(--grey)", fontSize: 14.5, marginTop: 12, lineHeight: 2 }}>
-              <NbText text="網址可能打錯了，或這篇內容已經搬家。別擔心，台灣的現場都還在。" />
+              <NbText text="網址可能打錯了，或這篇內容已經搬家。別擔心，問爽的還在，慢慢逛。" />
             </p>
             <p style={{ marginTop: 22, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <Link className="btn fill" href="/">回首頁</Link>

@@ -14,9 +14,9 @@ export const COPY_GROUPS: CopyGroup[] = [
   {
     title: "首頁：開場區",
     items: [
-      { key: "hero_tag", label: "小標籤", kind: "text", def: "PODCAST・每 週 更 新" },
+      { key: "hero_tag", label: "小標籤", kind: "text", def: "PODCAST・不 定 期 更 新" },
       { key: "hero_title", label: "主標語", kind: "text", def: "問東問西，【問爽的】拉", hint: "【】內的字會變成橘色強調" },
-      { key: "hero_dek", label: "介紹段落", kind: "textarea", def: "維尼跟安妮的聊天節目。餐廳老闆、創業的人、跟那些想問很久的事，一集一集問到爽為止。" },
+      { key: "hero_dek", label: "介紹段落", kind: "textarea", def: "維尼跟安妮的聊天節目。有什麼想問餐廳老闆、想問創業的人的，我們幫你問，也讀你投稿來的秘密，一集一集問到爽為止。" },
       { key: "hero_btn1", label: "橘色按鈕文字（連去最新一集）", kind: "text", def: "聽最新一集" },
       { key: "hero_btn2", label: "白色按鈕文字（連去全部集數）", kind: "text", def: "看全部集數" },
       { key: "hero_latest", label: "最新一集上方的小字", kind: "text", def: "最 新 一 集" },
@@ -69,7 +69,7 @@ export const COPY_GROUPS: CopyGroup[] = [
     items: [
       { key: "article_cta_default", label: "文末 CTA 預設句（每篇可在文章編輯個別覆蓋）", kind: "textarea", def: "這篇文章是像你一樣的聽眾讓它存在的。" },
       { key: "sticky_text", label: "底部固定條文字", kind: "text", def: "這一集是支持者讓我們錄下去的" },
-      { key: "sticky_btn", label: "底部固定條按鈕", kind: "text", def: "小額支持節目" },
+      { key: "sticky_btn", label: "底部固定條按鈕", kind: "text", def: "小額贊助" },
       { key: "article_shop_title", label: "支持商品 CTA 標題（檔期開關在「網站設定」）", kind: "text", def: "支持商品" },
       { key: "article_shop_text", label: "支持商品 CTA 內文", kind: "textarea", def: "周邊不多，每一件都是我們自己也會用的東西。\n買一份，就是讓節目可以繼續錄。" },
       { key: "article_shop_btn", label: "支持商品 CTA 按鈕文字", kind: "text", def: "看看有什麼" },
@@ -102,7 +102,7 @@ export const COPY_GROUPS: CopyGroup[] = [
     title: "信件：共用區塊（每一封都有）",
     items: [
       { key: "mail_thanks_1", label: "感謝框第一行", kind: "textarea", def: "謝謝你。這個節目能一直錄下去，靠的就是像你這樣的人。" },
-      { key: "mail_thanks_2", label: "感謝框第二行（署名句）", kind: "text", def: "問東問西，問爽的拉。——維尼與安妮" },
+      { key: "mail_thanks_2", label: "感謝框第二行（署名句）", kind: "text", def: "問東問西，問爽的拉。維尼與安妮" },
       { key: "mail_footer_line", label: "聯絡資訊末行", kind: "text", def: `${BRAND.fullName}・${BRAND.tagline}` },
       { key: "mail_stop_prefix", label: "停止支持引言", kind: "text", def: "想停止的話隨時可以：" },
       { key: "mail_stop_link", label: "停止連結文字", kind: "text", def: "停止每月支持" },

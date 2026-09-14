@@ -36,8 +36,8 @@ Basic Auth 擋在 middleware，**包含 `/api` 與圖片**。門開著只鎖客�
 ## 兩個站怎麼分開：兩條 branch
 
 ```
-main     →  正式站  www.youdoyou.tw      不設 REVIEW_SITE
-review   →  審核站  review.youdoyou.tw   REVIEW_SITE=1
+main     →  正式站  www.wensong.tw      不設 REVIEW_SITE
+review   →  審核站  review.wensong.tw   REVIEW_SITE=1
 ```
 
 **為什麼要分 branch 而不是同一條靠環境變數切**：審核站要放的是「上線後的樣子」
@@ -60,8 +60,8 @@ review   →  審核站  review.youdoyou.tw   REVIEW_SITE=1
 
 middleware 會檢查「網域」與「REVIEW_SITE」是否一致，不一致就整站 503。
 
-- `review.youdoyou.tw` 沒設 `REVIEW_SITE=1` → 503
-- `www.youdoyou.tw` 誤設了 `REVIEW_SITE` → 503
+- `review.wensong.tw` 沒設 `REVIEW_SITE=1` → 503
+- `www.wensong.tw` 誤設了 `REVIEW_SITE` → 503
 
 為什麼寧可讓它整站掛掉：這兩種設定錯誤都是「靜靜地壞掉」。
 審核站忘了設旗標，就變成一個公開的、會開正式發票、會寄真信給顧客的站，
@@ -69,11 +69,11 @@ middleware 會檢查「網域」與「REVIEW_SITE」是否一致，不一致就�
 正式站誤設旗標，則是所有顧客的信被改寄到同一個信箱、發票全變測試發票。
 兩種都可能三天後才發現。503 你五分鐘內就知道。
 
-本機預覽、IP、`*.zeabur.app` 不受這道檢查影響（只認結尾是 youdoyou.tw 的網域）。
+本機預覽、IP、`*.zeabur.app` 不受這道檢查影響（只認結尾是 wensong.tw 的網域）。
 
 ## Zeabur 設定步驟
 
-1. 在同一個專案裡**新增一個服務**，指向同一個 GitHub repo（`youdo2024/youdoyou-site`）
+1. 在同一個專案裡**新增一個服務**，指向同一個 GitHub repo（`youdo2024/wensong-site`）
    　⚠️ **Branch 一定要選 `review`**，不是 main。同時去確認正式站那個服務的 branch 是 `main`
 2. **掛一個新的 volume 到 `/app/data`**
    　⚠️ **絕對不能跟正式站共用**。共用的話審核人員的測試單會進正式訂單、扣正式庫存
@@ -98,7 +98,7 @@ ADMIN_PASSWORD=<只給這台用的>
 ADMIN_SECRET=<隨機字串，用 openssl rand -base64 32 產>
 
 REVIEW_MAIL_TO=<你自己的信箱，測試站的信全部寄到這裡>
-SITE_URL=https://review.youdoyou.tw
+SITE_URL=https://review.wensong.tw
 ```
 
 ### 兩種開放方式，二選一
@@ -109,7 +109,7 @@ SITE_URL=https://review.youdoyou.tw
 REVIEW_OPEN=1
 ```
 
-審核人員直接開 `https://review.youdoyou.tw` 就看得到，什麼都不用帶。
+審核人員直接開 `https://review.wensong.tw` 就看得到，什麼都不用帶。
 後台仍然要 Basic Auth——公開的是「像正式站的前台」，不是後台。
 
 公開的代價與對應的補償：
@@ -131,7 +131,7 @@ REVIEW_KEY=<一段長亂碼>
 ### 給審核人員的連結長這樣
 
 ```
-https://review.youdoyou.tw/?rk=<REVIEW_KEY>
+https://review.wensong.tw/?rk=<REVIEW_KEY>
 ```
 
 點一次，middleware 種一顆 90 天的 httpOnly cookie，**並立刻把金鑰從網址上抹掉**
@@ -143,7 +143,7 @@ https://review.youdoyou.tw/?rk=<REVIEW_KEY>
 
 ### 為什麼不乾脆完全公開
 
-網路上會多出一個跟正式站一模一樣的佑在幹嘛。真的客人萬一走進來下單，
+網路上會多出一個跟正式站一模一樣的問爽的。真的客人萬一走進來下單，
 那筆單不會有人出貨——而他不會知道自己買錯地方。
 一條連結的成本幾乎是零，換掉這個風險很划算。
 
@@ -172,7 +172,7 @@ openssl rand -base64 32
 
 4. **不要**設 `AMEGO_TAX_ID` / `AMEGO_APP_KEY`（設了也會被保險擋掉，但不設更乾淨）
 5. 金流金鑰照審核需要設：TapPay 沙盒或正式，由站長決定
-6. 綁一個網址，例如 `review.youdoyou.tw`，或直接用 Zeabur 給的 `*.zeabur.app`
+6. 綁一個網址，例如 `review.wensong.tw`，或直接用 Zeabur 給的 `*.zeabur.app`
 
 ## 檢查清單（開站後自己點一遍）
 

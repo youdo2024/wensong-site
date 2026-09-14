@@ -3,6 +3,7 @@ import { t } from "@/lib/copy";
 import { footerBusinessModel, supportEnabled } from "@/lib/shop";
 import { BRAND } from "@/lib/brand";
 import { platformLinks } from "@/lib/site-config";
+import PlatformLinks from "@/components/PlatformLinks";
 
 /* hideBusinessModel 給商店動線用：商店的贊助入口關掉時，「數位內容服務說明」也要跟著收起來 */
 export default function Footer({ hideBusinessModel = false }: { hideBusinessModel?: boolean }) {
@@ -22,10 +23,9 @@ export default function Footer({ hideBusinessModel = false }: { hideBusinessMode
             <b>{BRAND.fullName}</b>
             <p>{t("footer_line")}</p>
           </div>
+          {/* 收聽平台做成各家品牌色的按鈕（站長 2026-09-14：要一眼看出是 Apple、Spotify），社群與客服維持文字連結 */}
+          <PlatformLinks platforms={platforms} small />
           <ul>
-            {platforms.map((p) => (
-              <li key={p.key}><a href={p.url} target="_blank" rel="noopener">{p.label}</a></li>
-            ))}
             {social.map((s) => (
               <li key={s.label}><a href={s.url} target="_blank" rel="noopener">{s.label}</a></li>
             ))}

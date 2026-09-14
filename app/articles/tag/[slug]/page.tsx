@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return buildMetadata({
     title: `${t.name}相關文章`,
     path: `/articles/tag/${slug}`,
-    description: `「問爽的」關於${t.name}的所有田野紀錄與追蹤報導。`,
+    description: `「問爽的」關於${t.name}的所有文章。`,
   });
 }
 

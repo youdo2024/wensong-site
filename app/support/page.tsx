@@ -40,7 +40,7 @@ export default async function SupportPage({
             <div className="inner" style={{ paddingTop: 44, paddingBottom: 44 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: ".14em" }}>支持功能整理中</h2>
               <p style={{ color: "var(--grey)", fontSize: 14.5, marginTop: 12, lineHeight: 2 }}>
-                目前暫停接受新的支持，既有的長期支持不受影響。想支持我們，先看看文章、訂閱頻道，或到商店逛逛。
+                目前暫停接受新的支持，既有的長期支持不受影響。想支持我們，先看看文章、追蹤節目，或到商店逛逛。
               </p>
             </div>
             <div className="band" />
@@ -51,7 +51,7 @@ export default async function SupportPage({
     );
   }
   const tiers = json<number[]>(getSetting("sponsor_tiers", "[888,5000,30000,80000]"), [888, 5000, 30000, 80000]);
-  const lead = getSetting("sponsor_lead", "沒有回饋品，只有一直拍下去的台灣現場");
+  const lead = getSetting("sponsor_lead", "沒有回饋品，只有一直錄下去的問爽的");
   const initAmount = Number(sp.amount) || tiers[0] || 888;
   const initMode = sp.mode === "once" ? "once" : "monthly";
 
@@ -71,7 +71,7 @@ export default async function SupportPage({
           <div className="inner">
             <LeadLetter text={lead} closing="每一次支持，都讓故事被更多人看見。" variant={2} />
             {/* 四格圖示卡：取代信件裡整段「收入流向」文字敘述（sponsor_lead_v2 遷移移除） */}
-            <SupportPillars caption="這些是頻道收入真正流向的地方，我想把它做成一件可以長久的事。" />
+            <SupportPillars caption="這些是節目收入真正流向的地方，我想把它做成一件可以長久的事。" />
         {preview && (
           <p className="msg-ok" style={{ borderColor: "var(--indigo)", color: "var(--indigo)" }}>
             站長預覽模式：這頁只有登入後台的你看得到，訪客目前仍導向外部支持頁。實測付款會真的扣款，測完可在綠界後台退刷。

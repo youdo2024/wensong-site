@@ -144,10 +144,10 @@ export function lineInviteHtml(o: { order_no: string; token?: string; email?: st
   const b = findLineBinding({ phone: row?.phone, email: o.email });
   if (b && b.status === "bound") return "";
   const url = `${bindUrlFor(o.order_no, o.token)}&src=mail`;
-  return `<div style="margin:22px 0 4px;padding:14px 16px;border:2px dashed #E3D3AC;text-align:center;">
+  return `<div style="margin:22px 0 4px;padding:14px 16px;border:2px dashed #FFE3BF;text-align:center;">
     <p style="font-size:14px;line-height:1.9;margin:0 0 10px;">付款與出貨進度想直接在 LINE 收到？按一下就好，不用打字。</p>
     <a href="${url}" style="display:inline-block;padding:11px 24px;font-size:14.5px;letter-spacing:.06em;border:2px solid #06C755;background:#06C755;color:#fff;text-decoration:none;">用 LINE 收通知</a>
-    <p style="font-size:12px;color:#7C7060;line-height:1.8;margin:10px 0 0;">綁定即同意用 LINE 接收訂單通知，封鎖官方帳號即取消。</p>
+    <p style="font-size:12px;color:#8A7A6E;line-height:1.8;margin:10px 0 0;">綁定即同意用 LINE 接收訂單通知，封鎖官方帳號即取消。</p>
   </div>`;
 }
 
@@ -352,7 +352,7 @@ async function warnQuotaIfNeeded(): Promise<void> {
     const html = wrapOwnerMail(
       "LINE 推播額度快用完了",
       `<p style="font-size:15px;line-height:2;">本月 LINE 已推 <b>${sent}</b> 則，方案額度 <b>${quota}</b> 則。</p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">到達額度後系統會自動改走簡訊與 Email，通知不會消失，但簡訊要錢。
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">到達額度後系統會自動改走簡訊與 Email，通知不會消失，但簡訊要錢。
        要升級的話去 LINE 官方帳號後台改方案，改完到網站設定把「LINE 每月額度」改成新的數字。</p>`
     );
     for (const t of to) await sendMail(t, "LINE 推播額度快用完了｜問爽的後台", html, undefined, { kind: "owner" });

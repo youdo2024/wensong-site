@@ -40,14 +40,14 @@ export async function notifySubmission(s: {
     const html = wrapOwnerMail(
       "有人投稿了",
       `<p style="font-size:15px;line-height:2;">〈<b>${esc(s.title)}</b>〉</p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
          全名：${esc(s.name)}${s.penName ? `　筆名：${esc(s.penName)}` : "　（沒有填筆名）"}<br>
-         ${s.quote ? `報價：<b style="color:#B8402C;">${esc(s.quote)}</b>（投稿人開的價，要寄出載明金額的採用通知，契約才成立）<br>` : "報價：沒有填<br>"}
+         ${s.quote ? `報價：<b style="color:#EA962E;">${esc(s.quote)}</b>（投稿人開的價，要寄出載明金額的採用通知，契約才成立）<br>` : "報價：沒有填<br>"}
          Email：${esc(s.email)}　電話：${esc(s.phone)}<br>
          照片：${s.photoCount} 張
        </p>
-       <p style="font-size:14px;line-height:2;white-space:pre-wrap;border-left:3px solid #A87F2E;padding-left:12px;color:#3A3226;">${esc(excerpt)}</p>
-       <p style="font-size:13px;color:#7C7060;line-height:1.9;">到後台「投稿」可以看全文與照片。</p>`
+       <p style="font-size:14px;line-height:2;white-space:pre-wrap;border-left:3px solid #D97F12;padding-left:12px;color:#33271F;">${esc(excerpt)}</p>
+       <p style="font-size:13px;color:#8A7A6E;line-height:1.9;">到後台「投稿」可以看全文與照片。</p>`
     );
     for (const to of emails) {
       await sendMail(to, `有人投稿〈${s.title}〉｜問爽的`, html, undefined, { kind: "owner" });
@@ -101,14 +101,14 @@ export async function notifyInvoiceFailure(x: {
            已經自動改開成寄到 Email 的雲端發票，<b>客人拿得到發票</b>，不必緊急處理。<br>
            發票號碼：<b>${esc(x.rescuedNo || "")}</b>
          </p>`
-      : `<p style="font-size:14.5px;line-height:2;color:#B8402C;">
+      : `<p style="font-size:14.5px;line-height:2;color:#EA962E;">
            <b>這筆的錢已經收了，但發票沒開出來。</b>自動改開也失敗了，需要你到光貿後台手動補開。
          </p>`;
 
     const html = wrapOwnerMail(
       title,
       `${body}
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
          ${what}編號：${esc(x.ref)}<br>
          金額：${money(x.amount)}<br>
          買受人 Email：${esc(x.buyerEmail)}<br>
@@ -138,10 +138,10 @@ export async function notifyCorporateInquiry(q: {
 
     const esc = (v: string) => String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const row = (k: string, v: string) =>
-      v ? `<tr><td style="padding:5px 0;font-size:13.5px;color:#7C7060;white-space:nowrap;">${k}</td><td style="padding:5px 0 5px 14px;font-size:14.5px;">${esc(v)}</td></tr>` : "";
+      v ? `<tr><td style="padding:5px 0;font-size:13.5px;color:#8A7A6E;white-space:nowrap;">${k}</td><td style="padding:5px 0 5px 14px;font-size:14.5px;">${esc(v)}</td></tr>` : "";
     const html = wrapOwnerMail(
       "有企業要訂購",
-      `<table style="border-top:2px solid #3A3226;margin-top:6px;">
+      `<table style="border-top:2px solid #33271F;margin-top:6px;">
          ${row("聯絡人", q.contactName)}
          ${row("電話", q.phone)}
          ${row("Email", q.email)}
@@ -150,7 +150,7 @@ export async function notifyCorporateInquiry(q: {
          ${row("統一編號", q.taxId)}
          ${row("公司抬頭", q.company)}
        </table>
-       <p style="font-size:13.5px;color:#7C7060;line-height:1.9;margin-top:14px;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:1.9;margin-top:14px;">
          回覆這封信不會寄到對方那裡，請另外寄到上面那個 Email。到後台「企業訂購」可以看全部詢問。</p>`
     );
     for (const to of emails) {
@@ -179,16 +179,16 @@ export async function notifyChoiceFull(productId: number, productName: string, c
     const rows = json<string[]>(p?.option_choices || "[]", [])
       .map((c) => {
         const has = Object.prototype.hasOwnProperty.call(stocks, c);
-        const txt = has ? (stocks[c] <= 0 ? `<b style="color:#B8402C;">${label}</b>` : `剩 ${stocks[c]}`) : "不限量";
+        const txt = has ? (stocks[c] <= 0 ? `<b style="color:#EA962E;">${label}</b>` : `剩 ${stocks[c]}`) : "不限量";
         return `<tr><td style="padding:4px 0;">${esc(c)}</td><td style="text-align:right;">${txt}</td></tr>`;
       })
       .join("");
 
     const html = wrapOwnerMail(
       `「${esc(choice)}」${esc(label)}了`,
-      `<p style="font-size:15px;line-height:2;"><b>${esc(productName)}</b>的「<b style="color:#B8402C;">${esc(choice)}</b>」剛剛被買到額滿。</p>
-       <table style="width:100%;border-collapse:collapse;font-size:14px;border-top:2px solid #3A3226;">${rows}</table>
-       <p style="font-size:13.5px;color:#7C7060;line-height:1.9;margin-top:10px;">
+      `<p style="font-size:15px;line-height:2;"><b>${esc(productName)}</b>的「<b style="color:#EA962E;">${esc(choice)}</b>」剛剛被買到額滿。</p>
+       <table style="width:100%;border-collapse:collapse;font-size:14px;border-top:2px solid #33271F;">${rows}</table>
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:1.9;margin-top:10px;">
          商品總庫存還剩 ${p?.stock ?? "—"} 件。想加開名額，到後台「商品」把該${esc(p?.option_name || "規格")}的庫存改大即可；順手發個「${esc(choice)}${esc(label)}」的限動，稀缺感是真的。
        </p>`
     );
@@ -229,14 +229,14 @@ export async function notifySponsorship(
 
     const html = wrapOwnerMail(
       "有人支持了",
-      `<p style="font-size:22px;margin:0 0 6px;"><b style="color:#B8402C;">${money(amount)}</b>
-         <span style="font-size:14px;color:#7C7060;">${kind === "once" ? "" : "／月"}</span></p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+      `<p style="font-size:22px;margin:0 0 6px;"><b style="color:#EA962E;">${money(amount)}</b>
+         <span style="font-size:14px;color:#8A7A6E;">${kind === "once" ? "" : "／月"}</span></p>
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
          ${kindLabel}・${esc(sp.pay_method || "—")}<br>
          支持者：${esc(sp.display_name) || "（匿名）"}　Email：${esc(sp.email)}
        </p>
-       ${sp.message ? `<p style="font-size:14px;line-height:2;white-space:pre-wrap;border-left:3px solid #A87F2E;padding-left:12px;color:#3A3226;">${esc(sp.message)}</p>` : ""}
-       <p style="font-size:13px;color:#7C7060;line-height:1.9;">發票由系統自動開立；明細與發票狀態到後台「贊助紀錄」查看。</p>`
+       ${sp.message ? `<p style="font-size:14px;line-height:2;white-space:pre-wrap;border-left:3px solid #D97F12;padding-left:12px;color:#33271F;">${esc(sp.message)}</p>` : ""}
+       <p style="font-size:13px;color:#8A7A6E;line-height:1.9;">發票由系統自動開立；明細與發票狀態到後台「贊助紀錄」查看。</p>`
     );
     for (const to of emails) {
       await sendMail(to, `有人支持 ${money(amount)}${kind === "monthly-charge" ? "（本月扣款）" : ""}｜問爽的`, html, undefined, { kind: "owner" });
@@ -293,7 +293,7 @@ export async function notifySponsorStaleTradeNo(x: {
       : `［舊帳號入帳］贊助 #${x.spId} ${money(amount)}｜問爽的`;
 
     const lead = x.duplicate
-      ? `<p style="font-size:14.5px;line-height:2;color:#B8402C;">
+      ? `<p style="font-size:14.5px;line-height:2;color:#EA962E;">
            <b>從舊的繳費帳號收到一筆 ${money(amount)}，但系統沒有把它入帳。</b><br>
            這筆贊助現在的狀態是「${esc(x.status)}」，不是待付款，最常見的原因是同一個人重複付款：
            已經刷卡付過一次，後來又照舊的虛擬帳號轉了一次。<br>
@@ -310,7 +310,7 @@ export async function notifySponsorStaleTradeNo(x: {
     const html = wrapOwnerMail(
       title,
       `${lead}
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
          贊助編號：#${x.spId}<br>
          金額：${money(amount)}<br>
          支持者：${esc(sp?.display_name) || "（匿名）"}　Email：${esc(sp?.email)}<br>
@@ -431,7 +431,7 @@ export async function notifyProductPurchases(orderId: number): Promise<void> {
        <table style="width:100%;border-collapse:collapse;font-size:14px;">
          ${hitItems.map((i) => `<tr><td style="padding:4px 0;">${esc(i.name)}${i.choice ? `（${esc(i.choice)}）` : ""}</td><td style="text-align:right;">× ${i.qty}</td></tr>`).join("")}
        </table>
-       <p style="font-size:13.5px;color:#7C7060;line-height:1.9;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:1.9;">
          收件人：${esc(o.name)}　${esc(o.phone)}<br>
          ${esc(o.ship_method || "宅配")}：${esc(o.address)}<br>
          ${forPartner
@@ -443,7 +443,7 @@ export async function notifyProductPurchases(orderId: number): Promise<void> {
        </p>
        ${workbenchLink ? `<p style="font-size:14px;line-height:2;margin-top:14px;">
          各出貨週要做多少、要寄給誰，開工作台看最新現況（按「出貨」會自動寄物流信給顧客）：<br>
-         <a href="${workbenchLink}" style="color:#2C4A6B;font-weight:700;">${forPartner ? "出貨工作台（隨時是最新清單）" : "開出貨總覽 →"}</a>
+         <a href="${workbenchLink}" style="color:#D97F12;font-weight:700;">${forPartner ? "出貨工作台（隨時是最新清單）" : "開出貨總覽 →"}</a>
        </p>` : ""}`
     );
     /*
@@ -631,7 +631,7 @@ export async function notifyLateShipments(): Promise<void> {
         `<p style="font-size:15px;line-height:2;">${esc(p.name)}好，下面這些訂單付款完成超過 ${lateDays} 天還沒標出貨，麻煩看一下是不是漏了：</p>
          ${listHtml(rows)}
          <p style="font-size:14px;line-height:2;margin-top:14px;">
-           <a href="${siteBase()}/api/partner-view?k=${encodeURIComponent(p.key)}" style="color:#2C4A6B;font-weight:700;">開出貨工作台處理</a>
+           <a href="${siteBase()}/api/partner-view?k=${encodeURIComponent(p.key)}" style="color:#D97F12;font-weight:700;">開出貨工作台處理</a>
            　·　如果是預購排程內的單（本來就要等到出貨週），不用理這封信。</p>`
       );
       for (const to of emails) await sendMail(to, `出貨提醒：${rows.length} 筆等了超過 ${lateDays} 天｜問爽的`, html, undefined, { kind: "owner" });

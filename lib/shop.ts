@@ -19,9 +19,17 @@ export function supportMode(): SupportMode {
   /* 相容舊的 support_enabled 開關 */
   return getSetting("support_enabled", "1") === "1" ? "api" : "off";
 }
-/* 綜合模式下，每月定額要導去的外部頁面（沿用 support_url 欄位；沒填就退回站內定額） */
+/* 綜合模式下，每月定額走哪一家：
+   portaly  ＝導去下方指定的外部頁面（沿用 support_url 欄位）
+   newebpay ＝站內藍新信用卡定期定額（第 3 段接上之後才有這個選項） */
+export type MonthlyGateway = "portaly" | "newebpay";
+export function monthlyGateway(): MonthlyGateway {
+  return getSetting("monthly_gateway", "portaly") === "newebpay" ? "newebpay" : "portaly";
+}
+/* 綜合模式下，每月定額要導去的外部頁面；monthly_gateway=newebpay 時回空字串，
+   代表每月定額由站內藍新定期定額處理，不是外連（沒填 support_url 時也回空字串，退回站內） */
 export function monthlyExternalUrl(): string {
-  return supportMode() === "hybrid" ? supportUrl() : "";
+  return supportMode() === "hybrid" && monthlyGateway() === "portaly" ? supportUrl() : "";
 }
 export function supportUrl(): string {
   return getSetting("support_url", "").trim();

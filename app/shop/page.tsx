@@ -12,7 +12,7 @@ import { shopViewable } from "@/lib/shop-preview";
 import ShopClosed from "@/components/ShopClosed";
 import PageViewPing from "@/components/PageViewPing";
 
-export const metadata: Metadata = buildMetadata({ title: "周邊商店", path: "/shop", description: "問爽的的誠實選物：有產地、有名字、有故事的台灣物產與周邊。" });
+export const metadata: Metadata = buildMetadata({ title: "周邊商店", path: "/shop", description: "問爽的周邊商店：節目周邊與我們想推薦的東西。" });
 export const dynamic = "force-dynamic";
 
 export default async function ShopPage({

@@ -147,7 +147,7 @@ export async function notifyOrder(
           const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] || c);
           const mailUrl = urlOf("mail");
           const html = body.split(/\n{2,}/).map((p) => `<p style="line-height:1.9;margin:0 0 14px;">${esc(p).replace(/\n/g, "<br>")}</p>`).join("") +
-            (mailUrl ? `<p style="margin:18px 0 0;"><a href="${esc(mailUrl)}" style="display:inline-block;padding:11px 22px;border:2px solid #3A3226;background:#B8402C;color:#EFE3C4;text-decoration:none;">前往</a></p>` : "");
+            (mailUrl ? `<p style="margin:18px 0 0;"><a href="${esc(mailUrl)}" style="display:inline-block;padding:11px 22px;border-radius:999px;background:#EA962E;color:#FFFFFF;text-decoration:none;">前往</a></p>` : "");
           ok = await sendMail(o.email, subject || `關於你的訂單 ${o.order_no}`, wrapMail(subject || "關於你的訂單", html), undefined, { refNo: o.order_no, keepBody: true });
         }
       } catch (e) { console.error("[notify] mail", o.order_no, kind, e); }

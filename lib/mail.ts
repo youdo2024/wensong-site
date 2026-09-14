@@ -3,6 +3,7 @@ import { lineInviteHtml } from "./line";
 import crypto from "crypto";
 import { money } from "./format";
 import { t } from "./copy";
+import { BRAND } from "./brand";
 import db, { getSetting, setSetting } from "./db";
 import { isPayMethodOff } from "./shop";
 import { isReviewSite, reviewMailTo } from "./review-mode";
@@ -111,7 +112,7 @@ export function siteUrl(): string {
   return (process.env.SITE_URL || "https://www.wensong.tw").replace(/\/$/, "");
 }
 
-/* 信件外框：米袋黃品牌樣式，含感謝語、聯絡資訊與網站連結。
+/* 信件外框：問爽的品牌樣式（奶油底、圓角白卡、橘色強調），含感謝語、聯絡資訊與網站連結。
    bottomHtml 放在整封信「最底部」（聯絡資訊之後），取消/停止類連結一律放這裡 */
 /* opts.below：放在整個框「外面」的最底下，給電子報退訂這種要有、但不該搶眼的東西 */
 function wrap(title: string, bodyHtml: string, bottomHtml = "", opts: { internal?: boolean; below?: string } = {}): string {
@@ -126,32 +127,33 @@ function wrap(title: string, bodyHtml: string, bottomHtml = "", opts: { internal
    */
   const thanks = opts.internal ? "" : `
       <!-- 感謝區 -->
-      <div style="margin-top:28px;border:2px solid #B8402C;padding:16px 20px;">
-        <p style="margin:0;font-size:14px;line-height:2;color:#B8402C;">
+      <div style="margin-top:28px;border-radius:16px;background:#FFE3BF;padding:16px 20px;">
+        <p style="margin:0;font-size:14px;line-height:2;color:#D97F12;">
           ${t("mail_thanks_1")}<br>
-          <span style="color:#3A3226;">${t("mail_thanks_2")}</span>
+          <span style="color:#33271F;">${t("mail_thanks_2")}</span>
         </p>
       </div>`;
   const footer = opts.internal ? "" : `
       <!-- 聯絡資訊 -->
-      <p style="font-size:12.5px;color:#7C7060;border-top:2px dashed #E3D3AC;padding-top:14px;margin-top:22px;line-height:2;">
-        <b style="color:#3A3226;">聯絡我們</b><br>
-        信箱：<a href="mailto:${contact}" style="color:#2C4A6B;">${contact}</a><br>
-        官網：<a href="${site}" style="color:#2C4A6B;">${site.replace("https://", "")}</a>　訂單查詢：<a href="${site}/orders" style="color:#2C4A6B;">${site.replace("https://", "")}/orders</a><br>
+      <p style="font-size:12.5px;color:#8A7A6E;border-top:1px dashed #FFE3BF;padding-top:14px;margin-top:22px;line-height:2;">
+        <b style="color:#33271F;">聯絡我們</b><br>
+        信箱：<a href="mailto:${contact}" style="color:#D97F12;">${contact}</a><br>
+        官網：<a href="${site}" style="color:#D97F12;">${site.replace("https://", "")}</a>　訂單查詢：<a href="${site}/orders" style="color:#D97F12;">${site.replace("https://", "")}/orders</a><br>
         ${t("mail_footer_line")}
       </p>`;
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#EFE3C4;">
-  <div style="max-width:560px;margin:0 auto;padding:32px 16px;font-family:'Noto Serif TC','PingFang TC',serif;color:#3A3226;">
-    <div style="height:12px;background:repeating-linear-gradient(90deg,#B8402C 0 36px,#EFE3C4 36px 45px,#2C4A6B 45px 81px,#EFE3C4 81px 90px);"></div>
-    <div style="border:2px solid #3A3226;border-top:none;background:#F5EDD8;padding:32px 28px;">
-      <p style="font-size:13px;letter-spacing:.3em;color:#2C4A6B;border:1.5px solid #2C4A6B;display:inline-block;padding:3px 12px;margin:0 0 14px;">佑 在 幹 嘛 ｜ 則 佑</p>
-      <h1 style="font-size:22px;letter-spacing:.1em;margin:0 0 18px;">${title}</h1>
+  /* 頂部一條橘色圓角橫條取代舊版紅藍跑馬燈色帶（站長 2026-09-14「跟佑在幹嘛太像」）。
+     卡片改圓角 16px、無描邊、柔橘陰影，抬頭一律讀 BRAND.fullName，不寫死字串。 */
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#FFF6EA;">
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px;font-family:'Noto Sans TC','PingFang TC',sans-serif;color:#33271F;">
+    <div style="height:6px;border-radius:999px;background:#EA962E;margin-bottom:16px;"></div>
+    <div style="border-radius:16px;background:#FFFFFF;padding:32px 28px;box-shadow:0 10px 30px rgba(217,127,18,.14);">
+      <p style="display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.1em;color:#D97F12;background:#FFE3BF;border-radius:999px;padding:4px 14px;margin:0 0 14px;">${BRAND.fullName}</p>
+      <h1 style="font-size:22px;letter-spacing:.05em;margin:0 0 18px;color:#33271F;">${title}</h1>
       ${bodyHtml}
 ${thanks}
 ${footer}
       ${bottomHtml}
     </div>
-    <div style="height:12px;background:repeating-linear-gradient(90deg,#B8402C 0 36px,#EFE3C4 36px 45px,#2C4A6B 45px 81px,#EFE3C4 81px 90px);"></div>
     ${opts.below || ""}
   </div></body></html>`;
 }
@@ -287,14 +289,14 @@ async function alertMailChannelDown(failedSubject: string, failedTo: string): Pr
     const html = wrapOwnerMail(
       "今天的信寄不出去了",
       `<p style="font-size:15px;line-height:2;">網站要寄一封信給客人，但沒有任何可用的寄信管道，這封信沒有寄出去。</p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
          寄不出去的那封：${esc(failedSubject)}<br>
          原本要寄給：${esc(failedTo)}<br>
          今日 SMTP 已用：${smtpSentToday()} 封（上限 ${SMTP_DAILY_LIMIT}）<br>
          電子豹：${newsleopardEnabled() ? "已設定" : "未設定"}
        </p>
        <p style="font-size:14px;line-height:2;">最快的解法是到網站設定把電子豹的金鑰填上，交易信會自動改走那條。今天之後失敗的每一封都可以在後台「寄件紀錄」找到，補寄不用重問客人。</p>
-       <p style="font-size:12.5px;color:#7C7060;">同樣的狀況一天只通知這一次。</p>`
+       <p style="font-size:12.5px;color:#8A7A6E;">同樣的狀況一天只通知這一次。</p>`
     );
     const info = await getTransporter().sendMail({ from: SMTP.from, to, subject, html, text: htmlToText(html) });
     const rejected = ((info?.rejected || []) as unknown[]).length;
@@ -476,8 +478,8 @@ export function cancelUrl(id: number): string {
 
 /* 停止每月支持連結（一律放信件最底部） */
 function stopSponsorBottom(id: number): string {
-  return `<p style="font-size:12px;color:#7C7060;margin-top:14px;padding-top:12px;border-top:1px solid #E3D3AC;">
-    ${t("mail_stop_prefix")}<a href="${cancelUrl(id)}" style="color:#7C7060;">${t("mail_stop_link")}</a></p>`;
+  return `<p style="font-size:12px;color:#8A7A6E;margin-top:14px;padding-top:12px;border-top:1px solid #FFE3BF;">
+    ${t("mail_stop_prefix")}<a href="${cancelUrl(id)}" style="color:#8A7A6E;">${t("mail_stop_link")}</a></p>`;
 }
 
 type OrderLike = {
@@ -523,7 +525,7 @@ function invoiceLine(o: OrderLike): string {
 
 function shipRow(o: OrderLike): string {
   return hasShipping(o)
-    ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#7C7060;">運費</td><td align="right" style="font-size:14.5px;">${money(o.shipping)}</td></tr>`
+    ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#8A7A6E;">運費</td><td align="right" style="font-size:14.5px;">${money(o.shipping)}</td></tr>`
     : "";
 }
 /*
@@ -595,7 +597,7 @@ export function sponsorChooseUrl(id: number, token: string, mode = "once"): stri
 /* 信裡的按鈕。primary 是實心那顆 */
 function mailBtn(href: string, label: string, primary = false): string {
   return `<a href="${href}" style="display:inline-block;margin:0 6px 8px 0;padding:11px 22px;font-size:14.5px;letter-spacing:.08em;
-       border:2px solid #3A3226;text-decoration:none;${primary ? "background:#B8402C;color:#EFE3C4;" : "background:#EFE3C4;color:#3A3226;"}">${label}</a>`;
+       border-radius:999px;text-decoration:none;${primary ? "background:#EA962E;color:#FFFFFF;" : "background:#FFFFFF;color:#D97F12;border:2px solid #EA962E;"}">${label}</a>`;
 }
 
 
@@ -604,18 +606,18 @@ export function sendOrderCreatedMail(o: OrderLike) {
   const html = wrap(
     "收到你的訂單了",
     `<p style="font-size:15px;line-height:2;">${esc(o.name)} 你好，${hasShipping(o) ? "我們已收到你的訂單，完成付款後會盡快為你出貨。" : "我們已收到你的訂單，完成付款就算完成，沒有需要寄送的東西。"}</p>
-     <p style="font-size:14px;color:#7C7060;">訂單編號　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
-     <table width="100%" style="border-top:2px solid #3A3226;margin-top:10px;">${itemRows(o.items)}
-       ${o.addon_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#B8402C;">額外支持「問爽的」，謝謝你 ♥</td><td align="right" style="font-size:14.5px;color:#B8402C;">${money(o.addon_amount)}</td></tr>` : ""}
-       ${o.discount_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#2C4A6B;">折扣${o.discount_code ? `（${esc(o.discount_code)}）` : ""}</td><td align="right" style="font-size:14.5px;color:#2C4A6B;">− ${money(o.discount_amount)}</td></tr>` : ""}
+     <p style="font-size:14px;color:#8A7A6E;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
+     <table width="100%" style="border-top:2px solid #33271F;margin-top:10px;">${itemRows(o.items)}
+       ${o.addon_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#EA962E;">額外支持「問爽的」，謝謝你 ♥</td><td align="right" style="font-size:14.5px;color:#EA962E;">${money(o.addon_amount)}</td></tr>` : ""}
+       ${o.discount_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#D97F12;">折扣${o.discount_code ? `（${esc(o.discount_code)}）` : ""}</td><td align="right" style="font-size:14.5px;color:#D97F12;">− ${money(o.discount_amount)}</td></tr>` : ""}
        ${shipRow(o)}
-       <tr><td style="padding:10px 0;font-size:16px;border-top:2px dashed #E3D3AC;"><b>總金額</b></td><td align="right" style="border-top:2px dashed #E3D3AC;font-size:17px;"><b>${money(o.total)}</b></td></tr>
+       <tr><td style="padding:10px 0;font-size:16px;border-top:2px dashed #FFE3BF;"><b>總金額</b></td><td align="right" style="border-top:2px dashed #FFE3BF;font-size:17px;"><b>${money(o.total)}</b></td></tr>
      </table>
      ${o.token ? `<p style="text-align:center;margin:20px 0 4px;">
        ${mailBtn(`${siteUrl()}/api/orders/pay?no=${encodeURIComponent(o.order_no)}&t=${encodeURIComponent(o.token)}`, "繼 續 付 款", true)}
        ${mailBtn(orderChooseUrl(o.order_no, o.token), "改用其他付款方式")}</p>
-     <p style="font-size:12.5px;color:#7C7060;line-height:1.9;text-align:center;">付款中斷（例如刷卡驗證頁出錯）不用重填任何資料，點上面的按鈕就能接續。想換一種付款方式也可以，資料一樣不用重填。已完成付款的話這封信留著當明細就好。</p>` : ""}
-     <p style="font-size:13.5px;color:#7C7060;line-height:1.9;">${addrLine(o)}${invoiceLine(o)}付款完成後會再收到一封確認信；可隨時用「訂單編號 + Email」到 <a href="${siteUrl()}/orders" style="color:#2C4A6B;">訂單查詢</a> 看進度。</p>
+     <p style="font-size:12.5px;color:#8A7A6E;line-height:1.9;text-align:center;">付款中斷（例如刷卡驗證頁出錯）不用重填任何資料，點上面的按鈕就能接續。想換一種付款方式也可以，資料一樣不用重填。已完成付款的話這封信留著當明細就好。</p>` : ""}
+     <p style="font-size:13.5px;color:#8A7A6E;line-height:1.9;">${addrLine(o)}${invoiceLine(o)}付款完成後會再收到一封確認信；可隨時用「訂單編號 + Email」到 <a href="${siteUrl()}/orders" style="color:#D97F12;">訂單查詢</a> 看進度。</p>
      ${lineInviteHtml(o)}`
   );
   return sendMail(o.email, `收到訂單 ${o.order_no}｜問爽的 WenSong`, html, undefined, { refNo: o.order_no });
@@ -625,14 +627,14 @@ export function sendOrderPaidMail(o: OrderLike) {
   const html = wrap(
     t("m_order_title"),
     `<p style="font-size:15px;line-height:2;">${esc(o.name)} 你好，${t("m_order_body")}</p>
-     <p style="font-size:14px;color:#7C7060;">訂單編號　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
-     <table width="100%" style="border-top:2px solid #3A3226;margin-top:10px;">${itemRows(o.items)}
-       ${o.addon_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#B8402C;">額外支持「問爽的」，謝謝你 ♥</td><td align="right" style="font-size:14.5px;color:#B8402C;">${money(o.addon_amount)}</td></tr>` : ""}
-       ${o.discount_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#2C4A6B;">折扣${o.discount_code ? `（${esc(o.discount_code)}）` : ""}</td><td align="right" style="font-size:14.5px;color:#2C4A6B;">− ${money(o.discount_amount)}</td></tr>` : ""}
+     <p style="font-size:14px;color:#8A7A6E;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
+     <table width="100%" style="border-top:2px solid #33271F;margin-top:10px;">${itemRows(o.items)}
+       ${o.addon_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#EA962E;">額外支持「問爽的」，謝謝你 ♥</td><td align="right" style="font-size:14.5px;color:#EA962E;">${money(o.addon_amount)}</td></tr>` : ""}
+       ${o.discount_amount ? `<tr><td style="padding:6px 0;font-size:14.5px;color:#D97F12;">折扣${o.discount_code ? `（${esc(o.discount_code)}）` : ""}</td><td align="right" style="font-size:14.5px;color:#D97F12;">− ${money(o.discount_amount)}</td></tr>` : ""}
        ${shipRow(o)}
-       <tr><td style="padding:10px 0;font-size:16px;border-top:2px dashed #E3D3AC;"><b>總金額</b></td><td align="right" style="border-top:2px dashed #E3D3AC;font-size:17px;"><b>${money(o.total)}</b></td></tr>
+       <tr><td style="padding:10px 0;font-size:16px;border-top:2px dashed #FFE3BF;"><b>總金額</b></td><td align="right" style="border-top:2px dashed #FFE3BF;font-size:17px;"><b>${money(o.total)}</b></td></tr>
      </table>
-     <p style="font-size:13.5px;color:#7C7060;line-height:1.9;">${addrLine(o)}${invoiceLine(o)}可隨時用「訂單編號 + Email」到 <a href="${siteUrl()}/orders" style="color:#2C4A6B;">訂單查詢</a> 看進度。</p>
+     <p style="font-size:13.5px;color:#8A7A6E;line-height:1.9;">${addrLine(o)}${invoiceLine(o)}可隨時用「訂單編號 + Email」到 <a href="${siteUrl()}/orders" style="color:#D97F12;">訂單查詢</a> 看進度。</p>
      ${lineInviteHtml(o)}`
   );
   return sendMail(o.email, `付款完成 ${o.order_no}｜問爽的 WenSong`, html, undefined, { refNo: o.order_no });
@@ -642,11 +644,11 @@ export function sendOrderAtmMail(o: OrderLike) {
   const html = wrap(
     t("m_atm_title"),
     `<p style="font-size:15px;line-height:2;">${esc(o.name)} 你好，${t("m_atm_body")}</p>
-     <p style="font-size:14px;color:#7C7060;">訂單編號　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
-     ${o.pay_note ? `<p style="font-size:15px;border:2px solid #2C4A6B;padding:14px 18px;color:#2C4A6B;">${esc(o.pay_note)}</p>` : ""}
+     <p style="font-size:14px;color:#8A7A6E;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
+     ${o.pay_note ? `<p style="font-size:15px;border:2px solid #D97F12;border-radius:12px;padding:14px 18px;color:#D97F12;">${esc(o.pay_note)}</p>` : ""}
      <p style="font-size:14px;">應付金額　<b>${money(o.total)}</b></p>
      ${o.token ? `<p style="margin-top:14px;">${mailBtn(orderChooseUrl(o.order_no, o.token), "改用其他付款方式")}</p>
-     <p style="font-size:13px;color:#7C7060;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>` : ""}
+     <p style="font-size:13px;color:#8A7A6E;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>` : ""}
      ${lineInviteHtml(o)}`
   );
   return sendMail(o.email, `待付款 ${o.order_no}｜問爽的 WenSong`, html, undefined, { refNo: o.order_no });
@@ -681,16 +683,16 @@ export function orderResumeMailHtml(o: OrderResume): { subject: string; html: st
 
   const btn = (href: string, label: string, primary = false) =>
     `<a href="${href}" style="display:inline-block;margin:0 6px 8px 0;padding:11px 22px;font-size:14.5px;letter-spacing:.08em;
-       border:2px solid #3A3226;text-decoration:none;${primary ? "background:#B8402C;color:#EFE3C4;" : "background:#EFE3C4;color:#3A3226;"}">${label}</a>`;
+       border-radius:999px;text-decoration:none;${primary ? "background:#EA962E;color:#FFFFFF;" : "background:#FFFFFF;color:#D97F12;border:2px solid #EA962E;"}">${label}</a>`;
 
   const body = atm
     ? `<p style="font-size:15px;line-height:2;">${name}好，你的訂單 <b>${money(o.total)}</b> 已經取得轉帳帳號，但還沒收到款項。轉帳資訊再附上一次：</p>
-       <p style="font-size:15px;line-height:2.2;border-left:3px solid #A87F2E;padding-left:14px;">${esc(o.atmInfo)}</p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">已經轉好的話請忽略這封信，入帳後系統會自動寄確認信與電子發票。逾期未轉帳這筆訂單會自動取消，不會產生任何費用。</p>
+       <p style="font-size:15px;line-height:2.2;border-left:3px solid #D97F12;padding-left:14px;">${esc(o.atmInfo)}</p>
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">已經轉好的話請忽略這封信，入帳後系統會自動寄確認信與電子發票。逾期未轉帳這筆訂單會自動取消，不會產生任何費用。</p>
        <p style="margin-top:14px;">${mailBtn(orderChooseUrl(o.order_no, o.token), "改用其他付款方式")}</p>
-       <p style="font-size:13px;color:#7C7060;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>`
+       <p style="font-size:13px;color:#8A7A6E;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>`
     : `<p style="font-size:15px;line-height:2;">${name}好，你的訂單還沒完成付款${hasShipping(o) ? "，商品先幫你留著" : ""}。</p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
          刷卡沒過多半是發卡行那端的驗證沒通過，跟你的卡有沒有額度不一定有關係。
          下面任一種方式都可以直接接續付款，<b>資料不用重填</b>：</p>
        <p style="margin-top:14px;">
@@ -702,9 +704,9 @@ export function orderResumeMailHtml(o: OrderResume): { subject: string; html: st
   const html = wrap(
     o.isFinalReminder ? "最後一次提醒：訂單還沒完成付款" : "你的訂單還沒完成付款",
     `${body}
-     <p style="font-size:14px;color:#7C7060;margin-top:18px;">訂單編號　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b>　金額　<b>${money(o.total)}</b></p>
-     <table width="100%" style="border-top:2px solid #3A3226;margin-top:8px;">${itemRows(o.items)}</table>
-     ${o.isFinalReminder ? `<p style="font-size:13px;color:#7C7060;line-height:2;margin-top:14px;">這是最後一次提醒，之後不會再打擾你。訂單逾期會自動取消並釋出庫存，不會產生任何費用。</p>` : ""}
+     <p style="font-size:14px;color:#8A7A6E;margin-top:18px;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b>　金額　<b>${money(o.total)}</b></p>
+     <table width="100%" style="border-top:2px solid #33271F;margin-top:8px;">${itemRows(o.items)}</table>
+     ${o.isFinalReminder ? `<p style="font-size:13px;color:#8A7A6E;line-height:2;margin-top:14px;">這是最後一次提醒，之後不會再打擾你。訂單逾期會自動取消並釋出庫存，不會產生任何費用。</p>` : ""}
      ${lineInviteHtml(o)}`
   );
   return { subject: `${o.isFinalReminder ? "最後提醒｜" : ""}訂單還沒完成付款 ${o.order_no}｜問爽的 WenSong`, html };
@@ -728,13 +730,13 @@ export function sendOrderFailedMail(o: OrderResume & { reason?: string }) {
     `${site}/api/orders/pay?no=${encodeURIComponent(o.order_no)}&t=${encodeURIComponent(o.token)}${m ? `&m=${encodeURIComponent(m)}` : ""}`;
   const btn = (href: string, label: string, primary = false) =>
     `<a href="${href}" style="display:inline-block;margin:0 6px 8px 0;padding:11px 22px;font-size:14.5px;letter-spacing:.08em;
-       border:2px solid #3A3226;text-decoration:none;${primary ? "background:#B8402C;color:#EFE3C4;" : "background:#EFE3C4;color:#3A3226;"}">${label}</a>`;
+       border-radius:999px;text-decoration:none;${primary ? "background:#EA962E;color:#FFFFFF;" : "background:#FFFFFF;color:#D97F12;border:2px solid #EA962E;"}">${label}</a>`;
 
   const html = wrap(
     "你的付款沒有完成，也沒有扣款",
     `<p style="font-size:15px;line-height:2;">${name}好，你剛才那筆訂單的付款沒有完成。</p>
      <p style="font-size:15px;line-height:2;"><b>先跟你說最重要的事：這筆沒有扣到款</b>，你的帳戶不會有任何扣款紀錄。</p>
-     <p style="font-size:13.5px;color:#7C7060;line-height:2;">
+     <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">
        刷卡沒過多半是卡片在跟發卡銀行做驗證時中斷了，跟你的卡有沒有額度通常沒有關係。
        如果你剛才是從 Facebook 或 Instagram 的內建瀏覽器點進來的，那種瀏覽器在跳轉到付款頁時特別容易斷掉。</p>
      <p style="font-size:15px;line-height:2;">商品先幫你留著了。下面任一種方式都可以直接接續付款，<b>資料不用重填</b>：</p>
@@ -743,12 +745,12 @@ export function sendOrderFailedMail(o: OrderResume & { reason?: string }) {
        ${isPayMethodOff("LINE Pay") ? "" : btn(payUrl("LINE Pay"), "改用 LINE Pay")}
        ${isPayMethodOff("ATM 轉帳") && isPayMethodOff("LINE Pay") ? btn(payUrl(), "接續付款", true) : ""}
      </p>
-     <p style="font-size:13px;color:#7C7060;line-height:2;margin-top:8px;">
+     <p style="font-size:13px;color:#8A7A6E;line-height:2;margin-top:8px;">
        這兩種都不需要跳轉驗證，比較不會再斷一次。想再刷一次卡的話，
        建議先用 Safari 或 Chrome 打開我們的網站，不要在社群 App 裡面操作。</p>
-     <p style="font-size:14px;color:#7C7060;margin-top:18px;">訂單編號　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b>　金額　<b>${money(o.total)}</b></p>
-     <table width="100%" style="border-top:2px solid #3A3226;margin-top:8px;">${itemRows(o.items)}</table>
-     ${o.reason ? `<p style="font-size:12px;color:#7C7060;margin-top:12px;">金流回報：${esc(o.reason)}</p>` : ""}
+     <p style="font-size:14px;color:#8A7A6E;margin-top:18px;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b>　金額　<b>${money(o.total)}</b></p>
+     <table width="100%" style="border-top:2px solid #33271F;margin-top:8px;">${itemRows(o.items)}</table>
+     ${o.reason ? `<p style="font-size:12px;color:#8A7A6E;margin-top:12px;">金流回報：${esc(o.reason)}</p>` : ""}
      ${lineInviteHtml(o)}`
   );
   return sendMail(o.email, `付款沒有完成（沒有扣款）${o.order_no}｜問爽的 WenSong`, html, undefined, { refNo: o.order_no });
@@ -777,13 +779,13 @@ export function orderPayLinkMailHtml(o: OrderResume): { subject: string; html: s
        按下面的按鈕就能接續付款，<b>資料不用重填</b>${hasShipping(o) ? "，商品先幫你留著" : ""}。</p>
      <p style="margin-top:14px;">
        <a href="${url}" style="display:inline-block;margin:0 6px 8px 0;padding:11px 22px;font-size:14.5px;letter-spacing:.08em;
-          border:2px solid #3A3226;text-decoration:none;background:#B8402C;color:#EFE3C4;">用${esc(o.pay_method)}付款</a>
+          border-radius:999px;text-decoration:none;background:#EA962E;color:#FFFFFF;">用${esc(o.pay_method)}付款</a>
      </p>
-     <p style="font-size:13px;color:#7C7060;line-height:2;margin-top:8px;">
+     <p style="font-size:13px;color:#8A7A6E;line-height:2;margin-top:8px;">
        按鈕打不開的話，把這條網址貼到瀏覽器：<br><span style="font-family:monospace;font-size:12.5px;word-break:break-all;">${esc(url)}</span></p>
-     <p style="font-size:13px;color:#7C7060;line-height:2;">如果你沒有要求更改付款方式，直接忽略這封信就好，不會有任何扣款。</p>
-     <p style="font-size:14px;color:#7C7060;margin-top:18px;">訂單編號　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b>　金額　<b>${money(o.total)}</b></p>
-     <table width="100%" style="border-top:2px solid #3A3226;margin-top:8px;">${itemRows(o.items)}</table>`
+     <p style="font-size:13px;color:#8A7A6E;line-height:2;">如果你沒有要求更改付款方式，直接忽略這封信就好，不會有任何扣款。</p>
+     <p style="font-size:14px;color:#8A7A6E;margin-top:18px;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b>　金額　<b>${money(o.total)}</b></p>
+     <table width="100%" style="border-top:2px solid #33271F;margin-top:8px;">${itemRows(o.items)}</table>`
   );
   return { subject: `付款連結（${o.pay_method}）${o.order_no}｜問爽的 WenSong`, html };
 }
@@ -804,9 +806,9 @@ export function sendOrderShippedMail(o: OrderLike, opts?: { note?: string }) {
   const html = wrap(
     t("m_ship_title"),
     `<p style="font-size:15px;line-height:2;">${esc(o.name)} 你好，${t("m_ship_body")}</p>
-     ${opts?.note ? `<p style="font-size:14.5px;line-height:2;border:2px solid #2C4A6B;padding:10px 14px;color:#2C4A6B;">${opts.note}</p>` : ""}
-     <p style="font-size:14px;color:#7C7060;">訂單編號　<b style="color:#B8402C;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
-     <p style="font-size:13.5px;color:#7C7060;">收件／取貨：${esc(o.address)}</p>
+     ${opts?.note ? `<p style="font-size:14.5px;line-height:2;border:2px solid #D97F12;border-radius:12px;padding:10px 14px;color:#D97F12;">${opts.note}</p>` : ""}
+     <p style="font-size:14px;color:#8A7A6E;">訂單編號　<b style="color:#EA962E;font-family:monospace;font-size:16px;">${esc(o.order_no)}</b></p>
+     <p style="font-size:13.5px;color:#8A7A6E;">收件／取貨：${esc(o.address)}</p>
      ${lineInviteHtml(o)}`
   );
   return sendMail(o.email, `已出貨 ${o.order_no}｜問爽的 WenSong`, html, undefined, { refNo: o.order_no });
@@ -820,10 +822,10 @@ export function sendSponsorThanksMail(sp: {
   const html = wrap(
     t("m_sp_title"),
     `<p style="font-size:15px;line-height:2;">${esc(sp.display_name) || "你"}好，收到你的${monthly ? "每月" : "單次"}支持 <b>${money(sp.amount)}</b>${monthly ? "／月" : ""}。${t("m_sp_body")}</p>
-     <p style="text-align:center;margin:18px 0;"><a href="${siteUrl()}/downloads/doudzao-wallpapers.zip" style="display:inline-block;border:2px solid #3A3226;background:#F5EDD8;color:#3A3226;text-decoration:none;font-size:14px;letter-spacing:.1em;padding:10px 22px;">下載豆棗手繪桌布集</a></p>
-     <p style="font-size:12.5px;color:#7C7060;line-height:1.9;">收據摘要：本筆為數位內容服務${monthly ? "（每月方案，屬繼續性服務契約，隨時可停止）" : "（單次方案）"}，金額 ${money(sp.amount)}，統一發票將另行寄達。</p>
-     ${monthly ? `<p style="font-size:13.5px;color:#7C7060;">${t("m_sp_monthly_note")}</p>` : ""}
-     <p style="font-size:13.5px;color:#7C7060;">${t("m_sp_invoice")}</p>`,
+     <p style="text-align:center;margin:18px 0;"><a href="${siteUrl()}/downloads/doudzao-wallpapers.zip" style="display:inline-block;border:2px solid #EA962E;border-radius:999px;background:#FFFFFF;color:#D97F12;text-decoration:none;font-size:14px;letter-spacing:.1em;padding:10px 22px;">下載豆棗手繪桌布集</a></p>
+     <p style="font-size:12.5px;color:#8A7A6E;line-height:1.9;">收據摘要：本筆為數位內容服務${monthly ? "（每月方案，屬繼續性服務契約，隨時可停止）" : "（單次方案）"}，金額 ${money(sp.amount)}，統一發票將另行寄達。</p>
+     ${monthly ? `<p style="font-size:13.5px;color:#8A7A6E;">${t("m_sp_monthly_note")}</p>` : ""}
+     <p style="font-size:13.5px;color:#8A7A6E;">${t("m_sp_invoice")}</p>`,
     monthly ? stopSponsorBottom(sp.id) : ""
   );
   return sendMail(sp.email, `${monthly ? "每月支持已生效" : "收到你的支持了"}｜問爽的 WenSong`, html, undefined, { refNo: `SP${sp.id}` });
@@ -839,14 +841,14 @@ export function sendSponsorAtmMail(sp: {
   const html = wrap(
     "轉帳帳號來了，等你完成這筆支持",
     `<p style="font-size:15px;line-height:2;">${esc(sp.display_name) || "你"}好，你的支持 <b>${money(sp.amount)}</b> 已取得轉帳帳號：</p>
-     <p style="font-size:16px;line-height:2.2;border-left:3px solid #A87F2E;padding-left:14px;">
+     <p style="font-size:16px;line-height:2.2;border-left:3px solid #D97F12;padding-left:14px;">
        銀行代碼：<b class="sans">${esc(sp.bank)}</b><br>
        虛擬帳號：<b class="sans">${esc(sp.vaccount)}</b><br>
        繳費期限：<b class="sans">${esc(sp.expire)}</b>
      </p>
-     <p style="font-size:13.5px;color:#7C7060;line-height:2;">完成轉帳後系統會自動確認入帳，屆時再寄確認信與電子發票給你。若過期未轉帳，這筆支持會自動取消，不會有任何費用。</p>
+     <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">完成轉帳後系統會自動確認入帳，屆時再寄確認信與電子發票給你。若過期未轉帳，這筆支持會自動取消，不會有任何費用。</p>
      ${sp.id && sp.token ? `<p style="margin-top:14px;">${mailBtn(sponsorChooseUrl(sp.id, sp.token, sp.mode), "改用其他付款方式")}</p>
-     <p style="font-size:13px;color:#7C7060;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>` : ""}`
+     <p style="font-size:13px;color:#8A7A6E;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>` : ""}`
   );
   return sendMail(sp.email, `轉帳帳號：${sp.vaccount}｜問爽的 WenSong`, html, undefined, { refNo: sp.id ? `SP${sp.id}` : undefined });
 }
@@ -883,20 +885,20 @@ export function sponsorResumeMailHtml(sp: SponsorResume): { subject: string; htm
 
   const body = atm
     ? `<p style="font-size:15px;line-height:2;">${name}好，你的支持 <b>${money(sp.amount)}</b> 已經取得轉帳帳號，但還沒收到款項。轉帳資訊再附上一次：</p>
-       <p style="font-size:16px;line-height:2.2;border-left:3px solid #A87F2E;padding-left:14px;">
+       <p style="font-size:16px;line-height:2.2;border-left:3px solid #D97F12;padding-left:14px;">
          銀行代碼：<b style="font-family:monospace;">${esc(sp.atm_bank)}</b><br>
          虛擬帳號：<b style="font-family:monospace;">${esc(sp.atm_vaccount)}</b><br>
          繳費期限：<b style="font-family:monospace;">${esc(sp.atm_expire)}</b>
        </p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">若過期未轉帳，這筆支持會自動取消，不會產生任何費用。已經轉好的話請忽略這封信，入帳後系統會自動寄確認信與電子發票。</p>
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">若過期未轉帳，這筆支持會自動取消，不會產生任何費用。已經轉好的話請忽略這封信，入帳後系統會自動寄確認信與電子發票。</p>
        <p style="margin-top:14px;">${mailBtn(sponsorChooseUrl(sp.id, sp.pay_token, sp.mode), "改用其他付款方式")}</p>
-       <p style="font-size:13px;color:#7C7060;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>`
+       <p style="font-size:13px;color:#8A7A6E;line-height:2;">已經轉帳的話就不用理會這顆按鈕。還沒轉、想改成刷卡或 LINE Pay 的話，按上面那顆換一種，換完之後就不要再轉到這組帳號了。</p>`
     : `<p style="font-size:15px;line-height:2;">${name}好，你在網站上填好了${monthly ? "每月定額" : "單筆"}支持 <b>${money(sp.amount)}</b>${monthly ? "／月" : ""}，但付款頁面好像沒有完成，目前還沒有向你收取任何費用。</p>
        <p style="font-size:15px;line-height:2;">如果只是中途被打斷，按下面這顆按鈕就能接續完成，不用重新填一次資料：</p>
        <p style="text-align:center;margin:26px 0;">
-         <a href="${link}" style="display:inline-block;background:#B8402C;color:#F5EDD8;text-decoration:none;font-size:16px;letter-spacing:.12em;padding:14px 34px;border:2px solid #3A3226;box-shadow:5px 5px 0 rgba(58,50,38,.25);">完 成 這 筆 支 持</a>
+         <a href="${link}" style="display:inline-block;background:#EA962E;color:#FFFFFF;text-decoration:none;font-size:16px;letter-spacing:.12em;padding:14px 34px;border-radius:999px;box-shadow:0 10px 30px rgba(217,127,18,.35);">完 成 這 筆 支 持</a>
        </p>
-       <p style="font-size:13.5px;color:#7C7060;line-height:2;">${
+       <p style="font-size:13.5px;color:#8A7A6E;line-height:2;">${
          sp.isFinalReminder
            ? "這是最後一次提醒，之後不會再打擾你。如果只是改變主意，忽略這封信就好，不會有任何費用。無論如何，謝謝你曾經想支持這些故事。"
            : "如果只是改變主意，這封信忽略就好，不會有任何費用。無論如何，謝謝你曾經想支持這些故事。"
@@ -928,7 +930,7 @@ export function sendSubmissionMail(s: { name: string; email: string; title: stri
   const html = wrap(
     t("m_sub_title"),
     `<p style="font-size:15px;line-height:2;">${esc(s.name)} 你好，你的投稿〈${esc(s.title)}〉我收到了。</p>
-     <p style="font-size:14px;color:#7C7060;line-height:2;">${t("m_sub_body")}</p>`
+     <p style="font-size:14px;color:#8A7A6E;line-height:2;">${t("m_sub_body")}</p>`
   );
   return sendMail(s.email, `收到你的投稿了〈${s.title}〉｜問爽的 WenSong`, html);
 }
@@ -942,7 +944,7 @@ export function noticeMailHtml(inp: {
 }): string {
   const btn = (b: { href: string; label: string; primary?: boolean }) =>
     `<a href="${esc(b.href)}" style="display:inline-block;margin:0 8px 10px 0;padding:12px 24px;font-size:15px;letter-spacing:.08em;
-       border:2px solid #3A3226;text-decoration:none;${b.primary ? "background:#B8402C;color:#EFE3C4;" : "background:#EFE3C4;color:#3A3226;"}">${esc(b.label)}</a>`;
+       border-radius:999px;text-decoration:none;${b.primary ? "background:#EA962E;color:#FFFFFF;" : "background:#FFFFFF;color:#D97F12;border:2px solid #EA962E;"}">${esc(b.label)}</a>`;
   return wrap(
     inp.title,
     `<p style="font-size:15px;line-height:2;white-space:pre-line;">${esc(inp.p1)}</p>
