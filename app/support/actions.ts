@@ -9,7 +9,7 @@ import { portalyEnabled, ensureOncePlan, ensureMonthlyPlan, createCheckoutSessio
 import { ecpayEnabled } from "@/lib/ecpay";
 import { newebpayEnabled } from "@/lib/newebpay";
 import { linepayEnabled } from "@/lib/linepay";
-import { isPayMethodOff, supportMode, monthlyGateway } from "@/lib/shop";
+import { isPayMethodOff, supportMode, monthlyGateway, payMethodsOff } from "@/lib/shop";
 import { sendSponsorThanksMail } from "@/lib/mail";
 import { isAdmin } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -55,7 +55,7 @@ export async function createSponsorship(formData: FormData) {
   /* 綜合模式：定額走 Portaly 外部頁時站內不收定額提交（正常介面不會送出，這裡擋手動打 API 的）；
      monthly_gateway=newebpay 時定額本來就該在站內完成，不受這道擋 */
   if (sMode === "hybrid" && mode === "monthly" && monthlyGateway() !== "newebpay" && !(await isAdmin())) redirect("/support");
-  if (!email || !amount) redirect(back("1"));
+  if (!email || !amount) { console.error("[support] 拒絕：缺 email 或金額", { email: Boolean(email), amount }); redirect(back("1")); }
   /* 信箱：收據與電子發票全靠它，打錯的話對方付了錢什麼都收不到 */
   if (checkEmail(email)) redirect(back("email"));
   /* 防灌單：沒有這道，攻擊者可以連發表單塞爆待付款紀錄，
@@ -82,20 +82,20 @@ export async function createSponsorship(formData: FormData) {
   const useNewebpay =
     !useEcpay && newebpayEnabled() && (mode === "once" || (mode === "monthly" && (sMode !== "hybrid" || monthlyGateway() === "newebpay")));
   const usePortaly = !useEcpay && !useNewebpay && portalyEnabled();
-  if (!usePortaly && isPayMethodOff(payMethod, "support")) redirect(back("1"));
+  if (!usePortaly && isPayMethodOff(payMethod, "support")) { console.error("[support] 拒絕：付款方式已停用", { mode, payMethod, off: payMethodsOff("support") }); redirect(back("payoff")); }
   if (usePortaly && mode === "monthly") {
     const tiers = json<number[]>(getSetting("sponsor_tiers", "[888,5000,30000,80000]"), [888, 5000, 30000, 80000]);
-    if (!tiers.includes(amount)) redirect(back("1"));
+    if (!tiers.includes(amount)) { console.error("[support] 拒絕：Portaly 定額金額不在級距", { amount }); redirect(back("tier")); }
   }
   /* 綠界模式的基本檢查：定期定額只收信用卡；LINE Pay 要有金鑰 */
   if (useEcpay) {
-    if (mode === "monthly" && payMethod !== "信用卡") redirect(back("1"));
-    if (payMethod === "LINE Pay" && !linepayEnabled()) redirect(back("1"));
+    if (mode === "monthly" && payMethod !== "信用卡") { console.error("[support] 拒絕：綠界定額非信用卡", { payMethod }); redirect(back("method")); }
+    if (payMethod === "LINE Pay" && !linepayEnabled()) redirect(back("method"));
   }
   /* 藍新模式的基本檢查：定期定額委託只收信用卡（規格沒有 ATM 定期扣款這條路），單筆才收 ATM */
   if (useNewebpay) {
-    if (mode === "monthly" && payMethod !== "信用卡") redirect(back("1"));
-    if (mode === "once" && !["信用卡", "ATM 轉帳"].includes(payMethod)) redirect(back("1"));
+    if (mode === "monthly" && payMethod !== "信用卡") { console.error("[support] 拒絕：藍新定額非信用卡", { payMethod }); redirect(back("method")); }
+    if (mode === "once" && !["信用卡", "ATM 轉帳"].includes(payMethod)) { console.error("[support] 拒絕：藍新單筆付款方式不支援", { payMethod }); redirect(back("method")); }
   }
 
   /* 發票偏好：雲端寄 Email（預設）／手機條碼載具／愛心碼捐贈／公司統編 */
