@@ -13,25 +13,21 @@ export const dynamic = "force-dynamic";
 
 type Row = { label: string; v: [string, string, string, string] };
 
-/* 四個級距的權益對照。門檻一律是「以上」 */
-const TIERS = ["888 以上", "3,000 以上", "6,000 以上", "12,000 以上"];
+/* 四個級距的權益對照。問爽的的支持方案是純數位內容服務（決策定案 2026-09-14），
+   每個級距拿到的東西一樣，差別只在你想給多少。門檻一律是「以上」 */
+const TIERS = ["150 以上", "500 以上", "1,500 以上", "5,000 以上"];
 const ROWS: Row[] = [
-  { label: "選題投票權", v: ["1 次", "2 次", "3 次", "4 次"] },
-  { label: "商店折扣券", v: ["95 折 1 張", "9 折 2 張", "85 折 3 張", "8 折 4 張"] },
-  { label: "免運券", v: ["1 張", "2 張", "3 張", "4 張"] },
-  { label: "線上繪本瀏覽與下載權", v: ["有", "有", "有", "有"] },
-  { label: "繪本紙本", v: ["—", "—", "有", "有"] },
-  { label: "台灣生態故事桌布圖", v: ["1 張", "2 張", "3 張", "4 張"] },
+  { label: "持續公開的節目、節目筆記、逐字稿", v: ["有", "有", "有", "有"] },
+  { label: "支持確認信與電子發票", v: ["有", "有", "有", "有"] },
+  { label: "每月方案隨時可停止", v: ["有", "有", "有", "有"] },
 ];
 
 const RULES = [
-  "以上為單筆支持之單次提供。每月支持者：繪本線上瀏覽與下載權、商店折扣券、免運券每月提供。",
-  "選題投票權：依方案每年行使。",
-  "台灣生態故事桌布圖：依方案支持期間內繪製之版本，每版本寄送一次。",
-  "繪本紙本：支持期間內出版之新書，每本寄送一次。",
-  "券的效期為一年。",
-  "折扣券與免運券，單筆訂單各限用一張，可同時使用。",
-];
+  "支持方案為數位內容服務之對價，不含任何實體商品或回饋品。",
+  "每月方案屬繼續性服務契約，由藍新金流按月扣款，可隨時透過確認信中的連結停止，停止後不再產生新扣款。",
+  "電子發票由光貿電子發票加值中心開立，寄至支持時填寫的 Email 或存入指定載具。",
+  "退款規則依使用條款第八條與退換貨政策辦理。",
+]
 
 export default async function SupportPlan() {
   if (!(await planViewable())) {
@@ -44,10 +40,10 @@ export default async function SupportPlan() {
             <div className="inner" style={{ paddingTop: 44, paddingBottom: 44 }}>
               <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: ".14em" }}>這個頁面目前沒有開放</h2>
               <p style={{ color: "var(--grey)", fontSize: 14.5, marginTop: 12, lineHeight: 2 }}>
-                你可以先去看看文章，或到支持頁了解怎麼支持這個網站。
+                你可以先去聽一集，或到支持頁了解怎麼支持這個節目。
               </p>
               <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                <Link className="btn" href="/articles">讀文章</Link>
+                <Link className="btn" href="/ep">聽一集</Link>
                 <Link className="btn fill" href="/support">支持頁</Link>
               </div>
             </div>
