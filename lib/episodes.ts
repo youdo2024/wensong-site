@@ -361,6 +361,24 @@ export function episodeGuestCounts(): Record<number, number> {
   return map;
 }
 
+/*
+ * 集數 key／slug_alias 是否跟別集的 key 或 alias 撞號（後台 saveEpisode 存檔前檢查）。
+ *
+ * 舊查詢只驗證「新 key」是否撞到別集的 key 或 alias，沒有驗證「新 slug_alias」
+ * 是否撞到別集的 key。可以把某集的英文別名設成另一集現有的 key 而不會跳錯，
+ * 但 /ep/[key] 的 load() 一律先比對 key 再查 alias，這個別名會被真正持有
+ * 那個 key 的集數永久擋住：後台顯示存檔成功，前台 301 永遠不會生效。
+ * 兩個方向都要查，所以用 key／alias 兩個候選值同時比對對方的 key 欄與 alias 欄。
+ */
+export function episodeSlugConflict(id: number, key: string, alias: string): boolean {
+  const candidates = alias ? [key, alias] : [key];
+  const placeholders = candidates.map(() => "?").join(",");
+  const row = db
+    .prepare(`SELECT id FROM episodes WHERE id<>? AND (key IN (${placeholders}) OR (slug_alias<>'' AND slug_alias IN (${placeholders})))`)
+    .get(id, ...candidates, ...candidates);
+  return !!row;
+}
+
 export function episodesOfGuest(guestId: number): EpisodeRow[] {
   return db
     .prepare("SELECT e.* FROM episodes e JOIN episode_guests eg ON eg.episode_id=e.id WHERE eg.guest_id=? AND e.published=1 ORDER BY e.pub_date DESC")

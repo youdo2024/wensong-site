@@ -4,7 +4,7 @@ import { clientIp } from "@/lib/ratelimit";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import db, { setSetting, getSetting } from "@/lib/db";
-import { parseChapterLine } from "@/lib/episodes";
+import { episodeSlugConflict, parseChapterLine } from "@/lib/episodes";
 import { bumpSessionEpoch, checkAccountPassword, checkPassword, createSession, destroySession, isAdmin, loginLocked, recordLoginFail, clearLoginFails, passwordUsable, accountModeEnabled } from "@/lib/auth";
 import { logAdmin } from "@/lib/admin-log";
 import { sendOrderShippedMail, sendMail } from "@/lib/mail";
@@ -1996,8 +1996,7 @@ export async function saveEpisode(formData: FormData) {
   const key = String(formData.get("key") || "").trim().toLowerCase();
   const alias = String(formData.get("slug_alias") || "").trim().toLowerCase();
   if (!slugOk(key) || (alias && !slugOk(alias))) redirect(`/admin/episodes/${id}?error=key`);
-  const dup = db.prepare("SELECT id FROM episodes WHERE (key=? OR (slug_alias<>'' AND slug_alias=?)) AND id<>?").get(key, key, id);
-  if (dup) redirect(`/admin/episodes/${id}?error=key`);
+  if (episodeSlugConflict(id, key, alias)) redirect(`/admin/episodes/${id}?error=key`);
   const series = String(formData.get("series") || "main");
   const data = {
     id,

@@ -1723,5 +1723,28 @@ eq("空字串不裝懂", fmtDate(""), "");
   }
 }
 
+/* ── episodeSlugConflict：saveEpisode 的撞號檢查只顧「新 key」，沒顧「新 alias」──
+   舊查詢只驗證新 key 是否撞到別集的 key 或 alias，可以把某集的英文別名設成
+   另一集現有的 key 而不會跳錯；但 /ep/[key] 一律先比對 key 再查 alias，
+   這個別名會被真正持有那個 key 的集數永久擋住，後台顯示存檔成功、
+   前台 301 永遠不會生效。兩個方向都要查。 */
+{
+  const { episodeSlugConflict } = await import("@/lib/episodes");
+  const now = new Date().toISOString();
+  const guidA = "smk-slug-a", guidB = "smk-slug-b";
+  const cleanup = () => db.prepare("DELETE FROM episodes WHERE guid IN (?,?)").run(guidA, guidB);
+  cleanup();
+  try {
+    const idA = Number(db.prepare("INSERT INTO episodes (guid,key,slug_alias,title,created_at) VALUES (?,?,?,?,?)").run(guidA, "smk-slug-23", "", "A", now).lastInsertRowid);
+    const idB = Number(db.prepare("INSERT INTO episodes (guid,key,slug_alias,title,created_at) VALUES (?,?,?,?,?)").run(guidB, "smk-slug-99", "", "B", now).lastInsertRowid);
+    ok("自己的 key／alias 不算撞號", !episodeSlugConflict(idA, "smk-slug-23", ""));
+    ok("新 key 撞到別集的 key", episodeSlugConflict(idB, "smk-slug-23", ""));
+    ok("新 alias 撞到別集的 key（原本的漏洞：把別名設成別集現有的 key）", episodeSlugConflict(idB, "smk-slug-99", "smk-slug-23"));
+    ok("沒有撞號就放行", !episodeSlugConflict(idB, "smk-slug-99", "smk-slug-alias-free"));
+  } finally {
+    cleanup();
+  }
+}
+
 console.log(`\n${fail === 0 ? "✓" : "✗"} 冒煙測試：${pass} 過 ${fail} 敗`);
 process.exit(fail === 0 ? 0 : 1);
