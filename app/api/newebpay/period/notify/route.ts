@@ -80,6 +80,24 @@ export async function POST(req: NextRequest) {
     ? db.prepare("SELECT 1 FROM sponsor_charges WHERE sponsorship_id=? AND trade_no=? AND trade_no<>''").get(sp.id, r.tradeNo)
     : null;
   if (dup) return OK();
+  /*
+   * 金額防禦：比照單筆入帳（lib/payment-sync.ts 的 applyNewebpaySponsorResult）——
+   * 藍新回報金額若跟委託金額（sponsorships.amount）兜不起來，不能悄悄照單全收。
+   * 原本這裡完全不比對，直接拿 r.amt（藍新說扣了多少）當真，站長事後在後台調整過
+   * 方案金額、但藍新那邊的委託沒同步更新的話，系統會把錯的金額當成對的入帳、
+   * 開錯金額的發票，後台也完全看不出這筆跟原本談好的委託金額不一樣。
+   * 這裡不入帳，只記一筆失敗的 sponsor_charges 讓站長自己去核對，
+   * 金流仍以 sponsorships.amount 為準，不是拿 r.amt 蓋過去繼續放行。
+   */
+  if (Number.isFinite(r.amt) && r.amt > 0 && r.amt !== sp.amount) {
+    console.error("[newebpay period notify] 續期金額不符，未入帳", { sponsorId: sp.id, reported: r.amt, expected: sp.amount, merOrderNo: r.merOrderNo, tradeNo: r.tradeNo });
+    db.prepare(
+      "INSERT INTO sponsor_charges (sponsorship_id,mer_trade_no,trade_no,amount,status,note,created_at) VALUES (?,?,?,?,?,?,?)"
+    ).run(sp.id, r.merOrderNo, r.tradeNo, r.amt, "failed", `⚠️金額不符：藍新回報 ${r.amt}、委託應為 ${sp.amount}，本期未入帳，請人工確認`, now);
+    db.prepare("UPDATE sponsorships SET last_charge_note=? WHERE id=? AND status='active'")
+      .run(`⚠️續期金額不符：藍新回報 ${r.amt}、應為 ${sp.amount}（第 ${r.alreadyTimes} 期），本期未入帳，請人工確認`, sp.id);
+    return OK();
+  }
   const c = db
     .prepare("INSERT INTO sponsor_charges (sponsorship_id,mer_trade_no,trade_no,amount,status,note,created_at) VALUES (?,?,?,?,?,?,?)")
     .run(sp.id, r.merOrderNo, r.tradeNo, r.amt || sp.amount, "paid", `定期定額第 ${r.alreadyTimes} 期`, now);
