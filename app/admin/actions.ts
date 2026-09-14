@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import db, { setSetting, getSetting } from "@/lib/db";
 import { episodeSlugConflict, parseChapterLine } from "@/lib/episodes";
-import { bumpSessionEpoch, checkAccountPassword, checkPassword, createSession, destroySession, isAdmin, loginLocked, recordLoginFail, clearLoginFails, passwordUsable, accountModeEnabled } from "@/lib/auth";
+import { bumpSessionEpoch, checkAccountPassword, checkPassword, createSession, currentAdmin, destroySession, isAdmin, loginLocked, recordLoginFail, clearLoginFails, passwordUsable, accountModeEnabled } from "@/lib/auth";
 import { logAdmin } from "@/lib/admin-log";
 import { sendOrderShippedMail, sendMail } from "@/lib/mail";
 import { mailEnabled, sendOrderPaidMail, sendSponsorThanksMail, sendSponsorChargedMail, sendSponsorResumeMail } from "@/lib/mail";
@@ -122,12 +122,16 @@ export async function login(formData: FormData) {
   redirect("/admin");
 }
 export async function logout() {
-  /* 記錄要在 session 還有效的時候讀，作廢之後 currentAdmin() 就讀不到人了 */
+  /* 記錄與 bump 都要在 session 還有效的時候讀，作廢之後 currentAdmin() 就讀不到人了。
+     帳號制（id>0）先記住是誰，等一下只 bump 這個人的 epoch，不影響另外兩位；
+     單一密碼制（沒有帳號，currentAdmin() 讀不到人）退回 id 0，走全域那一份。 */
+  const admin = (await currentAdmin()) ?? { id: 0, name: "站長" };
   await logAdmin("登出");
-  /* 登出＝把這一代的 session 全部作廢，不只是刪掉自己瀏覽器裡那張。
+  /* 登出＝把這一代 session 作廢，不只是刪掉自己瀏覽器裡那張。
      cookie 沒有識別碼，站長懷疑 cookie 外流時能做的就是按登出；
-     少了這一行，被側錄走的那張還能再用 7 天。 */
-  bumpSessionEpoch();
+     少了這一行，被側錄走的那張還能再用 7 天。只 bump 自己的 epoch，
+     不會像改版前那樣把另外兩位當下的 session 一起踢掉（2026-09-14 審查抓到）。 */
+  bumpSessionEpoch(admin);
   await destroySession();
   redirect("/admin/login");
 }

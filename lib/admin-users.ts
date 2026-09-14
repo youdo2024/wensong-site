@@ -46,6 +46,7 @@ export type AdminUserRow = {
   active: number;
   created_at: string;
   last_login_at: string;
+  session_epoch: number;
 };
 
 export function findUser(username: string): AdminUserRow | undefined {
@@ -54,6 +55,24 @@ export function findUser(username: string): AdminUserRow | undefined {
 
 export function touchLogin(id: number): void {
   db.prepare("UPDATE admin_users SET last_login_at=? WHERE id=?").run(new Date().toISOString(), id);
+}
+
+/*
+ * 這個人目前的 session epoch（帳號制，各自一份，admin_users.session_epoch）。
+ * 查無此人（帳號被刪掉之後，舊 cookie 還留著）回傳 -1：這是任何簽出去的
+ * epoch 都不可能等於的值，讓驗證直接失敗關閉，不要因為「查無」就放行
+ * 或悄悄退回預設值 1（萬一剛好有別人的 cookie epoch 也是 1 就誤放行了）。
+ */
+export function getUserEpoch(id: number): number {
+  const row = db.prepare("SELECT session_epoch FROM admin_users WHERE id=?").get(id) as { session_epoch: number } | undefined;
+  if (!row) return -1;
+  const n = Number(row.session_epoch);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+/* 登出：只讓這一個人的 session 全部失效，不影響另外兩位（每人各自一份 epoch，2026-09-14 審查抓到） */
+export function bumpUserEpoch(id: number): void {
+  db.prepare("UPDATE admin_users SET session_epoch = session_epoch + 1 WHERE id=?").run(id);
 }
 
 /*

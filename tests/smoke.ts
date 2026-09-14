@@ -27,7 +27,7 @@ import { createHmac, createCipheriv } from "crypto";
 import { deriveZip, zipDisplay } from "@/lib/zip-lookup";
 import { createThrottle, isNoise, sanitizeCspUrl, violationKey } from "@/lib/csp-noise";
 import { passwordUsable, accountModeEnabled } from "@/lib/admin-password";
-import { hashPassword, verifyPassword, parseAdminUserEnv, checkAccountPassword } from "@/lib/admin-users";
+import { hashPassword, verifyPassword, parseAdminUserEnv, checkAccountPassword, getUserEpoch, bumpUserEpoch } from "@/lib/admin-users";
 import { activeChoices, choiceActive, parseChoiceExpiry, splitChoices, weekRetired } from "@/lib/choice-split";
 import { csvCell } from "@/lib/csv";
 import { brandOfMethod, cvsMethodOf, isCvsMethod, normalizeBrand } from "@/lib/cvs";
@@ -920,26 +920,46 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
    * 等於簽出去就收不回來：按了登出只是刪掉自己瀏覽器裡那張，
    * 被側錄走的那張照樣進得了後台，而且要等七天才過期。
    * 加一段 epoch 之後，登出把資料庫裡的數字加一，全部作廢。
+   *
+   * epoch 現在是「每人各自一份」（2026-09-14 審查抓到：原本三人共用同一個
+   * 全域 epoch，任何一位登出都會把另外兩位當下的 session 一起踢掉）。
+   * verifySession／sessionUser 改收 epochForUser(id) 函式而不是單一數字，
+   * 這裡用一個假的 id→epoch 對照表模擬「帳號制各自一份」。
    */
   const sign = (p: string) => createHmac("sha256", "測試用金鑰").update(p).digest("hex");
   const now = Date.parse("2026-09-06T01:00:00Z");
   const exp = now + 60_000;
+  const epochs: Record<number, number> = { 2: 3, 5: 3 };
+  const epochForUser = (id: number) => epochs[id] ?? -1;
   const cookie = packSession(exp, 3, sign, { id: 2, name: "阿明" });
   eq("cookie 是四段：到期時間.epoch.使用者.簽章", cookie.split(".").length, 4);
-  ok("同一代的 cookie 驗得過", verifySession(cookie, sign, 3, now));
-  eq("解得回登入者的 id 與名字", sessionUser(cookie, sign, 3, now), { id: 2, name: "阿明" });
-  ok("登出後 epoch 加一，舊 cookie 立刻失效", !verifySession(cookie, sign, 4, now));
-  eq("失效的 cookie 解不出登入者", sessionUser(cookie, sign, 4, now), null);
-  ok("過期的 cookie 不算數", !verifySession(cookie, sign, 3, exp + 1));
-  ok("簽章被改過就不算數", !verifySession(cookie.slice(0, -1) + "0", sign, 3, now));
-  ok("換一把金鑰簽的不算數", !verifySession(cookie, (p) => createHmac("sha256", "別把金鑰").update(p).digest("hex"), 3, now));
+  ok("同一代的 cookie 驗得過", verifySession(cookie, sign, epochForUser, now));
+  eq("解得回登入者的 id 與名字", sessionUser(cookie, sign, epochForUser, now), { id: 2, name: "阿明" });
+
+  /* 另一位（id 5）的 cookie，跟阿明（id 2）同一時間點各自簽出去 */
+  const cookie5 = packSession(exp, epochs[5], sign, { id: 5, name: "小華" });
+  ok("小華的 cookie 一開始也驗得過", verifySession(cookie5, sign, epochForUser, now));
+
+  /* 阿明登出：只 bump 他自己（id 2）的 epoch，小華（id 5）的不受影響 */
+  epochs[2] += 1;
+  ok("阿明登出後，他自己的舊 cookie 立刻失效", !verifySession(cookie, sign, epochForUser, now));
+  eq("失效的 cookie 解不出登入者", sessionUser(cookie, sign, epochForUser, now), null);
+  ok("小華的 cookie 沒被阿明的登出連坐，照樣驗得過", verifySession(cookie5, sign, epochForUser, now));
+  eq("小華照樣解得回自己的名字", sessionUser(cookie5, sign, epochForUser, now), { id: 5, name: "小華" });
+
+  ok("過期的 cookie 不算數", !verifySession(cookie5, sign, epochForUser, exp + 1));
+  ok("簽章被改過就不算數", !verifySession(cookie5.slice(0, -1) + "0", sign, epochForUser, now));
+  ok("換一把金鑰簽的不算數", !verifySession(cookie5, (p) => createHmac("sha256", "別把金鑰").update(p).digest("hex"), epochForUser, now));
   /* 舊格式（兩段或三段）自然驗不過，站長重登一次就好，不必寫相容分支 */
-  ok("舊格式 cookie 一律驗不過", !verifySession(`${exp}.${sign(String(exp))}`, sign, 3, now));
-  ok("沒有 cookie 不算登入", !verifySession(undefined, sign, 3, now));
-  ok("亂填的 cookie 不算登入", !verifySession("隨便打的東西", sign, 3, now));
-  /* 沒帶登入者（舊的單一密碼制）：預設記成「站長」 */
+  ok("舊格式 cookie 一律驗不過", !verifySession(`${exp}.${sign(String(exp))}`, sign, epochForUser, now));
+  ok("沒有 cookie 不算登入", !verifySession(undefined, sign, epochForUser, now));
+  ok("亂填的 cookie 不算登入", !verifySession("隨便打的東西", sign, epochForUser, now));
+  /* 帳號被刪掉之後，舊 cookie 還留著：epochForUser 查無此人要回傳一個絕不會等於的值，失敗關閉 */
+  ok("查無此人的 epoch 一律驗不過，不能放行", !verifySession(cookie5, sign, () => -1, now));
+  /* 沒帶登入者（舊的單一密碼制，id 0）：預設記成「站長」 */
+  const globalEpochForUser = () => 3;
   const defaultCookie = packSession(exp, 3, sign);
-  eq("沒帶使用者時預設記成「站長」", sessionUser(defaultCookie, sign, 3, now), { id: 0, name: "站長" });
+  eq("沒帶使用者時預設記成「站長」", sessionUser(defaultCookie, sign, globalEpochForUser, now), { id: 0, name: "站長" });
   /* epoch 讀壞了寧可退回第一代，也不能變成 NaN 讓站長自己都登不進去 */
   eq("epoch 讀不到退回 1", parseEpoch(""), DEFAULT_EPOCH);
   eq("epoch 是亂碼退回 1", parseEpoch("abc"), 1);
@@ -1012,6 +1032,37 @@ import { staleClaimCutoff, CLAIM_STALE_MS } from "@/lib/newsletter";
     );
   } finally {
     db.prepare("DELETE FROM admin_users WHERE username=?").run(tmpUser);
+  }
+}
+
+/*
+ * bumpSessionEpoch 每人各自一份：原本 admin_session_epoch 是全站共用一個
+ * settings 鍵，任何一位登出都會把另外兩位當下的 session 一起踢掉
+ * （2026-09-14 審查抓到）。改成 admin_users.session_epoch 每人各自一欄，
+ * 這裡直接測 getUserEpoch／bumpUserEpoch 這兩支資料庫層的函式。
+ */
+{
+  const tmpA = `smoke_epoch_a_${Date.now()}`;
+  const tmpB = `smoke_epoch_b_${Date.now()}`;
+  const idA = Number(
+    db.prepare("INSERT INTO admin_users (username,name,pass_hash,active,created_at) VALUES (?,?,?,1,?)")
+      .run(tmpA, "冒煙 A", hashPassword("pw-a"), new Date().toISOString()).lastInsertRowid
+  );
+  const idB = Number(
+    db.prepare("INSERT INTO admin_users (username,name,pass_hash,active,created_at) VALUES (?,?,?,1,?)")
+      .run(tmpB, "冒煙 B", hashPassword("pw-b"), new Date().toISOString()).lastInsertRowid
+  );
+  try {
+    eq("新帳號的 epoch 預設是 1", getUserEpoch(idA), 1);
+    eq("另一個新帳號的 epoch 也是各自的 1", getUserEpoch(idB), 1);
+    bumpUserEpoch(idA);
+    eq("bump 之後這個人的 epoch 加一", getUserEpoch(idA), 2);
+    eq("另一個人的 epoch 完全不受影響（不會被連坐登出）", getUserEpoch(idB), 1);
+    bumpUserEpoch(idA);
+    eq("再 bump 一次繼續累加，不是重置回某個固定值", getUserEpoch(idA), 3);
+    eq("查無此帳號回傳 -1（失敗關閉，不能悄悄放行）", getUserEpoch(-99999), -1);
+  } finally {
+    db.prepare("DELETE FROM admin_users WHERE username IN (?,?)").run(tmpA, tmpB);
   }
 }
 

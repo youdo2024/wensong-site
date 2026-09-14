@@ -506,6 +506,13 @@ function addColumn(table: string, col: string, def: string) {
 addColumn("orders", "recipient_name", "TEXT DEFAULT ''");
 addColumn("orders", "recipient_phone", "TEXT DEFAULT ''");
 
+/*
+ * 每人各自一份的登出 epoch（2026-09-14 審查抓到：原本 admin_session_epoch
+ * 是全站共用一個 settings 鍵，任何一位登出都會把另外兩位當下的 session
+ * 一起踢掉）。預設 1，跟 lib/admin-session.ts 的 DEFAULT_EPOCH 一致。
+ */
+addColumn("admin_users", "session_epoch", "INTEGER DEFAULT 1");
+
 /* ═══════════════════════ 預設設定（既有資料庫不覆蓋） ═══════════════════════ */
 const defSet = db.prepare("INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)");
 
