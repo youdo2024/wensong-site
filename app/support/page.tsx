@@ -87,6 +87,8 @@ export default async function SupportPage({
           <p className="msg-err">手機條碼載具格式不對，斜線開頭共 8 碼（例如 /AB12CD3）。</p>
         ) : sp.error === "email" ? (
           <p className="msg-err">Email 看起來不對，請確認網域選對了再送出（收據與電子發票會寄到這個信箱）。</p>
+        ) : sp.error === "nogw" ? (
+          <p className="msg-err">目前沒有可用的金流。站長請到後台「設定・贊助」：每月定額選「站內藍新信用卡定期定額」，或在「前往指定頁面贊助」填外部網址。</p>
         ) : sp.error === "payoff" ? (
           <p className="msg-err">這個付款方式目前停用。站長請到後台「設定・商店」的付款方式，把「支持」那一排的信用卡勾回來。</p>
         ) : sp.error === "method" ? (
