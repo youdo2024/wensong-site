@@ -60,8 +60,11 @@ export async function createSponsorship(formData: FormData) {
   if (checkEmail(email)) redirect(back("email"));
   /* 防灌單：沒有這道，攻擊者可以連發表單塞爆待付款紀錄，
      而且每筆會對填入的任意 Email 寄提醒信——等於拿本站做郵件轟炸 */
-  if (!rateLimit(`sponsor:${clientIp(await headers())}`, 10, 60 * 60 * 1000)) redirect(back("1"));
-  if (!rateLimit(`sponsor-mail:${email.toLowerCase()}`, 5, 24 * 60 * 60 * 1000)) redirect(back("1"));
+  /* 限流：同 IP 每小時 10 次、同信箱每天 5 次。站長登入後台測金流時不受限（2026-09-14 站長連測幾次就被擋，
+     而錯誤訊息又寫成「資料不完整」，查了半天）。被擋要講清楚是被擋，不是資料填錯。 */
+  const admin = await isAdmin();
+  if (!admin && !rateLimit(`sponsor:${clientIp(await headers())}`, 10, 60 * 60 * 1000)) redirect(back("rate"));
+  if (!admin && !rateLimit(`sponsor-mail:${email.toLowerCase()}`, 5, 24 * 60 * 60 * 1000)) redirect(back("rate"));
 
   /* 手機一律必填（站長指示 2026-08-31，原本只有滿 2,000 才要）。
      表單的 required 擋得住一般人，擋不住直接打這支的請求，所以這裡再驗一次。 */
